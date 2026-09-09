@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
+
 import '../models/user_model.dart';
 import '../repositories/interfaces/auth_repository.dart';
 
 class AuthController extends ChangeNotifier {
   final AuthRepository _authRepository;
 
-// Khởi tạo trực tiếp bằng this._authRepository
+  // Khởi tạo trực tiếp bằng this._authRepository
   AuthController(this._authRepository);
   UserModel? _currentUser;
   bool _isLoading = false;

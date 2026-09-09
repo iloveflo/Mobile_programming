@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../controllers/auth_controller.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
@@ -50,7 +51,10 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'Xin chào, ${user?.name ?? "Người dùng"}!',
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -65,7 +69,10 @@ class HomeScreen extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.redAccent,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ],

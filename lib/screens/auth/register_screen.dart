@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../controllers/auth_controller.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
@@ -11,7 +12,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _formKey =GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -86,7 +87,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           prefixIcon: Icon(Icons.person_outline),
                           border: OutlineInputBorder(),
                         ),
-                        validator: (value) => (value == null || value.trim().isEmpty)
+                        validator: (value) =>
+                            (value == null || value.trim().isEmpty)
                             ? 'Vui lòng nhập họ tên'
                             : null,
                       ),
@@ -99,7 +101,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           prefixIcon: Icon(Icons.email_outlined),
                           border: OutlineInputBorder(),
                         ),
-                        validator: (value) => (value == null || !value.contains('@'))
+                        validator: (value) =>
+                            (value == null || !value.contains('@'))
                             ? 'Email không hợp lệ'
                             : null,
                       ),
@@ -112,14 +115,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           prefixIcon: const Icon(Icons.lock_outline),
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility),
-                            onPressed: () =>
-                                setState(() => _obscurePassword = !_obscurePassword),
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
                           ),
                         ),
-                        validator: (value) => (value == null || value.length < 6)
+                        validator: (value) =>
+                            (value == null || value.length < 6)
                             ? 'Mật khẩu phải từ 6 ký tự trở lên'
                             : null,
                       ),
@@ -132,13 +139,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           prefixIcon: Icon(Icons.lock_reset),
                           border: OutlineInputBorder(),
                         ),
-                        validator: (value) => (value != _passwordController.text)
+                        validator: (value) =>
+                            (value != _passwordController.text)
                             ? 'Mật khẩu xác nhận không khớp'
                             : null,
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton(
-                        onPressed: _authController.isLoading ? null : _handleRegister,
+                        onPressed: _authController.isLoading
+                            ? null
+                            : _handleRegister,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF35313B),
                           foregroundColor: Colors.white,
@@ -153,7 +163,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text('Đăng Ký', style: TextStyle(fontSize: 16)),
+                            : const Text(
+                                'Đăng Ký',
+                                style: TextStyle(fontSize: 16),
+                              ),
                       ),
                     ],
                   );
