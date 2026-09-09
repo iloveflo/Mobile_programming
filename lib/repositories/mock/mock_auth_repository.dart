@@ -8,7 +8,9 @@ class MockAuthRepository implements AuthRepository {
     await Future.delayed(const Duration(milliseconds: 800));
 
     // Tìm user trong Database giả lập
-    final record = UserMockData.usersDatabase.cast<Map<String, dynamic>?>().firstWhere(
+    final record = UserMockData.usersDatabase
+        .cast<Map<String, dynamic>?>()
+        .firstWhere(
           (element) =>
               element?['user'].email == email.trim() &&
               element?['password'] == password,
@@ -24,7 +26,9 @@ class MockAuthRepository implements AuthRepository {
 
   @override
   Future<UserModel> register(String name, String email, String password) async {
-    await Future.delayed(const Duration(milliseconds: 1000)); // Giả lập mạng chậm
+    await Future.delayed(
+      const Duration(milliseconds: 1000),
+    ); // Giả lập mạng chậm
 
     // Kiểm tra xem email đã tồn tại hay chưa
     final isExist = UserMockData.usersDatabase.any(
@@ -44,10 +48,7 @@ class MockAuthRepository implements AuthRepository {
     );
 
     // Lưu vào database RAM
-    UserMockData.usersDatabase.add({
-      'user': newUser,
-      'password': password,
-    });
+    UserMockData.usersDatabase.add({'user': newUser, 'password': password});
 
     return newUser;
   }

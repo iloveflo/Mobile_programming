@@ -12,23 +12,17 @@ class ApiAuthRepository implements AuthRepository {
     // Truyền trực tiếp path endpoint vào client.post
     final response = await client.post(
       '/auth/login',
-      body: {
-        'email': email,
-        'password': password,
-      },
+      body: {'email': email, 'password': password},
     );
 
     return UserModel.fromJson(response.data);
   }
+
   @override
   Future<UserModel> register(String name, String email, String password) async {
     final response = await client.post(
       '/auth/register',
-      body: {
-        'name': name,
-        'email': email,
-        'password': password,
-      },
+      body: {'name': name, 'email': email, 'password': password},
     );
 
     return UserModel.fromJson(response.data);

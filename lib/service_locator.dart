@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+
 import 'controllers/auth_controller.dart';
 import 'core/network/api_client.dart';
 import 'repositories/interfaces/auth_repository.dart';

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../controllers/auth_controller.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
@@ -14,7 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController(text: 'dev@test.com');
   final _passwordController = TextEditingController(text: '123456');
   final _authController = sl<AuthController>();
-  
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -27,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _emailController.text,
       _passwordController.text,
     );
-    
+
     if (!mounted) return;
 
     if (isSuccess) {
@@ -41,8 +42,6 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     }
   }
-
-  
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ? const CircularProgressIndicator()
                       : const Text('Đăng nhập'),
                 ),
-                
+
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () {

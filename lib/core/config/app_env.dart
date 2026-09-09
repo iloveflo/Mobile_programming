@@ -2,7 +2,10 @@
 
 class AppEnv {
   // Cờ bật/tắt Mock (Mặc định true để tiện code UI)
-  static const bool useMock = bool.fromEnvironment('USE_MOCK', defaultValue: true);
+  static const bool useMock = bool.fromEnvironment(
+    'USE_MOCK',
+    defaultValue: true,
+  );
 
   // Môi trường chạy (dev / prod)
   static const String _env = String.fromEnvironment('ENV', defaultValue: 'dev');
