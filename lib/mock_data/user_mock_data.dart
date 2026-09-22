@@ -1,16 +1,18 @@
 import '../models/user_model.dart';
 
 class UserMockData {
-  // Bộ nhớ đệm giả lập Database lưu danh sách người dùng
-  static final List<Map<String, dynamic>> usersDatabase = [
-    {
-      'user': const UserModel(
-        id: 'usr_001',
-        name: 'Nguyen Van Dev',
-        email: 'dev@test.com',
-        token: 'mock_token_123',
-      ),
-      'password': '123456',
-    },
+  static final List<UserModel> usersDatabase = [
+    UserModel(
+      userId: 1,
+      fullName: 'Nguyen Van Dev',
+      email: 'dev@test.com',
+      phone: '0900000001',
+      passwordHash: '123456',
+      monthlyIncome: 25000000.0,
+      dateOfBirth: DateTime(1998, 5, 12),
+      createdAt: DateTime(2026, 1, 5, 9),
+      updatedAt: DateTime(2026, 9, 1, 8),
+      token: 'mock_token_123',
+    ),
   ];
 }
