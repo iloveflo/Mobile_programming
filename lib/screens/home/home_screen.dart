@@ -50,8 +50,13 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
-        title: const Text('Xác nhận đăng xuất', style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        title: const Text(
+          'Xác nhận đăng xuất',
+          style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+        ),
         content: const Text('Bạn có muốn đăng xuất khỏi tài khoản không?'),
         actions: [
           TextButton(
@@ -64,7 +69,11 @@ class _HomeScreenState extends State<HomeScreen> {
               await _authController.logout();
               _loanController.clear();
               if (!context.mounted) return;
-              Navigator.pushNamedAndRemoveUntil(context, AppRouter.login, (route) => false);
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                AppRouter.login,
+                (route) => false,
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
@@ -78,11 +87,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showComingSoonDialog(BuildContext context, String serviceName, String description) {
+  void _showComingSoonDialog(
+    BuildContext context,
+    String serviceName,
+    String description,
+  ) {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.0)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18.0),
+        ),
         title: Row(
           children: [
             Container(
@@ -91,13 +106,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: const Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(10.0),
               ),
-              child: const Icon(Icons.hourglass_top_rounded, color: AppColors.warning, size: 22.0),
+              child: const Icon(
+                Icons.hourglass_top_rounded,
+                color: AppColors.warning,
+                size: 22.0,
+              ),
             ),
             const SizedBox(width: 10.0),
             const Expanded(
               child: Text(
                 'Tính năng đang phát triển',
-                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                style: TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
           ],
@@ -108,12 +131,20 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               'Dịch vụ "$serviceName" hiện chưa khả dụng trên phiên bản thử nghiệm này.',
-              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 8.0),
             Text(
               description,
-              style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary, height: 1.4),
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
             ),
           ],
         ),
@@ -145,14 +176,25 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.support_agent_rounded, color: Color(0xFFE11D48), size: 26.0),
+                const Icon(
+                  Icons.support_agent_rounded,
+                  color: Color(0xFFE11D48),
+                  size: 26.0,
+                ),
                 const SizedBox(width: 10.0),
                 const Text(
                   'Hỗ trợ khách hàng 24/7',
-                  style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  style: TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 const Spacer(),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
               ],
             ),
             const SizedBox(height: 14.0),
@@ -166,19 +208,53 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.phone_in_talk_rounded, color: AppColors.primary, size: 20.0),
+                      Icon(
+                        Icons.phone_in_talk_rounded,
+                        color: AppColors.primary,
+                        size: 20.0,
+                      ),
                       SizedBox(width: 10.0),
-                      Text('Hotline: ', style: TextStyle(fontSize: 13.0, color: AppColors.textSecondary)),
-                      Text('1900 8888 (Miễn phí)', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                      Text(
+                        'Hotline: ',
+                        style: TextStyle(
+                          fontSize: 13.0,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        '1900 8888 (Miễn phí)',
+                        style: TextStyle(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(height: 10.0),
                   Row(
                     children: [
-                      Icon(Icons.email_outlined, color: AppColors.primary, size: 20.0),
+                      Icon(
+                        Icons.email_outlined,
+                        color: AppColors.primary,
+                        size: 20.0,
+                      ),
                       SizedBox(width: 10.0),
-                      Text('Email hỗ trợ: ', style: TextStyle(fontSize: 13.0, color: AppColors.textSecondary)),
-                      Text('hotro@fincredit.vn', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                      Text(
+                        'Email hỗ trợ: ',
+                        style: TextStyle(
+                          fontSize: 13.0,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        'hotro@fincredit.vn',
+                        style: TextStyle(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -187,7 +263,11 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 14.0),
             const Text(
               'Đội ngũ chuyên viên tư vấn tài chính luôn sẵn sàng giải đáp thắc mắc về hợp đồng vay, phương thức tính lãi và tài sản bảo đảm.',
-              style: TextStyle(fontSize: 12.0, color: AppColors.textSecondary, height: 1.4),
+              style: TextStyle(
+                fontSize: 12.0,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 16.0),
           ],
@@ -206,17 +286,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Tính toán hạn mức tín dụng khả dụng động theo người dùng
         final double availableCreditLimit = isSampleUser
-            ? (150000000.0 - _loanController.totalRemainingPrincipal).clamp(0.0, 150000000.0)
+            ? (150000000.0 - _loanController.totalRemainingPrincipal).clamp(
+                0.0,
+                150000000.0,
+              )
             : (_loanController.totalOriginalPrincipal > 0
-                ? (_loanController.totalOriginalPrincipal - _loanController.totalRemainingPrincipal).clamp(0.0, _loanController.totalOriginalPrincipal)
-                : 0.0);
+                  ? (_loanController.totalOriginalPrincipal -
+                            _loanController.totalRemainingPrincipal)
+                        .clamp(0.0, _loanController.totalOriginalPrincipal)
+                  : 0.0);
 
         final double currentDebt = _loanController.totalRemainingPrincipal;
 
         // Điểm CIC động: Nếu tài khoản mẫu có dữ liệu thì hiển thị, tài khoản mới chưa có lịch sử
         final String cicScoreDisplay = isSampleUser
             ? '745 • Hạng 1 (Rất tốt)'
-            : (_loanController.loans.isNotEmpty ? '680 • Đang cập nhật' : 'Chưa có dữ liệu CIC');
+            : (_loanController.loans.isNotEmpty
+                  ? '680 • Đang cập nhật'
+                  : 'Chưa có dữ liệu CIC');
 
         final int activeSessionCount = _authController.activeSessions.isNotEmpty
             ? _authController.activeSessions.length
@@ -251,7 +338,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       const Text(
                         'Xin chào,',
-                        style: TextStyle(fontSize: 11.0, color: AppColors.textSecondary),
+                        style: TextStyle(
+                          fontSize: 11.0,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       Text(
                         user?.fullName ?? 'Khách hàng FinCredit',
@@ -270,7 +360,10 @@ class _HomeScreenState extends State<HomeScreen> {
             actions: [
               // Nút truy cập nhanh Cài đặt Bảo mật (M06)
               IconButton(
-                icon: const Icon(Icons.shield_outlined, color: AppColors.primary),
+                icon: const Icon(
+                  Icons.shield_outlined,
+                  color: AppColors.primary,
+                ),
                 tooltip: 'Cài đặt Bảo mật (M06)',
                 onPressed: () {
                   Navigator.pushNamed(context, AppRouter.security);
@@ -278,7 +371,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               // Nút Đăng xuất
               IconButton(
-                icon: const Icon(Icons.logout_rounded, color: AppColors.textSecondary),
+                icon: const Icon(
+                  Icons.logout_rounded,
+                  color: AppColors.textSecondary,
+                ),
                 tooltip: 'Đăng xuất',
                 onPressed: () => _handleLogout(context),
               ),
@@ -286,7 +382,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 16.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -326,18 +425,29 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0,
+                                  vertical: 3.0,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(10.0),
                                 ),
                                 child: const Row(
                                   children: [
-                                    Icon(Icons.lock_rounded, size: 12.0, color: Colors.white),
+                                    Icon(
+                                      Icons.lock_rounded,
+                                      size: 12.0,
+                                      color: Colors.white,
+                                    ),
                                     SizedBox(width: 4.0),
                                     Text(
                                       'TLS 1.3',
-                                      style: TextStyle(fontSize: 10.0, color: Colors.white, fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                        fontSize: 10.0,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -363,25 +473,43 @@ class _HomeScreenState extends State<HomeScreen> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Dư nợ hiện tại', style: TextStyle(fontSize: 11.0, color: Color(0xFFBFDBFE))),
+                                  const Text(
+                                    'Dư nợ hiện tại',
+                                    style: TextStyle(
+                                      fontSize: 11.0,
+                                      color: Color(0xFFBFDBFE),
+                                    ),
+                                  ),
                                   const SizedBox(height: 4.0),
                                   Text(
                                     _formatCurrency(currentDebt),
-                                    style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.w700, color: Colors.white),
+                                    style: const TextStyle(
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ],
                               ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  const Text('Điểm CIC', style: TextStyle(fontSize: 11.0, color: Color(0xFFBFDBFE))),
+                                  const Text(
+                                    'Điểm CIC',
+                                    style: TextStyle(
+                                      fontSize: 11.0,
+                                      color: Color(0xFFBFDBFE),
+                                    ),
+                                  ),
                                   const SizedBox(height: 4.0),
                                   Text(
                                     cicScoreDisplay,
                                     style: TextStyle(
                                       fontSize: 13.0,
                                       fontWeight: FontWeight.w700,
-                                      color: isSampleUser ? const Color(0xFF86EFAC) : const Color(0xFFBFDBFE),
+                                      color: isSampleUser
+                                          ? const Color(0xFF86EFAC)
+                                          : const Color(0xFFBFDBFE),
                                     ),
                                   ),
                                 ],
@@ -396,10 +524,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // 2. Banner Trung tâm bảo mật (Dữ liệu ĐỘNG theo phiên và cài đặt)
                   InkWell(
-                    onTap: () => Navigator.pushNamed(context, AppRouter.security),
+                    onTap: () =>
+                        Navigator.pushNamed(context, AppRouter.security),
                     borderRadius: BorderRadius.circular(14.0),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 14.0,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primarySoft,
                         borderRadius: BorderRadius.circular(14.0),
@@ -409,7 +541,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           const CircleAvatar(
                             backgroundColor: Colors.white,
-                            child: Icon(Icons.shield_rounded, color: AppColors.primary, size: 22.0),
+                            child: Icon(
+                              Icons.shield_rounded,
+                              color: AppColors.primary,
+                              size: 22.0,
+                            ),
                           ),
                           const SizedBox(width: 12.0),
                           Expanded(
@@ -427,12 +563,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const SizedBox(height: 2.0),
                                 Text(
                                   'Điểm an toàn: $securityScore/100 • $activeSessionCount thiết bị đang hoạt động',
-                                  style: const TextStyle(fontSize: 11.0, color: AppColors.textSecondary),
+                                  style: const TextStyle(
+                                    fontSize: 11.0,
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(Icons.arrow_forward_ios_rounded, size: 16.0, color: AppColors.primary),
+                          const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 16.0,
+                            color: AppColors.primary,
+                          ),
                         ],
                       ),
                     ),
@@ -463,21 +606,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: Icons.account_balance_wallet_outlined,
                         label: 'Danh mục khoản vay',
                         color: AppColors.primary,
-                        onTap: () => Navigator.pushNamed(context, AppRouter.loans),
+                        onTap: () =>
+                            Navigator.pushNamed(context, AppRouter.loans),
                       ),
                       // 2. Đã có: Thêm khoản vay mới (L02-03)
                       _buildQuickAction(
                         icon: Icons.add_circle_outline_rounded,
                         label: 'Thêm khoản vay',
                         color: const Color(0xFF0D9488),
-                        onTap: () => Navigator.pushNamed(context, AppRouter.loanForm),
+                        onTap: () =>
+                            Navigator.pushNamed(context, AppRouter.loanForm),
                       ),
                       // 3. Đã có: Quản lý tài sản thế chấp & OCR (L02-04)
                       _buildQuickAction(
                         icon: Icons.document_scanner_outlined,
                         label: 'Tài sản & OCR',
                         color: const Color(0xFF7C3AED),
-                        onTap: () => Navigator.pushNamed(context, AppRouter.loanCollateralOcr),
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          AppRouter.loanCollateralOcr,
+                        ),
                       ),
                       // 4. Chưa có: Tra cứu CIC (Thông báo rõ ràng, không điều hướng sai lệch)
                       _buildQuickAction(
@@ -546,7 +694,10 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 6.0,
+              vertical: 12.0,
+            ),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(14.0),
@@ -580,7 +731,10 @@ class _HomeScreenState extends State<HomeScreen> {
               top: 6.0,
               right: 6.0,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 5.0,
+                  vertical: 2.0,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(6.0),
@@ -601,4 +755,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-

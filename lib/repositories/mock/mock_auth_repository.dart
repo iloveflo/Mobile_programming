@@ -85,7 +85,9 @@ class MockAuthRepository implements AuthRepository {
   /// Đã loại bỏ hoàn toàn độ trễ giả lập để phản hồi tức thì
   Future<void> _simulateDelay([int minMs = 0, int maxMs = 0]) async {
     if (simulateNetworkError) {
-      throw const NetworkAuthException('Mất kết nối mạng. Vui lòng kiểm tra Wifi/4G.');
+      throw const NetworkAuthException(
+        'Mất kết nối mạng. Vui lòng kiểm tra Wifi/4G.',
+      );
     }
     return;
   }
@@ -101,7 +103,8 @@ class MockAuthRepository implements AuthRepository {
     // Kiểm tra token mẫu từ RefreshTokenMockData
     if (RefreshTokenMockData.refreshTokensDatabase.isNotEmpty) {
       final sample = RefreshTokenMockData.refreshTokensDatabase.first;
-      if (sample.revokedAt == null && DateTime.now().isBefore(sample.expiresAt)) {
+      if (sample.revokedAt == null &&
+          DateTime.now().isBefore(sample.expiresAt)) {
         _currentToken = AuthTokenModel(
           accessToken: 'mock_jwt_access_token_${sample.userId}',
           refreshToken: sample.token,
@@ -152,18 +155,19 @@ class MockAuthRepository implements AuthRepository {
       throw AccountUnverifiedException(
         trimmedId,
         phone: '0900000001',
-        message: 'Tài khoản chưa được kích hoạt. Vui lòng hoàn tất xác thực OTP.',
+        message:
+            'Tài khoản chưa được kích hoạt. Vui lòng hoàn tất xác thực OTP.',
       );
     }
 
     // 4. Tìm kiếm tài khoản trong Database giả lập
     final user = UserMockData.usersDatabase.cast<UserModel?>().firstWhere(
-          (u) =>
-              (u?.email.toLowerCase() == trimmedId.toLowerCase() ||
-                  u?.phone == trimmedId) &&
-              u?.passwordHash == password,
-          orElse: () => null,
-        );
+      (u) =>
+          (u?.email.toLowerCase() == trimmedId.toLowerCase() ||
+              u?.phone == trimmedId) &&
+          u?.passwordHash == password,
+      orElse: () => null,
+    );
 
     if (user != null) {
       _failedPasswordAttempts = 0;
@@ -201,7 +205,9 @@ class MockAuthRepository implements AuthRepository {
       );
     }
 
-    throw const InvalidCredentialsException('Thông tin đăng nhập không hợp lệ.');
+    throw const InvalidCredentialsException(
+      'Thông tin đăng nhập không hợp lệ.',
+    );
   }
 
   @override
@@ -219,7 +225,11 @@ class MockAuthRepository implements AuthRepository {
 
     final newUser = UserModel(
       userId: DateTime.now().millisecondsSinceEpoch,
-      fullName: (registerData['full_name'] ?? registerData['fullName'] ?? 'Người Dùng Mới').toString(),
+      fullName:
+          (registerData['full_name'] ??
+                  registerData['fullName'] ??
+                  'Người Dùng Mới')
+              .toString(),
       email: email,
       phone: (registerData['phone'] ?? '').toString(),
       passwordHash: (registerData['password'] ?? '').toString(),
@@ -255,10 +265,7 @@ class MockAuthRepository implements AuthRepository {
 
     // Trường hợp mã đã hết hạn
     if (otp == '000000') {
-      throw const OtpException(
-        'Mã OTP đã hết hạn',
-        isExpired: true,
-      );
+      throw const OtpException('Mã OTP đã hết hạn', isExpired: true);
     }
 
     // Trường hợp mã chính xác
@@ -331,7 +338,9 @@ class MockAuthRepository implements AuthRepository {
     await _simulateDelay();
 
     if (_currentUser != null && _currentUser!.passwordHash != currentPassword) {
-      throw const InvalidCredentialsException('Mật khẩu hiện tại không chính xác.');
+      throw const InvalidCredentialsException(
+        'Mật khẩu hiện tại không chính xác.',
+      );
     }
 
     await resetPassword(newPassword: newPassword);

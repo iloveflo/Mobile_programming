@@ -23,8 +23,8 @@ class DebtStrategyModel {
       userId: json['user_id'] as int,
       strategyType: json['strategy_type'] as String,
       extraPayment: (json['extra_payment'] as num?)?.toDouble() ?? 0,
-      estimatedInterestSaved:
-          (json['estimated_interest_saved'] as num?)?.toDouble(),
+      estimatedInterestSaved: (json['estimated_interest_saved'] as num?)
+          ?.toDouble(),
       estimatedMonthsSaved: json['estimated_months_saved'] as int?,
       createdAt: json['created_at'] == null
           ? null
@@ -33,12 +33,12 @@ class DebtStrategyModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'strategy_id': id,
-        'user_id': userId,
-        'strategy_type': strategyType,
-        'extra_payment': extraPayment,
-        'estimated_interest_saved': estimatedInterestSaved,
-        'estimated_months_saved': estimatedMonthsSaved,
-        'created_at': createdAt?.toIso8601String(),
-      };
+    'strategy_id': id,
+    'user_id': userId,
+    'strategy_type': strategyType,
+    'extra_payment': extraPayment,
+    'estimated_interest_saved': estimatedInterestSaved,
+    'estimated_months_saved': estimatedMonthsSaved,
+    'created_at': createdAt?.toIso8601String(),
+  };
 }

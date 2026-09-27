@@ -62,14 +62,20 @@ class MonthlyEstimateCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.primarySoft.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16.0),
-        border: Border.all(color: AppColors.primaryLight.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: AppColors.primaryLight.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.calculate_rounded, color: AppColors.primary, size: 20.0),
+              const Icon(
+                Icons.calculate_rounded,
+                color: AppColors.primary,
+                size: 20.0,
+              ),
               const SizedBox(width: 8.0),
               const Text(
                 'Ước tính thanh toán kỳ đầu tiên',
@@ -81,7 +87,10 @@ class MonthlyEstimateCard extends StatelessWidget {
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 3.0,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(8.0),
@@ -127,24 +136,63 @@ class MonthlyEstimateCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Tiền gốc tháng 1:', style: TextStyle(fontSize: 12.0, color: AppColors.textSecondary)),
-              Text(_formatCurrency(principalMonth1), style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              const Text(
+                'Tiền gốc tháng 1:',
+                style: TextStyle(
+                  fontSize: 12.0,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                _formatCurrency(principalMonth1),
+                style: const TextStyle(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 6.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Tiền lãi tháng 1:', style: TextStyle(fontSize: 12.0, color: AppColors.textSecondary)),
-              Text(_formatCurrency(interestMonth1), style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              const Text(
+                'Tiền lãi tháng 1:',
+                style: TextStyle(
+                  fontSize: 12.0,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                _formatCurrency(interestMonth1),
+                style: const TextStyle(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 6.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Tổng lãi dự kiến cả kỳ:', style: TextStyle(fontSize: 12.0, color: AppColors.textSecondary)),
-              Text(_formatCurrency(totalInterestAllTenor), style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.w700, color: AppColors.primaryLight)),
+              const Text(
+                'Tổng lãi dự kiến cả kỳ:',
+                style: TextStyle(
+                  fontSize: 12.0,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                _formatCurrency(totalInterestAllTenor),
+                style: const TextStyle(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryLight,
+                ),
+              ),
             ],
           ),
         ],

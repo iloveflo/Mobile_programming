@@ -42,14 +42,10 @@ void setupServiceLocator({bool? isMock}) {
   // =========================================================================
   if (useMockMode) {
     // A. Xác thực & Bảo mật (Mock)
-    _registerLazySingletonIfNot<AuthRepository>(
-      () => MockAuthRepository(),
-    );
+    _registerLazySingletonIfNot<AuthRepository>(() => MockAuthRepository());
 
     // B. Quản lý Khoản vay (Mock)
-    _registerLazySingletonIfNot<LoanRepository>(
-      () => MockLoanRepository(),
-    );
+    _registerLazySingletonIfNot<LoanRepository>(() => MockLoanRepository());
   } else {
     // A. Xác thực & Bảo mật (API Thật)
     _registerLazySingletonIfNot<AuthRepository>(
@@ -124,4 +120,3 @@ void _registerLazySingletonIfNot<T extends Object>(T Function() factory) {
     sl.registerLazySingleton<T>(factory);
   }
 }
-

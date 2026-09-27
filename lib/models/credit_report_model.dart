@@ -47,17 +47,17 @@ class CreditReportModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'report_id': id,
-        'user_id': userId,
-        'credit_score': creditScore,
-        'dti_ratio': dtiRatio,
-        'ltv_ratio': ltvRatio,
-        'credit_utilization': creditUtilization,
-        'on_time_payment_rate': onTimePaymentRate,
-        'total_debt': totalDebt,
-        'overdue_amount': overdueAmount,
-        'risk_level': riskLevel,
-        'report_period': reportPeriod,
-        'generated_at': generatedAt?.toIso8601String(),
-      };
+    'report_id': id,
+    'user_id': userId,
+    'credit_score': creditScore,
+    'dti_ratio': dtiRatio,
+    'ltv_ratio': ltvRatio,
+    'credit_utilization': creditUtilization,
+    'on_time_payment_rate': onTimePaymentRate,
+    'total_debt': totalDebt,
+    'overdue_amount': overdueAmount,
+    'risk_level': riskLevel,
+    'report_period': reportPeriod,
+    'generated_at': generatedAt?.toIso8601String(),
+  };
 }

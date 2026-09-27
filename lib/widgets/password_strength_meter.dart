@@ -4,31 +4,11 @@ import 'app_colors.dart';
 
 /// Các mức độ bảo mật của mật khẩu
 enum PasswordStrength {
-  none(
-    label: 'Chưa nhập',
-    level: 0,
-    color: AppColors.border,
-  ),
-  weak(
-    label: 'Yếu',
-    level: 1,
-    color: AppColors.error,
-  ),
-  fair(
-    label: 'Trung bình',
-    level: 2,
-    color: AppColors.warning,
-  ),
-  good(
-    label: 'Tốt',
-    level: 3,
-    color: AppColors.primaryLight,
-  ),
-  strong(
-    label: 'Rất mạnh',
-    level: 4,
-    color: AppColors.success,
-  );
+  none(label: 'Chưa nhập', level: 0, color: AppColors.border),
+  weak(label: 'Yếu', level: 1, color: AppColors.error),
+  fair(label: 'Trung bình', level: 2, color: AppColors.warning),
+  good(label: 'Tốt', level: 3, color: AppColors.primaryLight),
+  strong(label: 'Rất mạnh', level: 4, color: AppColors.success);
 
   final String label;
   final int level;
@@ -47,10 +27,7 @@ class PasswordStrengthMeter extends StatelessWidget {
   /// Chuỗi mật khẩu cần kiểm tra
   final String password;
 
-  const PasswordStrengthMeter({
-    super.key,
-    required this.password,
-  });
+  const PasswordStrengthMeter({super.key, required this.password});
 
   /// Tính toán mức độ mạnh mật khẩu dựa trên các tiêu chí bảo mật
   PasswordStrength _calculateStrength(String text) {
@@ -60,7 +37,9 @@ class PasswordStrengthMeter extends StatelessWidget {
     final bool hasUppercase = RegExp(r'[A-Z]').hasMatch(text);
     final bool hasLowercase = RegExp(r'[a-z]').hasMatch(text);
     final bool hasDigit = RegExp(r'[0-9]').hasMatch(text);
-    final bool hasSpecialChar = RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(text);
+    final bool hasSpecialChar = RegExp(
+      r'[!@#\$%^&*(),.?":{}|<>]',
+    ).hasMatch(text);
 
     int score = 0;
     if (hasMinLength) score++;
@@ -102,9 +81,7 @@ class PasswordStrengthMeter extends StatelessWidget {
             return Expanded(
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
-                margin: EdgeInsets.only(
-                  right: index < 3 ? 6.0 : 0.0,
-                ),
+                margin: EdgeInsets.only(right: index < 3 ? 6.0 : 0.0),
                 height: 4.5,
                 decoration: BoxDecoration(
                   color: barColor,
@@ -137,4 +114,3 @@ class PasswordStrengthMeter extends StatelessWidget {
     );
   }
 }
-

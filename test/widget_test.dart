@@ -25,11 +25,7 @@ void main() {
   testWidgets('Màn hình Đăng nhập hiển thị các trường nhập liệu', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: LoginScreen(),
-      ),
-    );
+    await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
 
     expect(find.byType(TextField), findsNWidgets(2));
     expect(find.text('Đăng nhập'), findsWidgets);

@@ -47,8 +47,12 @@ class QuickChipSelector<T> extends StatelessWidget {
           child: Row(
             children: items.map((item) {
               final isSelected = item == selectedItem;
-              final label = labelBuilder != null ? labelBuilder!(item) : item.toString();
-              final leading = leadingBuilder != null ? leadingBuilder!(item) : null;
+              final label = labelBuilder != null
+                  ? labelBuilder!(item)
+                  : item.toString();
+              final leading = leadingBuilder != null
+                  ? leadingBuilder!(item)
+                  : null;
 
               return Padding(
                 padding: const EdgeInsets.only(right: 8.0),
@@ -57,12 +61,19 @@ class QuickChipSelector<T> extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10.0),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14.0,
+                      vertical: 8.0,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primarySoft : AppColors.surface,
+                      color: isSelected
+                          ? AppColors.primarySoft
+                          : AppColors.surface,
                       borderRadius: BorderRadius.circular(10.0),
                       border: Border.all(
-                        color: isSelected ? AppColors.primaryLight : AppColors.border,
+                        color: isSelected
+                            ? AppColors.primaryLight
+                            : AppColors.border,
                         width: isSelected ? 1.5 : 1.0,
                       ),
                     ),
@@ -77,8 +88,12 @@ class QuickChipSelector<T> extends StatelessWidget {
                           label,
                           style: TextStyle(
                             fontSize: 13.0,
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                            color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.textPrimary,
                           ),
                         ),
                       ],

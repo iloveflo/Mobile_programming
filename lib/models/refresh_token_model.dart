@@ -31,11 +31,11 @@ class RefreshTokenModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'token_id': id,
-        'user_id': userId,
-        'token': token,
-        'expires_at': expiresAt.toIso8601String(),
-        'revoked_at': revokedAt?.toIso8601String(),
-        'created_at': createdAt?.toIso8601String(),
-      };
+    'token_id': id,
+    'user_id': userId,
+    'token': token,
+    'expires_at': expiresAt.toIso8601String(),
+    'revoked_at': revokedAt?.toIso8601String(),
+    'created_at': createdAt?.toIso8601String(),
+  };
 }

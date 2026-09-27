@@ -73,7 +73,11 @@ class _LoanListScreenState extends State<LoanListScreen> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20.0),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+            size: 20.0,
+          ),
           onPressed: () => Navigator.maybePop(context),
         ),
         title: const Text(
@@ -86,7 +90,10 @@ class _LoanListScreenState extends State<LoanListScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.document_scanner_outlined, color: AppColors.primary),
+            icon: const Icon(
+              Icons.document_scanner_outlined,
+              color: AppColors.primary,
+            ),
             tooltip: 'Tài sản & Quét OCR',
             onPressed: () {
               Navigator.pushNamed(context, AppRouter.loanCollateralOcr);
@@ -113,14 +120,19 @@ class _LoanListScreenState extends State<LoanListScreen> {
             color: AppColors.primary,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 1. Thẻ tổng quan danh mục tín dụng
                   PortfolioSummaryCard(
-                    totalRemainingPrincipal: _loanController.totalRemainingPrincipal,
-                    totalOriginalPrincipal: _loanController.totalOriginalPrincipal,
+                    totalRemainingPrincipal:
+                        _loanController.totalRemainingPrincipal,
+                    totalOriginalPrincipal:
+                        _loanController.totalOriginalPrincipal,
                     totalPaidAmount: _loanController.totalPaidAmount,
                     paidRatio: _loanController.paidRatio,
                     activeLoansCount: _loanController.activeLoansCount,
@@ -138,14 +150,28 @@ class _LoanListScreenState extends State<LoanListScreen> {
                     child: TextField(
                       controller: _searchController,
                       onChanged: (val) => _loanController.setSearchKeyword(val),
-                      style: const TextStyle(fontSize: 14.0, color: AppColors.textPrimary),
+                      style: const TextStyle(
+                        fontSize: 14.0,
+                        color: AppColors.textPrimary,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Tìm theo tên khoản vay, ngân hàng...',
-                        hintStyle: const TextStyle(fontSize: 13.0, color: AppColors.textSecondary),
-                        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 22.0),
+                        hintStyle: const TextStyle(
+                          fontSize: 13.0,
+                          color: AppColors.textSecondary,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: AppColors.textSecondary,
+                          size: 22.0,
+                        ),
                         suffixIcon: _searchController.text.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.cancel_rounded, color: AppColors.textSecondary, size: 18.0),
+                                icon: const Icon(
+                                  Icons.cancel_rounded,
+                                  color: AppColors.textSecondary,
+                                  size: 18.0,
+                                ),
                                 onPressed: () {
                                   _searchController.clear();
                                   _loanController.setSearchKeyword('');
@@ -153,7 +179,10 @@ class _LoanListScreenState extends State<LoanListScreen> {
                               )
                             : null,
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14.0,
+                          vertical: 12.0,
+                        ),
                       ),
                     ),
                   ),
@@ -170,12 +199,14 @@ class _LoanListScreenState extends State<LoanListScreen> {
                           currentStatus: _loanController.currentFilterStatus,
                         ),
                         _buildFilterChip(
-                          label: 'Đang vay (${_loanController.loans.where((l) => l.isActive).length})',
+                          label:
+                              'Đang vay (${_loanController.loans.where((l) => l.isActive).length})',
                           status: LoanStatus.active,
                           currentStatus: _loanController.currentFilterStatus,
                         ),
                         _buildFilterChip(
-                          label: 'Đã tất toán (${_loanController.loans.where((l) => l.isClosed).length})',
+                          label:
+                              'Đã tất toán (${_loanController.loans.where((l) => l.isClosed).length})',
                           status: LoanStatus.closed,
                           currentStatus: _loanController.currentFilterStatus,
                         ),
@@ -185,17 +216,23 @@ class _LoanListScreenState extends State<LoanListScreen> {
                   const SizedBox(height: 14.0),
 
                   // 4. Danh sách các khoản vay hoặc Trạng thái Loading / Empty
-                  if (_loanController.isLoading && _loanController.loans.isEmpty)
+                  if (_loanController.isLoading &&
+                      _loanController.loans.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 40.0),
                       child: Center(
-                        child: CircularProgressIndicator(color: AppColors.primary),
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
                       ),
                     )
                   else if (_loanController.loans.isEmpty)
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 48.0, horizontal: 20.0),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 48.0,
+                        horizontal: 20.0,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(16.0),
@@ -204,7 +241,13 @@ class _LoanListScreenState extends State<LoanListScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.inventory_2_outlined, size: 56.0, color: AppColors.textSecondary.withValues(alpha: 0.5)),
+                          Icon(
+                            Icons.inventory_2_outlined,
+                            size: 56.0,
+                            color: AppColors.textSecondary.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
                           const SizedBox(height: 12.0),
                           const Text(
                             'Chưa tìm thấy khoản vay nào',
@@ -218,7 +261,10 @@ class _LoanListScreenState extends State<LoanListScreen> {
                           const Text(
                             'Tạo khoản vay mới hoặc thay đổi từ khóa tìm kiếm.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 13.0, color: AppColors.textSecondary),
+                            style: TextStyle(
+                              fontSize: 13.0,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                           const SizedBox(height: 16.0),
                           OutlinedButton.icon(
@@ -230,7 +276,9 @@ class _LoanListScreenState extends State<LoanListScreen> {
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.primary,
                               side: const BorderSide(color: AppColors.primary),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
                             ),
                           ),
                         ],
@@ -251,7 +299,10 @@ class _LoanListScreenState extends State<LoanListScreen> {
                             Navigator.pushNamed(
                               context,
                               AppRouter.loanDetail,
-                              arguments: {'loanId': loan.id.toString(), 'loan': loan},
+                              arguments: {
+                                'loanId': loan.id.toString(),
+                                'loan': loan,
+                              },
                             );
                           },
                         );

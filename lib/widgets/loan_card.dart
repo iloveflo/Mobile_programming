@@ -9,11 +9,7 @@ class LoanCard extends StatelessWidget {
   final LoanModel loan;
   final VoidCallback? onTap;
 
-  const LoanCard({
-    super.key,
-    required this.loan,
-    this.onTap,
-  });
+  const LoanCard({super.key, required this.loan, this.onTap});
 
   String _formatCurrency(num amount) {
     final str = amount.round().toString();
@@ -57,14 +53,23 @@ class LoanCard extends StatelessWidget {
             children: [
               // Thanh header hiển thị Tổ chức cho vay & Trạng thái
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-                color: loan.isCreditCard ? const Color(0xFFFAF5FF) : AppColors.background,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 10.0,
+                ),
+                color: loan.isCreditCard
+                    ? const Color(0xFFFAF5FF)
+                    : AppColors.background,
                 child: Row(
                   children: [
                     Icon(
-                      loan.isCreditCard ? Icons.credit_card_rounded : Icons.account_balance_rounded,
+                      loan.isCreditCard
+                          ? Icons.credit_card_rounded
+                          : Icons.account_balance_rounded,
                       size: 16.0,
-                      color: loan.isCreditCard ? const Color(0xFF7C3AED) : AppColors.primary,
+                      color: loan.isCreditCard
+                          ? const Color(0xFF7C3AED)
+                          : AppColors.primary,
                     ),
                     const SizedBox(width: 8.0),
                     Expanded(
@@ -73,7 +78,9 @@ class LoanCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12.0,
                           fontWeight: FontWeight.w600,
-                          color: loan.isCreditCard ? const Color(0xFF6B21A8) : AppColors.textPrimary,
+                          color: loan.isCreditCard
+                              ? const Color(0xFF6B21A8)
+                              : AppColors.textPrimary,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -86,7 +93,9 @@ class LoanCard extends StatelessWidget {
               // Nội dung chính
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: loan.isCreditCard ? _buildCreditCardBody() : _buildStandardLoanBody(),
+                child: loan.isCreditCard
+                    ? _buildCreditCardBody()
+                    : _buildStandardLoanBody(),
               ),
             ],
           ),
@@ -118,14 +127,21 @@ class LoanCard extends StatelessWidget {
             ),
             const SizedBox(width: 8.0),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8.0,
+                vertical: 3.0,
+              ),
               decoration: BoxDecoration(
                 color: const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(6.0),
               ),
               child: Text(
                 loan.loanTypeDisplayName,
-                style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -141,7 +157,13 @@ class LoanCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Dư nợ còn lại', style: TextStyle(fontSize: 12.0, color: AppColors.textSecondary)),
+                const Text(
+                  'Dư nợ còn lại',
+                  style: TextStyle(
+                    fontSize: 12.0,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
                 const SizedBox(height: 4.0),
                 Text(
                   _formatCurrency(loan.outstandingAmount),
@@ -156,7 +178,13 @@ class LoanCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text('Gốc ban đầu', style: TextStyle(fontSize: 12.0, color: AppColors.textSecondary)),
+                const Text(
+                  'Gốc ban đầu',
+                  style: TextStyle(
+                    fontSize: 12.0,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
                 const SizedBox(height: 4.0),
                 Text(
                   _formatCurrency(loan.principalAmount),
@@ -204,7 +232,10 @@ class LoanCard extends StatelessWidget {
         // Box kỳ thanh toán tới (nếu khoản vay còn active)
         if (loan.isActive)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12.0,
+              vertical: 10.0,
+            ),
             decoration: BoxDecoration(
               color: AppColors.primarySoft,
               borderRadius: BorderRadius.circular(10.0),
@@ -215,18 +246,29 @@ class LoanCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.event_note_rounded, size: 16.0, color: AppColors.primary),
+                    const Icon(
+                      Icons.event_note_rounded,
+                      size: 16.0,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 6.0),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
                           'Kỳ tới',
-                          style: TextStyle(fontSize: 10.0, color: AppColors.textSecondary),
+                          style: TextStyle(
+                            fontSize: 10.0,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                         Text(
                           _formatDate(loan.nextDueDate),
-                          style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                          style: const TextStyle(
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ],
                     ),
@@ -237,7 +279,10 @@ class LoanCard extends StatelessWidget {
                   children: [
                     const Text(
                       'Ước tính (gốc + lãi)',
-                      style: TextStyle(fontSize: 10.0, color: AppColors.textSecondary),
+                      style: TextStyle(
+                        fontSize: 10.0,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     Text(
                       _formatCurrency(loan.monthlyInstallmentEstimate),
@@ -285,14 +330,22 @@ class LoanCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Dư nợ sao kê', style: TextStyle(fontSize: 12.0, color: AppColors.textSecondary)),
+                const Text(
+                  'Dư nợ sao kê',
+                  style: TextStyle(
+                    fontSize: 12.0,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
                 const SizedBox(height: 4.0),
                 Text(
                   _formatCurrency(loan.outstandingAmount),
                   style: TextStyle(
                     fontSize: 18.0,
                     fontWeight: FontWeight.w800,
-                    color: isHighUsage ? AppColors.error : const Color(0xFF6B21A8),
+                    color: isHighUsage
+                        ? AppColors.error
+                        : const Color(0xFF6B21A8),
                   ),
                 ),
               ],
@@ -300,7 +353,13 @@ class LoanCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text('Hạn mức thẻ', style: TextStyle(fontSize: 12.0, color: AppColors.textSecondary)),
+                const Text(
+                  'Hạn mức thẻ',
+                  style: TextStyle(
+                    fontSize: 12.0,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
                 const SizedBox(height: 4.0),
                 Text(
                   _formatCurrency(loan.principalAmount),
@@ -358,15 +417,29 @@ class LoanCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.payment_rounded, size: 16.0, color: Color(0xFF7C3AED)),
+                  const Icon(
+                    Icons.payment_rounded,
+                    size: 16.0,
+                    color: Color(0xFF7C3AED),
+                  ),
                   const SizedBox(width: 6.0),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Hạn trả', style: TextStyle(fontSize: 10.0, color: AppColors.textSecondary)),
+                      const Text(
+                        'Hạn trả',
+                        style: TextStyle(
+                          fontSize: 10.0,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                       Text(
                         _formatDate(loan.nextDueDate),
-                        style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                        style: const TextStyle(
+                          fontSize: 12.0,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ],
                   ),
@@ -375,7 +448,13 @@ class LoanCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text('Tối thiểu dự kiến (5%)', style: TextStyle(fontSize: 10.0, color: AppColors.textSecondary)),
+                  const Text(
+                    'Tối thiểu dự kiến (5%)',
+                    style: TextStyle(
+                      fontSize: 10.0,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                   Text(
                     _formatCurrency(loan.outstandingAmount * 0.05),
                     style: const TextStyle(

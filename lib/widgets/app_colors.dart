@@ -38,4 +38,3 @@ abstract final class AppColors {
   /// Vàng cam cảnh báo - Cảnh báo mức độ trung bình (ví dụ mật khẩu)
   static const Color warning = Color(0xFFF59E0B);
 }
-

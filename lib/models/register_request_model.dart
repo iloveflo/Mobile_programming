@@ -17,11 +17,11 @@ class RegisterRequestModel {
   });
 
   Map<String, dynamic> toJson() => {
-        'full_name': fullName,
-        'email': email,
-        'phone': phone,
-        'date_of_birth': dateOfBirth?.toIso8601String(),
-        'password': password,
-        'agree_to_terms': agreeToTerms,
-      };
+    'full_name': fullName,
+    'email': email,
+    'phone': phone,
+    'date_of_birth': dateOfBirth?.toIso8601String(),
+    'password': password,
+    'agree_to_terms': agreeToTerms,
+  };
 }

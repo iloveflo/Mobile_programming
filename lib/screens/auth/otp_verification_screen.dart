@@ -34,7 +34,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     super.initState();
     // Đảm bảo thông tin xác thực đã được cấu hình trong controller
     final fullName = widget.fullName ?? _authController.pendingFullName;
-    final email = widget.email ?? _authController.pendingEmail ?? 'dev@test.com';
+    final email =
+        widget.email ?? _authController.pendingEmail ?? 'dev@test.com';
     final phone = widget.phone ?? _authController.pendingPhone ?? '0912345678';
     _authController.setPendingVerification(
       fullName: fullName,
@@ -72,11 +73,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (widget.flow == OtpFlow.register) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Xác thực tài khoản thành công! Đang chuyển hướng vào ứng dụng...'),
+            content: Text(
+              'Xác thực tài khoản thành công! Đang chuyển hướng vào ứng dụng...',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
-        Navigator.pushNamedAndRemoveUntil(context, AppRouter.home, (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRouter.home,
+          (route) => false,
+        );
       } else {
         // Luồng quên mật khẩu -> chuyển sang màn hình Đặt lại mật khẩu
         Navigator.pushReplacementNamed(context, AppRouter.resetPassword);
@@ -84,7 +91,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_authController.errorMessage ?? 'Mã OTP không chính xác.'),
+          content: Text(
+            _authController.errorMessage ?? 'Mã OTP không chính xác.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -93,7 +102,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final email = widget.email ?? _authController.pendingEmail ?? 'dev@test.com';
+    final email =
+        widget.email ?? _authController.pendingEmail ?? 'dev@test.com';
     final phone = widget.phone ?? _authController.pendingPhone ?? '0912345678';
 
     return Scaffold(
@@ -102,12 +112,19 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Xác thực mã OTP',
-          style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          style: TextStyle(
+            fontSize: 18.0,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
         ),
         centerTitle: true,
       ),
@@ -118,7 +135,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             final isLocked = _authController.failedOtpAttempts >= 5;
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 20.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -130,7 +150,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.primarySoft,
                         shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFFBFDBFE), width: 1.5),
+                        border: Border.all(
+                          color: const Color(0xFFBFDBFE),
+                          width: 1.5,
+                        ),
                       ),
                       child: const Center(
                         child: Icon(
@@ -156,7 +179,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   const SizedBox(height: 8.0),
                   // Thẻ thông tin gửi mã mask
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 12.0,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(12.0),
@@ -167,7 +193,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         const Text(
                           'Mã bảo mật gồm 6 số đã được gửi qua SMS & Email',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 13.0, color: AppColors.textSecondary),
+                          style: TextStyle(
+                            fontSize: 13.0,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                         const SizedBox(height: 6.0),
                         Text(
@@ -195,19 +224,30 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   // Thông báo lỗi nếu có
                   if (_authController.errorMessage != null) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0,
+                        vertical: 8.0,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFEE2E2),
                         borderRadius: BorderRadius.circular(8.0),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, size: 18.0, color: AppColors.error),
+                          const Icon(
+                            Icons.error_outline,
+                            size: 18.0,
+                            color: AppColors.error,
+                          ),
                           const SizedBox(width: 8.0),
                           Expanded(
                             child: Text(
                               _authController.errorMessage!,
-                              style: const TextStyle(fontSize: 12.0, color: AppColors.error, fontWeight: FontWeight.w500),
+                              style: const TextStyle(
+                                fontSize: 12.0,
+                                color: AppColors.error,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ],
@@ -220,16 +260,25 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.timer_outlined, size: 16.0, color: AppColors.textSecondary),
+                      const Icon(
+                        Icons.timer_outlined,
+                        size: 16.0,
+                        color: AppColors.textSecondary,
+                      ),
                       const SizedBox(width: 6.0),
                       Text(
                         _authController.otpCountdown > 0
                             ? 'Mã hết hạn trong: '
                             : 'Mã đã hết hiệu lực',
-                        style: const TextStyle(fontSize: 13.0, color: AppColors.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 13.0,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       Text(
-                        _authController.otpCountdown > 0 ? _authController.formattedCountdown : '',
+                        _authController.otpCountdown > 0
+                            ? _authController.formattedCountdown
+                            : '',
                         style: const TextStyle(
                           fontSize: 13.0,
                           fontWeight: FontWeight.w700,
@@ -260,11 +309,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     icon: const Icon(Icons.refresh_rounded, size: 18.0),
                     label: const Text(
                       'Gửi lại mã OTP',
-                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 14.0,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.primary,
-                      disabledForegroundColor: AppColors.textSecondary.withValues(alpha: 0.5),
+                      disabledForegroundColor: AppColors.textSecondary
+                          .withValues(alpha: 0.5),
                     ),
                   ),
                   const SizedBox(height: 24.0),

@@ -37,13 +37,13 @@ class OtpVerificationModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'otp_id': id,
-        'user_id': userId,
-        'otp_code': code,
-        'purpose': purpose,
-        'expires_at': expiresAt.toIso8601String(),
-        'verified_at': verifiedAt?.toIso8601String(),
-        'status': status,
-        'created_at': createdAt?.toIso8601String(),
-      };
+    'otp_id': id,
+    'user_id': userId,
+    'otp_code': code,
+    'purpose': purpose,
+    'expires_at': expiresAt.toIso8601String(),
+    'verified_at': verifiedAt?.toIso8601String(),
+    'status': status,
+    'created_at': createdAt?.toIso8601String(),
+  };
 }

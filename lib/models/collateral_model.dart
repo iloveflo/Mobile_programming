@@ -103,9 +103,13 @@ class CollateralModel {
     }
 
     return CollateralModel(
-      id: json['asset_id'] is num ? (json['asset_id'] as num).toInt() : int.tryParse(json['id']?.toString() ?? '1') ?? 1,
+      id: json['asset_id'] is num
+          ? (json['asset_id'] as num).toInt()
+          : int.tryParse(json['id']?.toString() ?? '1') ?? 1,
       userId: json['user_id'] is num ? (json['user_id'] as num).toInt() : 1,
-      loanId: json['loan_id'] is num ? (json['loan_id'] as num).toInt() : (int.tryParse(json['loanId']?.toString() ?? '')),
+      loanId: json['loan_id'] is num
+          ? (json['loan_id'] as num).toInt()
+          : (int.tryParse(json['loanId']?.toString() ?? '')),
       name: (json['asset_name'] ?? json['name'] ?? 'Tài sản') as String,
       type: (json['asset_type'] ?? json['type'] ?? 'OTHER') as String,
       value: (json['asset_value'] ?? json['value'] as num?)?.toDouble() ?? 0.0,
@@ -116,14 +120,14 @@ class CollateralModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'asset_id': id,
-        'user_id': userId,
-        'loan_id': loanId,
-        'asset_name': name,
-        'asset_type': type,
-        'asset_value': value,
-        'valuation_date': valuationDate?.toIso8601String(),
-        'description': description,
-        'created_at': createdAt?.toIso8601String(),
-      };
+    'asset_id': id,
+    'user_id': userId,
+    'loan_id': loanId,
+    'asset_name': name,
+    'asset_type': type,
+    'asset_value': value,
+    'valuation_date': valuationDate?.toIso8601String(),
+    'description': description,
+    'created_at': createdAt?.toIso8601String(),
+  };
 }

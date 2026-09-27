@@ -31,9 +31,12 @@ class AuthTokenModel {
     }
 
     return AuthTokenModel(
-      accessToken: (json['access_token'] ?? json['accessToken'] ?? json['token'] ?? '') as String,
+      accessToken:
+          (json['access_token'] ?? json['accessToken'] ?? json['token'] ?? '')
+              as String,
       refreshToken: (json['refresh_token'] ?? json['refreshToken']) as String?,
-      tokenType: (json['token_type'] ?? json['tokenType'] ?? 'Bearer') as String,
+      tokenType:
+          (json['token_type'] ?? json['tokenType'] ?? 'Bearer') as String,
       expiresAt: parseDate(json['expires_at'] ?? json['expiresAt']),
       userId: json['user_id'] is num
           ? (json['user_id'] as num).toInt()
@@ -42,10 +45,10 @@ class AuthTokenModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'access_token': accessToken,
-        'refresh_token': refreshToken,
-        'token_type': tokenType,
-        'expires_at': expiresAt?.toIso8601String(),
-        'user_id': userId,
-      };
+    'access_token': accessToken,
+    'refresh_token': refreshToken,
+    'token_type': tokenType,
+    'expires_at': expiresAt?.toIso8601String(),
+    'user_id': userId,
+  };
 }

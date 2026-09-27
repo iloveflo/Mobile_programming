@@ -42,7 +42,9 @@ class InterestMethodCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(14.0),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primarySoft.withValues(alpha: 0.4) : AppColors.surface,
+          color: isSelected
+              ? AppColors.primarySoft.withValues(alpha: 0.4)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(14.0),
           border: Border.all(
             color: isSelected ? AppColors.primaryLight : AppColors.border,
@@ -61,7 +63,9 @@ class InterestMethodCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isSelected ? AppColors.primaryLight : AppColors.textSecondary,
+                    color: isSelected
+                        ? AppColors.primaryLight
+                        : AppColors.textSecondary,
                     width: isSelected ? 6.0 : 1.5,
                   ),
                 ),
@@ -79,14 +83,21 @@ class InterestMethodCard extends StatelessWidget {
                         title,
                         style: TextStyle(
                           fontSize: 14.0,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                          color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.textPrimary,
                         ),
                       ),
                       if (isReducing) ...[
                         const SizedBox(width: 8.0),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6.0,
+                            vertical: 2.0,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.success.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(6.0),

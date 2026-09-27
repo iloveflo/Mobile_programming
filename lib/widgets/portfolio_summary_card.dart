@@ -54,10 +54,7 @@ class PortfolioSummaryCard extends StatelessWidget {
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [
-            AppColors.primary,
-            Color(0xFF1565C0),
-          ],
+          colors: [AppColors.primary, Color(0xFF1565C0)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -79,7 +76,11 @@ class PortfolioSummaryCard extends StatelessWidget {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.pie_chart_outline_rounded, color: Color(0xFFBFDBFE), size: 18.0),
+                  Icon(
+                    Icons.pie_chart_outline_rounded,
+                    color: Color(0xFFBFDBFE),
+                    size: 18.0,
+                  ),
                   SizedBox(width: 6.0),
                   Text(
                     'TỔNG DƯ NỢ HIỆN TẠI',
@@ -93,7 +94,10 @@ class PortfolioSummaryCard extends StatelessWidget {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10.0,
+                  vertical: 4.0,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(12.0),
@@ -151,7 +155,9 @@ class PortfolioSummaryCard extends StatelessWidget {
                   value: paidRatio.clamp(0.0, 1.0),
                   minHeight: 8.0,
                   backgroundColor: const Color(0xFF1E3A8A),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF4ADE80)),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFF4ADE80),
+                  ),
                 ),
               ),
             ],

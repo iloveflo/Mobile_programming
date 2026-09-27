@@ -33,8 +33,10 @@ class ApiClient {
     String? baseUrl,
     HttpClient? httpClient,
     this.timeout = const Duration(seconds: 15),
-  })  : baseUrl = baseUrl ?? AppEnv.baseUrl,
-        _httpClient = httpClient ?? (HttpClient()..connectionTimeout = const Duration(seconds: 10));
+  }) : baseUrl = baseUrl ?? AppEnv.baseUrl,
+       _httpClient =
+           httpClient ??
+           (HttpClient()..connectionTimeout = const Duration(seconds: 10));
 
   /// Token xác thực Bearer hiện tại
   String? get authToken => _authToken;
@@ -63,7 +65,8 @@ class ApiClient {
     // Loại bỏ xung đột trùng lặp '/api' nếu baseUrl đã chứa '/api' hoặc '/api/v1'
     if (cleanBase.endsWith('/api') && cleanEndpoint.startsWith('/api/')) {
       cleanEndpoint = cleanEndpoint.substring(4);
-    } else if (cleanBase.contains(RegExp(r'/api/v\d+$')) && cleanEndpoint.startsWith('/api/')) {
+    } else if (cleanBase.contains(RegExp(r'/api/v\d+$')) &&
+        cleanEndpoint.startsWith('/api/')) {
       cleanEndpoint = cleanEndpoint.substring(4);
     }
 
@@ -82,12 +85,21 @@ class ApiClient {
   }
 
   /// Cấu hình Headers mặc định (JSON & Bearer Token)
-  void _applyHeaders(HttpClientRequest request, Map<String, String>? extraHeaders) {
-    request.headers.set(HttpHeaders.contentTypeHeader, 'application/json; charset=utf-8');
+  void _applyHeaders(
+    HttpClientRequest request,
+    Map<String, String>? extraHeaders,
+  ) {
+    request.headers.set(
+      HttpHeaders.contentTypeHeader,
+      'application/json; charset=utf-8',
+    );
     request.headers.set(HttpHeaders.acceptHeader, 'application/json');
 
     if (_authToken != null && _authToken!.isNotEmpty) {
-      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $_authToken');
+      request.headers.set(
+        HttpHeaders.authorizationHeader,
+        'Bearer $_authToken',
+      );
     }
 
     if (extraHeaders != null) {
@@ -115,9 +127,11 @@ class ApiClient {
     }
 
     // Trích xuất thông điệp lỗi từ Backend payload nếu có
-    String errorMessage = 'Yêu cầu không thành công (HTTP ${response.statusCode})';
+    String errorMessage =
+        'Yêu cầu không thành công (HTTP ${response.statusCode})';
     if (decodedData is Map<String, dynamic>) {
-      errorMessage = decodedData['message'] ??
+      errorMessage =
+          decodedData['message'] ??
           decodedData['error'] ??
           decodedData['msg'] ??
           errorMessage;
@@ -212,4 +226,3 @@ class ApiClient {
     return _processResponse(response);
   }
 }
-

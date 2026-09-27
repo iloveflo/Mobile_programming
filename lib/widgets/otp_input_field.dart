@@ -40,7 +40,8 @@ class _OtpInputFieldState extends State<OtpInputField> {
         debugLabel: 'OtpBox_$index',
         onKeyEvent: (node, event) {
           // Xử lý khi nhấn Backspace trên ô đang rỗng để tự động lùi về ô trước
-          if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace) {
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.backspace) {
             if (_controllers[index].text.isEmpty && index > 0) {
               _controllers[index - 1].clear();
               _focusNodes[index - 1].requestFocus();
@@ -88,11 +89,18 @@ class _OtpInputFieldState extends State<OtpInputField> {
     final cleanDigits = text.replaceAll(RegExp(r'\D'), '');
     if (cleanDigits.isEmpty) return;
 
-    for (int i = 0; i < cleanDigits.length && (startIndex + i) < widget.length; i++) {
+    for (
+      int i = 0;
+      i < cleanDigits.length && (startIndex + i) < widget.length;
+      i++
+    ) {
       _controllers[startIndex + i].text = cleanDigits[i];
     }
 
-    final int targetFocusIndex = (startIndex + cleanDigits.length).clamp(0, widget.length - 1);
+    final int targetFocusIndex = (startIndex + cleanDigits.length).clamp(
+      0,
+      widget.length - 1,
+    );
     _focusNodes[targetFocusIndex].requestFocus();
     _notifyChange();
   }
@@ -133,10 +141,7 @@ class _OtpInputFieldState extends State<OtpInputField> {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(10.0),
-        border: Border.all(
-          color: borderColor,
-          width: borderWidth,
-        ),
+        border: Border.all(color: borderColor, width: borderWidth),
         boxShadow: isFocused
             ? [
                 BoxShadow(
@@ -159,9 +164,7 @@ class _OtpInputFieldState extends State<OtpInputField> {
             fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
           ),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: const InputDecoration(
             border: InputBorder.none,
             contentPadding: EdgeInsets.zero,
@@ -191,4 +194,3 @@ class _OtpInputFieldState extends State<OtpInputField> {
     );
   }
 }
-

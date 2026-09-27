@@ -33,9 +33,8 @@ class UserModel {
         ? rawUserId.toInt()
         : int.tryParse('$rawUserId') ?? 0;
 
-    DateTime? parseDate(String key) => json[key] == null
-        ? null
-        : DateTime.parse(json[key] as String);
+    DateTime? parseDate(String key) =>
+        json[key] == null ? null : DateTime.parse(json[key] as String);
 
     return UserModel(
       userId: parsedUserId,
@@ -52,15 +51,15 @@ class UserModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'user_id': userId,
-        'full_name': fullName,
-        'email': email,
-        'phone': phone,
-        'password_hash': passwordHash,
-        'monthly_income': monthlyIncome,
-        'date_of_birth': dateOfBirth?.toIso8601String(),
-        'created_at': createdAt?.toIso8601String(),
-        'updated_at': updatedAt?.toIso8601String(),
-        'token': token,
-      };
+    'user_id': userId,
+    'full_name': fullName,
+    'email': email,
+    'phone': phone,
+    'password_hash': passwordHash,
+    'monthly_income': monthlyIncome,
+    'date_of_birth': dateOfBirth?.toIso8601String(),
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+    'token': token,
+  };
 }

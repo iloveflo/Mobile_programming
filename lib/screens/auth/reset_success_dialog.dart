@@ -67,7 +67,11 @@ class ResetSuccessDialog extends StatelessWidget {
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.shield_outlined, size: 20.0, color: AppColors.primary),
+                  Icon(
+                    Icons.shield_outlined,
+                    size: 20.0,
+                    color: AppColors.primary,
+                  ),
                   SizedBox(width: 10.0),
                   Expanded(
                     child: Text(
@@ -88,10 +92,9 @@ class ResetSuccessDialog extends StatelessWidget {
             AppPrimaryButton(
               label: 'Đăng nhập ngay',
               onPressed: () {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  AppRouter.login,
-                  (route) => false,
-                );
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil(AppRouter.login, (route) => false);
               },
             ),
           ],

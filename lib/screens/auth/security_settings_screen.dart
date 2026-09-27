@@ -46,7 +46,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 left: 24.0,
                 right: 24.0,
                 top: 20.0,
-                bottom: MediaQuery.of(bottomSheetContext).viewInsets.bottom + 24.0,
+                bottom:
+                    MediaQuery.of(bottomSheetContext).viewInsets.bottom + 24.0,
               ),
               child: SingleChildScrollView(
                 child: Form(
@@ -78,7 +79,10 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                       const SizedBox(height: 6.0),
                       const Text(
                         'Mật khẩu mới cần đáp ứng tiêu chuẩn an toàn bảo mật FinCredit.',
-                        style: TextStyle(fontSize: 13.0, color: AppColors.textSecondary),
+                        style: TextStyle(
+                          fontSize: 13.0,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: 20.0),
 
@@ -88,8 +92,9 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                         hint: 'Nhập mật khẩu hiện tại',
                         controller: currentPasswordController,
                         isPassword: true,
-                        validator: (val) =>
-                            (val == null || val.isEmpty) ? 'Vui lòng nhập mật khẩu hiện tại' : null,
+                        validator: (val) => (val == null || val.isEmpty)
+                            ? 'Vui lòng nhập mật khẩu hiện tại'
+                            : null,
                       ),
                       const SizedBox(height: 16.0),
 
@@ -99,9 +104,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                         hint: 'Tối thiểu 8 ký tự',
                         controller: newPasswordController,
                         isPassword: true,
-                        onChanged: (val) => setSheetState(() => passwordValue = val),
-                        validator: (val) =>
-                            (val == null || val.length < 8) ? 'Tối thiểu 8 ký tự' : null,
+                        onChanged: (val) =>
+                            setSheetState(() => passwordValue = val),
+                        validator: (val) => (val == null || val.length < 8)
+                            ? 'Tối thiểu 8 ký tự'
+                            : null,
                       ),
                       const SizedBox(height: 6.0),
                       PasswordStrengthMeter(password: passwordValue),
@@ -113,8 +120,9 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                         hint: 'Nhập lại mật khẩu mới',
                         controller: confirmPasswordController,
                         isPassword: true,
-                        validator: (val) =>
-                            val != newPasswordController.text ? 'Mật khẩu không khớp' : null,
+                        validator: (val) => val != newPasswordController.text
+                            ? 'Mật khẩu không khớp'
+                            : null,
                       ),
                       const SizedBox(height: 24.0),
 
@@ -140,7 +148,10 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                           } else {
                             messenger.showSnackBar(
                               SnackBar(
-                                content: Text(_authController.errorMessage ?? 'Đổi mật khẩu thất bại.'),
+                                content: Text(
+                                  _authController.errorMessage ??
+                                      'Đổi mật khẩu thất bại.',
+                                ),
                                 backgroundColor: AppColors.error,
                               ),
                             );
@@ -162,14 +173,19 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
         title: const Text(
           'Thu hồi phiên đăng nhập?',
           style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
         ),
         content: Text(
           'Thiết bị "${session.deviceName}" (${session.platform}) sẽ bị đăng xuất khỏi tài khoản ngay lập tức.',
-          style: const TextStyle(fontSize: 14.0, color: AppColors.textSecondary),
+          style: const TextStyle(
+            fontSize: 14.0,
+            color: AppColors.textSecondary,
+          ),
         ),
         actions: [
           TextButton(
@@ -204,12 +220,17 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
         title: const Row(
           children: [
             Icon(Icons.logout_rounded, color: AppColors.error),
             SizedBox(width: 8.0),
-            Text('Đăng xuất tài khoản', style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold)),
+            Text(
+              'Đăng xuất tài khoản',
+              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: const Text(
@@ -226,7 +247,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               Navigator.pop(dialogCtx);
               await _authController.logout();
               if (!mounted) return;
-              Navigator.pushNamedAndRemoveUntil(context, AppRouter.login, (route) => false);
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                AppRouter.login,
+                (route) => false,
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
@@ -248,12 +273,19 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Cài đặt Bảo mật',
-          style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          style: TextStyle(
+            fontSize: 18.0,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
         ),
         centerTitle: true,
       ),
@@ -267,8 +299,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
 
             // Tính điểm số sức khỏe bảo mật tài khoản thực tế
             final int score = _authController.biometricEnabled ? 95 : 75;
-            final String ratingText = score >= 90 ? 'RẤT TỐT' : (score >= 70 ? 'KHÁ' : 'TRUNG BÌNH');
-            final Color ratingColor = score >= 90 ? AppColors.success : (score >= 70 ? const Color(0xFFF59E0B) : AppColors.error);
+            final String ratingText = score >= 90
+                ? 'RẤT TỐT'
+                : (score >= 70 ? 'KHÁ' : 'TRUNG BÌNH');
+            final Color ratingColor = score >= 90
+                ? AppColors.success
+                : (score >= 70 ? const Color(0xFFF59E0B) : AppColors.error);
             final double progressValue = score / 100.0;
 
             // Phụ đề cập nhật mật khẩu động
@@ -277,7 +313,10 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 : 'Cập nhật lần cuối: 30 ngày trước';
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 16.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -307,7 +346,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                           children: [
                             const Row(
                               children: [
-                                Icon(Icons.security_rounded, color: Colors.white, size: 22.0),
+                                Icon(
+                                  Icons.security_rounded,
+                                  color: Colors.white,
+                                  size: 22.0,
+                                ),
                                 SizedBox(width: 8.0),
                                 Text(
                                   'Sức khỏe bảo mật tài khoản',
@@ -320,7 +363,10 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                               ],
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10.0,
+                                vertical: 4.0,
+                              ),
                               decoration: BoxDecoration(
                                 color: ratingColor,
                                 borderRadius: BorderRadius.circular(12.0),
@@ -350,7 +396,10 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                             ),
                             const Text(
                               ' / 100 Điểm',
-                              style: TextStyle(fontSize: 16.0, color: Color(0xFFBFDBFE)),
+                              style: TextStyle(
+                                fontSize: 16.0,
+                                color: Color(0xFFBFDBFE),
+                              ),
                             ),
                             const Spacer(),
                             const SecurityBadge(
@@ -366,7 +415,9 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                             value: progressValue,
                             minHeight: 6.0,
                             backgroundColor: const Color(0xFF1E3A8A),
-                            valueColor: AlwaysStoppedAnimation<Color>(ratingColor),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              ratingColor,
+                            ),
                           ),
                         ),
                       ],
@@ -396,24 +447,65 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                         ListTile(
                           leading: const CircleAvatar(
                             backgroundColor: AppColors.primarySoft,
-                            child: Icon(Icons.lock_outline, color: AppColors.primary, size: 20.0),
+                            child: Icon(
+                              Icons.lock_outline,
+                              color: AppColors.primary,
+                              size: 20.0,
+                            ),
                           ),
-                          title: const Text('Đổi mật khẩu đăng nhập', style: TextStyle(fontSize: 15.0, fontWeight: FontWeight.w600)),
-                          subtitle: Text(passwordSubtitle, style: const TextStyle(fontSize: 12.0, color: AppColors.textSecondary)),
-                          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16.0, color: AppColors.textSecondary),
+                          title: const Text(
+                            'Đổi mật khẩu đăng nhập',
+                            style: TextStyle(
+                              fontSize: 15.0,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: Text(
+                            passwordSubtitle,
+                            style: const TextStyle(
+                              fontSize: 12.0,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 16.0,
+                            color: AppColors.textSecondary,
+                          ),
                           onTap: _showChangePasswordBottomSheet,
                         ),
-                        const Divider(height: 1, indent: 64.0, color: AppColors.border),
+                        const Divider(
+                          height: 1,
+                          indent: 64.0,
+                          color: AppColors.border,
+                        ),
                         SwitchListTile(
                           secondary: const CircleAvatar(
                             backgroundColor: AppColors.primarySoft,
-                            child: Icon(Icons.fingerprint_rounded, color: AppColors.primary, size: 22.0),
+                            child: Icon(
+                              Icons.fingerprint_rounded,
+                              color: AppColors.primary,
+                              size: 22.0,
+                            ),
                           ),
-                          title: const Text('Xác thực Sinh trắc học', style: TextStyle(fontSize: 15.0, fontWeight: FontWeight.w600)),
-                          subtitle: const Text('Sử dụng Face ID / Vân tay khi đăng nhập', style: TextStyle(fontSize: 12.0, color: AppColors.textSecondary)),
+                          title: const Text(
+                            'Xác thực Sinh trắc học',
+                            style: TextStyle(
+                              fontSize: 15.0,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            'Sử dụng Face ID / Vân tay khi đăng nhập',
+                            style: TextStyle(
+                              fontSize: 12.0,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
                           value: _authController.biometricEnabled,
                           activeTrackColor: AppColors.primary,
-                          onChanged: (val) => _authController.setBiometricEnabled(val),
+                          onChanged: (val) =>
+                              _authController.setBiometricEnabled(val),
                         ),
                       ],
                     ),
@@ -435,7 +527,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                       ),
                       Text(
                         '${sessions.length} thiết bị',
-                        style: const TextStyle(fontSize: 12.0, color: AppColors.primary, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 12.0,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
@@ -450,8 +546,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: sessions.length,
-                      separatorBuilder: (context, index) =>
-                          const Divider(height: 1, indent: 64.0, color: AppColors.border),
+                      separatorBuilder: (context, index) => const Divider(
+                        height: 1,
+                        indent: 64.0,
+                        color: AppColors.border,
+                      ),
                       itemBuilder: (context, index) {
                         final session = sessions[index];
                         return ListTile(
@@ -460,10 +559,13 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                                 ? AppColors.success.withValues(alpha: 0.12)
                                 : AppColors.primarySoft,
                             child: Icon(
-                              session.platform.contains('macOS') || session.platform.contains('Chrome')
+                              session.platform.contains('macOS') ||
+                                      session.platform.contains('Chrome')
                                   ? Icons.laptop_mac_rounded
                                   : Icons.smartphone_rounded,
-                              color: session.isCurrent ? AppColors.success : AppColors.primary,
+                              color: session.isCurrent
+                                  ? AppColors.success
+                                  : AppColors.primary,
                               size: 20.0,
                             ),
                           ),
@@ -472,16 +574,24 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                               Flexible(
                                 child: Text(
                                   session.deviceName,
-                                  style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                    fontSize: 14.0,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               if (session.isCurrent) ...[
                                 const SizedBox(width: 6.0),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6.0,
+                                    vertical: 2.0,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.success.withValues(alpha: 0.15),
+                                    color: AppColors.success.withValues(
+                                      alpha: 0.15,
+                                    ),
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
                                   child: const Text(
@@ -498,20 +608,30 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                           ),
                           subtitle: Text(
                             '${session.platform}\n${session.location} • ${session.ipAddress}',
-                            style: const TextStyle(fontSize: 12.0, color: AppColors.textSecondary, height: 1.3),
+                            style: const TextStyle(
+                              fontSize: 12.0,
+                              color: AppColors.textSecondary,
+                              height: 1.3,
+                            ),
                           ),
                           isThreeLine: true,
                           trailing: session.isCurrent
                               ? null
                               : TextButton(
-                                  onPressed: () => _confirmRevokeSession(session),
+                                  onPressed: () =>
+                                      _confirmRevokeSession(session),
                                   style: TextButton.styleFrom(
                                     foregroundColor: AppColors.error,
-                                    padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10.0,
+                                    ),
                                   ),
                                   child: const Text(
                                     'Thu hồi',
-                                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.w600),
+                                    style: TextStyle(
+                                      fontSize: 12.0,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                         );
@@ -523,7 +643,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                   // 4. Nút Đăng xuất tài khoản
                   OutlinedButton.icon(
                     onPressed: _confirmLogout,
-                    icon: const Icon(Icons.logout_rounded, color: AppColors.error, size: 20.0),
+                    icon: const Icon(
+                      Icons.logout_rounded,
+                      color: AppColors.error,
+                      size: 20.0,
+                    ),
                     label: const Text(
                       'Đăng xuất tài khoản',
                       style: TextStyle(
@@ -534,8 +658,13 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                     ),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 50.0),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                      side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      side: const BorderSide(
+                        color: Color(0xFFFCA5A5),
+                        width: 1.2,
+                      ),
                       backgroundColor: const Color(0xFFFEF2F2),
                     ),
                   ),

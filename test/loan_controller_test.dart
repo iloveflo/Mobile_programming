@@ -60,7 +60,10 @@ void main() {
 
       expect(success, isTrue);
       expect(controller.loans.length, equals(initialCount + 1));
-      expect(controller.loans.first.loanName, equals('Vay tín chấp nâng cấp laptop'));
+      expect(
+        controller.loans.first.loanName,
+        equals('Vay tín chấp nâng cấp laptop'),
+      );
     });
 
     test('Ghi nhận thanh toán và cập nhật dư nợ', () async {
@@ -68,10 +71,9 @@ void main() {
       final firstLoan = controller.loans.first;
       final oldOutstanding = firstLoan.outstandingAmount;
 
-      final success = await controller.updateLoan(
-        firstLoan.id.toString(),
-        {'outstanding_amount': oldOutstanding - 5000000},
-      );
+      final success = await controller.updateLoan(firstLoan.id.toString(), {
+        'outstanding_amount': oldOutstanding - 5000000,
+      });
 
       expect(success, isTrue);
       final updated = controller.loans.firstWhere((l) => l.id == firstLoan.id);
@@ -129,89 +131,116 @@ void main() {
 
       expect(success, isTrue);
       expect(controller.collaterals.length, equals(initialCount + 1));
-      expect(controller.collaterals.first.name, equals('Sổ đỏ Chung cư Vinhomes Metropolis'));
+      expect(
+        controller.collaterals.first.name,
+        equals('Sổ đỏ Chung cư Vinhomes Metropolis'),
+      );
       expect(controller.totalCollateralValue, greaterThan(3500000000.0));
     });
 
-    test('Từ chối thêm tài sản nếu giá trị định giá nằm ngoài hạn mức của loại tài sản', () async {
-      await controller.fetchCollaterals();
+    test(
+      'Từ chối thêm tài sản nếu giá trị định giá nằm ngoài hạn mức của loại tài sản',
+      () async {
+        await controller.fetchCollaterals();
 
-      // Thử thêm Bất động sản với giá trị 1đ (vi phạm mức sàn 100 triệu)
-      final failTooLow = await controller.addCollateral(
-        name: 'Nhà cấp 4',
-        type: 'REAL_ESTATE',
-        value: 1.0,
-      );
-      expect(failTooLow, isFalse);
-      expect(controller.errorMessage, contains('tối thiểu'));
+        // Thử thêm Bất động sản với giá trị 1đ (vi phạm mức sàn 100 triệu)
+        final failTooLow = await controller.addCollateral(
+          name: 'Nhà cấp 4',
+          type: 'REAL_ESTATE',
+          value: 1.0,
+        );
+        expect(failTooLow, isFalse);
+        expect(controller.errorMessage, contains('tối thiểu'));
 
-      // Thử thêm Phương tiện với giá trị 1đ (vi phạm mức sàn 50 triệu)
-      final failVehicle = await controller.addCollateral(
-        name: 'Xe máy',
-        type: 'VEHICLE',
-        value: 1.0,
-      );
-      expect(failVehicle, isFalse);
-      expect(controller.errorMessage, contains('tối thiểu'));
+        // Thử thêm Phương tiện với giá trị 1đ (vi phạm mức sàn 50 triệu)
+        final failVehicle = await controller.addCollateral(
+          name: 'Xe máy',
+          type: 'VEHICLE',
+          value: 1.0,
+        );
+        expect(failVehicle, isFalse);
+        expect(controller.errorMessage, contains('tối thiểu'));
 
-      // Thử thêm vượt mức trần
-      final failTooHigh = await controller.addCollateral(
-        name: 'Xe siêu sang',
-        type: 'VEHICLE',
-        value: 50000000000.0, // 50 tỷ vượt trần xe 20 tỷ
-      );
-      expect(failTooHigh, isFalse);
-      expect(controller.errorMessage, contains('tối đa'));
-    });
+        // Thử thêm vượt mức trần
+        final failTooHigh = await controller.addCollateral(
+          name: 'Xe siêu sang',
+          type: 'VEHICLE',
+          value: 50000000000.0, // 50 tỷ vượt trần xe 20 tỷ
+        );
+        expect(failTooHigh, isFalse);
+        expect(controller.errorMessage, contains('tối đa'));
+      },
+    );
 
-    test('Tất toán trước hạn chuyển trạng thái SETTLED và dư nợ về 0', () async {
-      await controller.fetchLoans();
-      final activeLoan = controller.loans.firstWhere((l) => l.isActive);
+    test(
+      'Tất toán trước hạn chuyển trạng thái SETTLED và dư nợ về 0',
+      () async {
+        await controller.fetchLoans();
+        final activeLoan = controller.loans.firstWhere((l) => l.isActive);
 
-      final success = await controller.settleLoanEarly(activeLoan.id.toString());
-      expect(success, isTrue);
+        final success = await controller.settleLoanEarly(
+          activeLoan.id.toString(),
+        );
+        expect(success, isTrue);
 
-      final settledLoan = controller.loans.firstWhere((l) => l.id == activeLoan.id);
-      expect(settledLoan.isSettled, isTrue);
-      expect(settledLoan.outstandingAmount, equals(0.0));
-    });
+        final settledLoan = controller.loans.firstWhere(
+          (l) => l.id == activeLoan.id,
+        );
+        expect(settledLoan.isSettled, isTrue);
+        expect(settledLoan.outstandingAmount, equals(0.0));
+      },
+    );
 
-    test('Khoản vay đã phát sinh thanh toán tuyệt đối không được phép xóa', () async {
-      await controller.fetchLoans();
-      // Chọn khoản vay có paidAmount > 0 (ví dụ id: 101, principal: 500M, outstanding: 385M)
-      final paidLoan = controller.loans.firstWhere((l) => l.paidAmount > 0 && l.isActive);
-      expect(paidLoan.canHardDelete, isFalse);
+    test(
+      'Khoản vay đã phát sinh thanh toán tuyệt đối không được phép xóa',
+      () async {
+        await controller.fetchLoans();
+        // Chọn khoản vay có paidAmount > 0 (ví dụ id: 101, principal: 500M, outstanding: 385M)
+        final paidLoan = controller.loans.firstWhere(
+          (l) => l.paidAmount > 0 && l.isActive,
+        );
+        expect(paidLoan.canHardDelete, isFalse);
 
-      final initialLength = controller.loans.length;
-      final success = await controller.removeLoan(paidLoan.id.toString());
-      expect(success, isFalse);
-      expect(controller.errorMessage, contains('không thể xóa'));
-      expect(controller.loans.length, equals(initialLength)); // Vẫn còn nguyên vẹn trong list
-    });
+        final initialLength = controller.loans.length;
+        final success = await controller.removeLoan(paidLoan.id.toString());
+        expect(success, isFalse);
+        expect(controller.errorMessage, contains('không thể xóa'));
+        expect(
+          controller.loans.length,
+          equals(initialLength),
+        ); // Vẫn còn nguyên vẹn trong list
+      },
+    );
 
-    test('Tạo mới khoản vay lưu đúng loại khoản vay (loan_type) và hiển thị lãi suất chuẩn hóa', () async {
-      await controller.fetchLoans();
+    test(
+      'Tạo mới khoản vay lưu đúng loại khoản vay (loan_type) và hiển thị lãi suất chuẩn hóa',
+      () async {
+        await controller.fetchLoans();
 
-      final success = await controller.createLoan({
-        'loan_name': 'Vay mua nhà Ecopark',
-        'lender_name': 'Techcombank',
-        'loan_type': 'MORTGAGE',
-        'principal_amount': 2000000000.0,
-        'outstanding_amount': 2000000000.0,
-        'interest_rate': 8.5,
-        'tenor_months': 120,
-        'start_date': '15/09/2026',
-        'interest_method': 'Dư nợ giảm dần',
-        'status': 'ACTIVE',
-      });
+        final success = await controller.createLoan({
+          'loan_name': 'Vay mua nhà Ecopark',
+          'lender_name': 'Techcombank',
+          'loan_type': 'MORTGAGE',
+          'principal_amount': 2000000000.0,
+          'outstanding_amount': 2000000000.0,
+          'interest_rate': 8.5,
+          'tenor_months': 120,
+          'start_date': '15/09/2026',
+          'interest_method': 'Dư nợ giảm dần',
+          'status': 'ACTIVE',
+        });
 
-      expect(success, isTrue);
-      final created = controller.loans.first;
-      expect(created.loanTypeKey, equals('MORTGAGE'));
-      expect(created.loanTypeDisplayName, equals('Vay thế chấp / Bất động sản'));
-      expect(created.interestRatePercent, equals(8.5));
-      expect(created.interestRateFormatted, equals('8.5%/năm'));
-    });
+        expect(success, isTrue);
+        final created = controller.loans.first;
+        expect(created.loanTypeKey, equals('MORTGAGE'));
+        expect(
+          created.loanTypeDisplayName,
+          equals('Vay thế chấp / Bất động sản'),
+        );
+        expect(created.interestRatePercent, equals(8.5));
+        expect(created.interestRateFormatted, equals('8.5%/năm'));
+      },
+    );
 
     test('Lấy chi tiết khoản vay tức thì không bị trễ', () async {
       await controller.fetchLoans();

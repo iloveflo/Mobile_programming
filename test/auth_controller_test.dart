@@ -25,13 +25,16 @@ void main() {
       expect(controller.errorMessage, isNotEmpty);
     });
 
-    test('đăng xuất xóa người dùng hiện tại nhưng giữ nguyên cài đặt sinh trắc học của thiết bị', () async {
-      await controller.login('dev@test.com', '123456');
-      controller.setBiometricEnabled(true);
-      await controller.logout();
-      expect(controller.isAuthenticated, isFalse);
-      expect(controller.currentUser, isNull);
-      expect(controller.isBiometricEnabled, isTrue);
-    });
+    test(
+      'đăng xuất xóa người dùng hiện tại nhưng giữ nguyên cài đặt sinh trắc học của thiết bị',
+      () async {
+        await controller.login('dev@test.com', '123456');
+        controller.setBiometricEnabled(true);
+        await controller.logout();
+        expect(controller.isAuthenticated, isFalse);
+        expect(controller.currentUser, isNull);
+        expect(controller.isBiometricEnabled, isTrue);
+      },
+    );
   });
 }

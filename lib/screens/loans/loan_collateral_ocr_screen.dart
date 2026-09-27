@@ -13,7 +13,8 @@ class LoanCollateralOcrScreen extends StatefulWidget {
   const LoanCollateralOcrScreen({super.key, this.loanId});
 
   @override
-  State<LoanCollateralOcrScreen> createState() => _LoanCollateralOcrScreenState();
+  State<LoanCollateralOcrScreen> createState() =>
+      _LoanCollateralOcrScreenState();
 }
 
 class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
@@ -100,8 +101,13 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
           final config = CollateralModel.getConfig(type);
 
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
-            title: const Text('Thêm tài sản bảo đảm', style: TextStyle(fontWeight: FontWeight.bold)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.0),
+            ),
+            title: const Text(
+              'Thêm tài sản bảo đảm',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -109,12 +115,17 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                 children: [
                   TextField(
                     controller: nameCtrl,
-                    decoration: const InputDecoration(labelText: 'Tên tài sản (ví dụ: Sổ đỏ Chung cư Times City)'),
+                    decoration: const InputDecoration(
+                      labelText:
+                          'Tên tài sản (ví dụ: Sổ đỏ Chung cư Times City)',
+                    ),
                   ),
                   const SizedBox(height: 12.0),
                   DropdownButtonFormField<String>(
                     initialValue: type,
-                    decoration: const InputDecoration(labelText: 'Loại tài sản bảo đảm'),
+                    decoration: const InputDecoration(
+                      labelText: 'Loại tài sản bảo đảm',
+                    ),
                     items: CollateralModel.typeConfigs.entries.map((e) {
                       return DropdownMenuItem(
                         value: e.key,
@@ -145,7 +156,10 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
               ),
               ElevatedButton(
                 onPressed: () async {
-                  final rawVal = valCtrl.text.replaceAll('.', '').replaceAll(',', '').trim();
+                  final rawVal = valCtrl.text
+                      .replaceAll('.', '')
+                      .replaceAll(',', '')
+                      .trim();
                   final val = double.tryParse(rawVal) ?? 0.0;
                   final name = nameCtrl.text.trim();
                   final currentConfig = CollateralModel.getConfig(type);
@@ -163,7 +177,9 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                   if (val < currentConfig.minValue) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Giá trị định giá cho ${currentConfig.displayName} tối thiểu là ${currentConfig.minFormatted}.'),
+                        content: Text(
+                          'Giá trị định giá cho ${currentConfig.displayName} tối thiểu là ${currentConfig.minFormatted}.',
+                        ),
                         backgroundColor: AppColors.error,
                       ),
                     );
@@ -173,7 +189,9 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                   if (val > currentConfig.maxValue) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Giá trị định giá cho ${currentConfig.displayName} tối đa là ${currentConfig.maxFormatted}.'),
+                        content: Text(
+                          'Giá trị định giá cho ${currentConfig.displayName} tối đa là ${currentConfig.maxFormatted}.',
+                        ),
                         backgroundColor: AppColors.error,
                       ),
                     );
@@ -193,20 +211,28 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                   if (success) {
                     messenger.showSnackBar(
                       SnackBar(
-                        content: Text('Đã ghi nhận tài sản "$name" (${_formatCurrency(val)}) thành công!'),
+                        content: Text(
+                          'Đã ghi nhận tài sản "$name" (${_formatCurrency(val)}) thành công!',
+                        ),
                         backgroundColor: AppColors.success,
                       ),
                     );
                   } else {
                     messenger.showSnackBar(
                       SnackBar(
-                        content: Text(_loanController.errorMessage ?? 'Không thể thêm tài sản.'),
+                        content: Text(
+                          _loanController.errorMessage ??
+                              'Không thể thêm tài sản.',
+                        ),
                         backgroundColor: AppColors.error,
                       ),
                     );
                   }
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                ),
                 child: const Text('Thêm'),
               ),
             ],
@@ -224,12 +250,20 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
         backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20.0),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+            size: 20.0,
+          ),
           onPressed: () => Navigator.maybePop(context),
         ),
         title: const Text(
           'Tài sản thế chấp & OCR',
-          style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          style: TextStyle(
+            fontSize: 18.0,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
         ),
         bottom: TabBar(
           controller: _tabController,
@@ -237,19 +271,25 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
           unselectedLabelColor: AppColors.textSecondary,
           indicatorColor: AppColors.primary,
           indicatorWeight: 3.0,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0),
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13.0,
+          ),
           tabs: const [
-            Tab(icon: Icon(Icons.shield_outlined, size: 20.0), text: 'Tài sản bảo đảm'),
-            Tab(icon: Icon(Icons.document_scanner_outlined, size: 20.0), text: 'Bóc tách OCR'),
+            Tab(
+              icon: Icon(Icons.shield_outlined, size: 20.0),
+              text: 'Tài sản bảo đảm',
+            ),
+            Tab(
+              icon: Icon(Icons.document_scanner_outlined, size: 20.0),
+              text: 'Bóc tách OCR',
+            ),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildCollateralTab(),
-          _buildOcrTab(),
-        ],
+        children: [_buildCollateralTab(), _buildOcrTab()],
       ),
     );
   }
@@ -293,7 +333,13 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                   TextButton.icon(
                     onPressed: _showAddCollateralDialog,
                     icon: const Icon(Icons.add, size: 16.0),
-                    label: const Text('Thêm tài sản', style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold)),
+                    label: const Text(
+                      'Thêm tài sản',
+                      style: TextStyle(
+                        fontSize: 12.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -302,7 +348,10 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
               if (collaterals.isEmpty)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 36.0, horizontal: 20.0),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 36.0,
+                    horizontal: 20.0,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(16.0),
@@ -310,17 +359,28 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                   ),
                   child: Column(
                     children: [
-                      Icon(Icons.shield_outlined, size: 48.0, color: AppColors.textSecondary.withValues(alpha: 0.5)),
+                      Icon(
+                        Icons.shield_outlined,
+                        size: 48.0,
+                        color: AppColors.textSecondary.withValues(alpha: 0.5),
+                      ),
                       const SizedBox(height: 12.0),
                       const Text(
                         'Chưa có tài sản bảo đảm nào',
-                        style: TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        style: TextStyle(
+                          fontSize: 15.0,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       const SizedBox(height: 6.0),
                       const Text(
                         'Bạn chưa đăng ký tài sản thế chấp nào cho các khoản vay.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12.0, color: AppColors.textSecondary),
+                        style: TextStyle(
+                          fontSize: 12.0,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: 14.0),
                       OutlinedButton.icon(
@@ -366,7 +426,11 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
         children: [
           CircleAvatar(
             backgroundColor: AppColors.primarySoft,
-            child: Icon(_getCollateralIcon(item.type), color: AppColors.primary, size: 22.0),
+            child: Icon(
+              _getCollateralIcon(item.type),
+              color: AppColors.primary,
+              size: 22.0,
+            ),
           ),
           const SizedBox(width: 12.0),
           Expanded(
@@ -375,17 +439,28 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
               children: [
                 Text(
                   item.name,
-                  style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  style: const TextStyle(
+                    fontSize: 14.0,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 4.0),
                 Text(
                   'Loại: ${item.typeDisplay} • Định giá: ${item.valuationDateFormatted}',
-                  style: const TextStyle(fontSize: 11.0, color: AppColors.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 11.0,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 8.0),
                 Text(
                   _formatCurrency(item.value),
-                  style: const TextStyle(fontSize: 15.0, fontWeight: FontWeight.w800, color: AppColors.primary),
+                  style: const TextStyle(
+                    fontSize: 15.0,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
                 ),
               ],
             ),
@@ -417,7 +492,11 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
               children: [
                 CircleAvatar(
                   backgroundColor: Color(0xFF334155),
-                  child: Icon(Icons.auto_awesome, color: Color(0xFF38BDF8), size: 22.0),
+                  child: Icon(
+                    Icons.auto_awesome,
+                    color: Color(0xFF38BDF8),
+                    size: 22.0,
+                  ),
                 ),
                 SizedBox(width: 12.0),
                 Expanded(
@@ -426,12 +505,19 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                     children: [
                       Text(
                         'AI Document OCR Scanner',
-                        style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                       SizedBox(height: 2.0),
                       Text(
                         'Tự động nhận diện hợp đồng tín dụng ngân hàng, bóc tách dư nợ, lãi suất và lịch trả nợ.',
-                        style: TextStyle(fontSize: 11.0, color: Color(0xFF94A3B8)),
+                        style: TextStyle(
+                          fontSize: 11.0,
+                          color: Color(0xFF94A3B8),
+                        ),
                       ),
                     ],
                   ),
@@ -454,31 +540,51 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
               children: [
                 const Text(
                   'Chọn tài liệu hợp đồng quét mẫu:',
-                  style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: 13.0,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 8.0),
                 DropdownButtonFormField<String>(
                   initialValue: _selectedDocumentType,
                   decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0), borderSide: const BorderSide(color: AppColors.border)),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12.0,
+                      vertical: 10.0,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
                   ),
                   items: const [
                     DropdownMenuItem(
                       value: 'Hợp đồng tín dụng Techcombank',
-                      child: Text('Hợp đồng tín dụng Techcombank (Mua nhà)', style: TextStyle(fontSize: 13.0)),
+                      child: Text(
+                        'Hợp đồng tín dụng Techcombank (Mua nhà)',
+                        style: TextStyle(fontSize: 13.0),
+                      ),
                     ),
                     DropdownMenuItem(
                       value: 'Hợp đồng vay tiêu dùng MBBank',
-                      child: Text('Hợp đồng tiêu dùng MBBank (Mua xe)', style: TextStyle(fontSize: 13.0)),
+                      child: Text(
+                        'Hợp đồng tiêu dùng MBBank (Mua xe)',
+                        style: TextStyle(fontSize: 13.0),
+                      ),
                     ),
                     DropdownMenuItem(
                       value: 'Sao kê thẻ tín dụng VIB',
-                      child: Text('Sao kê thẻ tín dụng VIB Super Card', style: TextStyle(fontSize: 13.0)),
+                      child: Text(
+                        'Sao kê thẻ tín dụng VIB Super Card',
+                        style: TextStyle(fontSize: 13.0),
+                      ),
                     ),
                   ],
                   onChanged: (val) {
-                    if (val != null) setState(() => _selectedDocumentType = val);
+                    if (val != null)
+                      setState(() => _selectedDocumentType = val);
                   },
                 ),
                 const SizedBox(height: 14.0),
@@ -509,23 +615,38 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.verified_rounded, color: AppColors.success, size: 20.0),
+                          Icon(
+                            Icons.verified_rounded,
+                            color: AppColors.success,
+                            size: 20.0,
+                          ),
                           SizedBox(width: 6.0),
                           Text(
                             'Kết quả bóc tách (Review)',
-                            style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            style: TextStyle(
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8.0,
+                          vertical: 3.0,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.success.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8.0),
                         ),
                         child: Text(
                           'Độ tin cậy: ${((_ocrResult!['confidence_score'] ?? 0.96) * 100).round()}%',
-                          style: const TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold, color: AppColors.success),
+                          style: const TextStyle(
+                            fontSize: 11.0,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.success,
+                          ),
                         ),
                       ),
                     ],
@@ -534,17 +655,38 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                   const Divider(color: AppColors.border, height: 1),
                   const SizedBox(height: 10.0),
 
-                  _buildReviewRow('Mã hợp đồng', _ocrResult!['contract_number']?.toString() ?? 'HD-2026/089'),
-                  _buildReviewRow('Tên khoản vay', _ocrResult!['loan_name']?.toString() ?? 'Vay mua căn hộ Masteri'),
-                  _buildReviewRow('Tổ chức cấp tín dụng', _ocrResult!['lender_name']?.toString() ?? 'Techcombank'),
+                  _buildReviewRow(
+                    'Mã hợp đồng',
+                    _ocrResult!['contract_number']?.toString() ?? 'HD-2026/089',
+                  ),
+                  _buildReviewRow(
+                    'Tên khoản vay',
+                    _ocrResult!['loan_name']?.toString() ??
+                        'Vay mua căn hộ Masteri',
+                  ),
+                  _buildReviewRow(
+                    'Tổ chức cấp tín dụng',
+                    _ocrResult!['lender_name']?.toString() ?? 'Techcombank',
+                  ),
                   _buildReviewRow(
                     'Số tiền giải ngân',
-                    _formatCurrency(_ocrResult!['principal_amount'] ?? 1500000000),
+                    _formatCurrency(
+                      _ocrResult!['principal_amount'] ?? 1500000000,
+                    ),
                     isHighlight: true,
                   ),
-                  _buildReviewRow('Lãi suất năm', '${_ocrResult!['interest_rate'] ?? 9.2}% / năm'),
-                  _buildReviewRow('Kỳ hạn vay', '${_ocrResult!['tenor_months'] ?? 120} tháng'),
-                  _buildReviewRow('Ngày ký kết', _ocrResult!['start_date']?.toString() ?? '15/09/2026'),
+                  _buildReviewRow(
+                    'Lãi suất năm',
+                    '${_ocrResult!['interest_rate'] ?? 9.2}% / năm',
+                  ),
+                  _buildReviewRow(
+                    'Kỳ hạn vay',
+                    '${_ocrResult!['tenor_months'] ?? 120} tháng',
+                  ),
+                  _buildReviewRow(
+                    'Ngày ký kết',
+                    _ocrResult!['start_date']?.toString() ?? '15/09/2026',
+                  ),
 
                   const SizedBox(height: 16.0),
                   Container(
@@ -555,12 +697,19 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.info_outline, size: 16.0, color: AppColors.primary),
+                        Icon(
+                          Icons.info_outline,
+                          size: 16.0,
+                          color: AppColors.primary,
+                        ),
                         SizedBox(width: 8.0),
                         Expanded(
                           child: Text(
                             'Vui lòng kiểm tra lại thông tin trước khi áp dụng vào biểu mẫu tạo khoản vay.',
-                            style: TextStyle(fontSize: 11.0, color: AppColors.primary),
+                            style: TextStyle(
+                              fontSize: 11.0,
+                              color: AppColors.primary,
+                            ),
                           ),
                         ),
                       ],
@@ -589,13 +738,23 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
     );
   }
 
-  Widget _buildReviewRow(String label, String value, {bool isHighlight = false}) {
+  Widget _buildReviewRow(
+    String label,
+    String value, {
+    bool isHighlight = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13.0, color: AppColors.textSecondary)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13.0,
+              color: AppColors.textSecondary,
+            ),
+          ),
           Text(
             value,
             style: TextStyle(

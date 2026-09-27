@@ -100,7 +100,9 @@ class _AppTextFieldState extends State<AppTextField> {
     if (widget.isPassword && effectiveSuffixIcon == null) {
       effectiveSuffixIcon = IconButton(
         icon: Icon(
-          _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+          _obscureText
+              ? Icons.visibility_off_outlined
+              : Icons.visibility_outlined,
           color: AppColors.textSecondary,
           size: 20.0,
         ),
@@ -150,7 +152,9 @@ class _AppTextFieldState extends State<AppTextField> {
               fontWeight: FontWeight.w400,
             ),
             filled: true,
-            fillColor: widget.enabled ? AppColors.surface : AppColors.background,
+            fillColor: widget.enabled
+                ? AppColors.surface
+                : AppColors.background,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16.0,
               vertical: 14.0,
@@ -167,7 +171,10 @@ class _AppTextFieldState extends State<AppTextField> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
-              borderSide: const BorderSide(color: AppColors.primaryLight, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primaryLight,
+                width: 1.5,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
@@ -179,7 +186,10 @@ class _AppTextFieldState extends State<AppTextField> {
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
-              borderSide: BorderSide(color: AppColors.border.withValues(alpha: 0.6), width: 1.0),
+              borderSide: BorderSide(
+                color: AppColors.border.withValues(alpha: 0.6),
+                width: 1.0,
+              ),
             ),
           ),
         ),
@@ -187,4 +197,3 @@ class _AppTextFieldState extends State<AppTextField> {
     );
   }
 }
-

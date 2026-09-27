@@ -33,7 +33,9 @@ class AppPrimaryButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       height: 52.0,
-      child: isOutlined ? _buildOutlinedButton() : _buildFilledButton(effectiveOnPressed),
+      child: isOutlined
+          ? _buildOutlinedButton()
+          : _buildFilledButton(effectiveOnPressed),
     );
   }
 
@@ -109,4 +111,3 @@ class AppPrimaryButton extends StatelessWidget {
     );
   }
 }
-

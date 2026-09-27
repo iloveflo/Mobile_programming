@@ -10,7 +10,8 @@ class AssetMockData {
       type: 'VEHICLE',
       value: 750000000.0,
       valuationDate: DateTime(2025, 6, 1),
-      description: 'Xe thế chấp giải ngân khoản vay Vietcombank. Cavet gốc giữ tại ngân hàng.',
+      description:
+          'Xe thế chấp giải ngân khoản vay Vietcombank. Cavet gốc giữ tại ngân hàng.',
       createdAt: DateTime(2025, 6, 1, 9, 30),
     ),
     AssetModel(
@@ -37,4 +38,3 @@ class AssetMockData {
     ),
   ];
 }
-

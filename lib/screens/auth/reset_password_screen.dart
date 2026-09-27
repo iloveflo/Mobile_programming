@@ -34,7 +34,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     if (!_formKey.currentState!.validate()) return;
 
-    final isSuccess = await _authController.resetPassword(_passwordController.text);
+    final isSuccess = await _authController.resetPassword(
+      _passwordController.text,
+    );
 
     if (!mounted) return;
 
@@ -43,7 +45,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_authController.errorMessage ?? 'Không thể đặt lại mật khẩu.'),
+          content: Text(
+            _authController.errorMessage ?? 'Không thể đặt lại mật khẩu.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -58,12 +62,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Thiết lập mật khẩu mới',
-          style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          style: TextStyle(
+            fontSize: 18.0,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
         ),
         centerTitle: true,
       ),
@@ -72,7 +83,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           listenable: _authController,
           builder: (context, _) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 20.0,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -86,7 +100,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         decoration: BoxDecoration(
                           color: AppColors.primarySoft,
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFBFDBFE), width: 1.5),
+                          border: Border.all(
+                            color: const Color(0xFFBFDBFE),
+                            width: 1.5,
+                          ),
                         ),
                         child: const Center(
                           child: Icon(
@@ -126,7 +143,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       hint: 'Nhập mật khẩu an toàn',
                       controller: _passwordController,
                       isPassword: true,
-                      prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: AppColors.textSecondary,
+                      ),
                       textInputAction: TextInputAction.next,
                       onChanged: (val) {
                         setState(() {
@@ -152,7 +172,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       hint: 'Nhập lại mật khẩu mới',
                       controller: _confirmPasswordController,
                       isPassword: true,
-                      prefixIcon: const Icon(Icons.lock_reset_outlined, color: AppColors.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.lock_reset_outlined,
+                        color: AppColors.textSecondary,
+                      ),
                       textInputAction: TextInputAction.done,
                       validator: (value) {
                         if (value != _passwordController.text) {

@@ -26,9 +26,8 @@ class NotificationModel {
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
-    DateTime? parseDate(String key) => json[key] == null
-        ? null
-        : DateTime.parse(json[key] as String);
+    DateTime? parseDate(String key) =>
+        json[key] == null ? null : DateTime.parse(json[key] as String);
 
     return NotificationModel(
       id: json['notification_id'] as int,
@@ -46,16 +45,16 @@ class NotificationModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'notification_id': id,
-        'user_id': userId,
-        'schedule_id': scheduleId,
-        'notification_type': type,
-        'channel': channel,
-        'title': title,
-        'message': message,
-        'scheduled_at': scheduledAt?.toIso8601String(),
-        'sent_at': sentAt?.toIso8601String(),
-        'status': status,
-        'created_at': createdAt?.toIso8601String(),
-      };
+    'notification_id': id,
+    'user_id': userId,
+    'schedule_id': scheduleId,
+    'notification_type': type,
+    'channel': channel,
+    'title': title,
+    'message': message,
+    'scheduled_at': scheduledAt?.toIso8601String(),
+    'sent_at': sentAt?.toIso8601String(),
+    'status': status,
+    'created_at': createdAt?.toIso8601String(),
+  };
 }

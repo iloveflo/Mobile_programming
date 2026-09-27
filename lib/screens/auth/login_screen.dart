@@ -47,7 +47,9 @@ class _LoginScreenState extends State<LoginScreen> {
       case AuthResultState.unverified:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Tài khoản chưa được kích hoạt. Đang chuyển tới bước xác thực OTP.'),
+            content: Text(
+              'Tài khoản chưa được kích hoạt. Đang chuyển tới bước xác thực OTP.',
+            ),
             backgroundColor: AppColors.primaryLight,
           ),
         );
@@ -55,7 +57,9 @@ class _LoginScreenState extends State<LoginScreen> {
           context,
           AppRouter.otp,
           arguments: {
-            'email': _authController.pendingEmail ?? _identifierController.text.trim(),
+            'email':
+                _authController.pendingEmail ??
+                _identifierController.text.trim(),
             'phone': _authController.pendingPhone ?? '0912345678',
             'flow': OtpFlow.register,
           },
@@ -69,7 +73,10 @@ class _LoginScreenState extends State<LoginScreen> {
       case AuthResultState.invalid:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_authController.errorMessage ?? 'Thông tin đăng nhập không hợp lệ.'),
+            content: Text(
+              _authController.errorMessage ??
+                  'Thông tin đăng nhập không hợp lệ.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -82,12 +89,17 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
         title: const Row(
           children: [
             Icon(Icons.lock_clock_outlined, color: AppColors.error),
             SizedBox(width: 8),
-            Text('Tài khoản tạm khóa', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Tài khoản tạm khóa',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: Text(
@@ -97,7 +109,10 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Đã hiểu', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Đã hiểu',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
@@ -110,10 +125,16 @@ class _LoginScreenState extends State<LoginScreen> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
           title: const Row(
             children: [
-              Icon(Icons.fingerprint_rounded, color: AppColors.error, size: 24.0),
+              Icon(
+                Icons.fingerprint_rounded,
+                color: AppColors.error,
+                size: 24.0,
+              ),
               SizedBox(width: 8.0),
               Text(
                 'Sinh trắc học đang tắt',
@@ -123,12 +144,19 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           content: const Text(
             'Tính năng xác thực sinh trắc học đã bị tắt trong Cài đặt bảo mật.\n\nVui lòng đăng nhập bằng Mật khẩu và kích hoạt lại tại màn hình Cài đặt Bảo mật (M06).',
-            style: TextStyle(fontSize: 14.0, color: AppColors.textSecondary, height: 1.4),
+            style: TextStyle(
+              fontSize: 14.0,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Đã hiểu', style: TextStyle(fontWeight: FontWeight.w600)),
+              child: const Text(
+                'Đã hiểu',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         ),
@@ -179,7 +207,10 @@ class _LoginScreenState extends State<LoginScreen> {
           listenable: _authController,
           builder: (context, _) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 20.0,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -194,7 +225,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: BoxDecoration(
                           color: AppColors.primarySoft,
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFBFDBFE), width: 1.5),
+                          border: Border.all(
+                            color: const Color(0xFFBFDBFE),
+                            width: 1.5,
+                          ),
                         ),
                         child: const Center(
                           child: Icon(
@@ -236,7 +270,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Thông báo lỗi nếu có
                     if (_authController.errorMessage != null) ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14.0,
+                          vertical: 10.0,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFEE2E2),
                           borderRadius: BorderRadius.circular(10.0),
@@ -244,7 +281,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.error_outline, size: 20.0, color: AppColors.error),
+                            const Icon(
+                              Icons.error_outline,
+                              size: 20.0,
+                              color: AppColors.error,
+                            ),
                             const SizedBox(width: 8.0),
                             Expanded(
                               child: Text(
@@ -267,7 +308,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       label: 'Email / Mã định danh CIC',
                       hint: 'dev@test.com hoặc mã CIC',
                       controller: _identifierController,
-                      prefixIcon: const Icon(Icons.mail_outline, color: AppColors.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.mail_outline,
+                        color: AppColors.textSecondary,
+                      ),
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       validator: (value) {
@@ -285,7 +329,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       hint: 'Nhập mật khẩu của bạn',
                       controller: _passwordController,
                       isPassword: true,
-                      prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: AppColors.textSecondary,
+                      ),
                       textInputAction: TextInputAction.done,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -332,7 +379,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               context,
                               AppRouter.otp,
                               arguments: {
-                                'email': _identifierController.text.trim().isNotEmpty
+                                'email':
+                                    _identifierController.text.trim().isNotEmpty
                                     ? _identifierController.text.trim()
                                     : 'dev@test.com',
                                 'phone': '0900000001',
@@ -363,7 +411,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // Nút Sinh trắc học (Vân tay / Face ID)
                     OutlinedButton.icon(
-                      onPressed: _authController.isLoading ? null : _handleBiometricAuth,
+                      onPressed: _authController.isLoading
+                          ? null
+                          : _handleBiometricAuth,
                       icon: Icon(
                         Icons.fingerprint_rounded,
                         size: 24.0,
@@ -404,7 +454,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         const Text(
                           'Chưa có tài khoản? ',
-                          style: TextStyle(fontSize: 14.0, color: AppColors.textSecondary),
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                         GestureDetector(
                           onTap: () {
@@ -438,4 +491,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-

@@ -44,16 +44,16 @@ class PaymentScheduleModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'schedule_id': id,
-        'loan_id': loanId,
-        'installment_number': installmentNumber,
-        'due_date': dueDate.toIso8601String(),
-        'principal_amount': principalAmount,
-        'interest_amount': interestAmount,
-        'fee_amount': feeAmount,
-        'total_amount': totalAmount,
-        'remaining_balance': remainingBalance,
-        'status': status,
-        'created_at': createdAt?.toIso8601String(),
-      };
+    'schedule_id': id,
+    'loan_id': loanId,
+    'installment_number': installmentNumber,
+    'due_date': dueDate.toIso8601String(),
+    'principal_amount': principalAmount,
+    'interest_amount': interestAmount,
+    'fee_amount': feeAmount,
+    'total_amount': totalAmount,
+    'remaining_balance': remainingBalance,
+    'status': status,
+    'created_at': createdAt?.toIso8601String(),
+  };
 }

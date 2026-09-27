@@ -109,7 +109,10 @@ class _DevStatePanelState extends State<DevStatePanel> {
             InkWell(
               onTap: _toggleExpanded,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14.0,
+                  vertical: 10.0,
+                ),
                 color: AppColors.primarySoft,
                 child: Row(
                   children: [
@@ -129,7 +132,10 @@ class _DevStatePanelState extends State<DevStatePanel> {
                     ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0,
+                        vertical: 3.0,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         borderRadius: BorderRadius.circular(10.0),
@@ -145,7 +151,9 @@ class _DevStatePanelState extends State<DevStatePanel> {
                     ),
                     const SizedBox(width: 6.0),
                     Icon(
-                      _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      _isExpanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
                       color: AppColors.primary,
                       size: 20.0,
                     ),
@@ -156,7 +164,9 @@ class _DevStatePanelState extends State<DevStatePanel> {
             // Body: Danh sách các State giả lập khi mở rộng
             AnimatedCrossFade(
               duration: const Duration(milliseconds: 200),
-              crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+              crossFadeState: _isExpanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
               firstChild: const SizedBox.shrink(),
               secondChild: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -172,12 +182,19 @@ class _DevStatePanelState extends State<DevStatePanel> {
                       borderRadius: BorderRadius.circular(10.0),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10.0,
+                          vertical: 8.0,
+                        ),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary : AppColors.background,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.background,
                           borderRadius: BorderRadius.circular(10.0),
                           border: Border.all(
-                            color: isSelected ? AppColors.primary : AppColors.border,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.border,
                             width: 1.0,
                           ),
                         ),
@@ -187,7 +204,9 @@ class _DevStatePanelState extends State<DevStatePanel> {
                             Icon(
                               state.icon,
                               size: 15.0,
-                              color: isSelected ? Colors.white : AppColors.textSecondary,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
                             ),
                             const SizedBox(width: 6.0),
                             Column(
@@ -199,7 +218,9 @@ class _DevStatePanelState extends State<DevStatePanel> {
                                   style: TextStyle(
                                     fontSize: 12.0,
                                     fontWeight: FontWeight.w600,
-                                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : AppColors.textPrimary,
                                   ),
                                 ),
                                 Text(
@@ -227,4 +248,3 @@ class _DevStatePanelState extends State<DevStatePanel> {
     );
   }
 }
-

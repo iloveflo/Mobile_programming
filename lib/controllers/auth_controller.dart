@@ -11,18 +11,10 @@ import '../widgets/dev_state_panel.dart';
 import 'loan_controller.dart';
 
 /// Kết quả của thao tác đăng nhập
-enum AuthResultState {
-  success,
-  unverified,
-  locked,
-  invalid,
-}
+enum AuthResultState { success, unverified, locked, invalid }
 
 /// Luồng xác thực mã OTP
-enum OtpFlow {
-  register,
-  forgotPassword,
-}
+enum OtpFlow { register, forgotPassword }
 
 /// Bộ điều khiển xác thực người dùng trung tâm (AuthController)
 class AuthController extends ChangeNotifier {
@@ -185,7 +177,8 @@ class AuthController extends ChangeNotifier {
       return AuthResultState.success;
     } on AccountLockedException catch (e) {
       _isLoading = false;
-      _lockUntil = e.lockUntil ?? DateTime.now().add(const Duration(minutes: 15));
+      _lockUntil =
+          e.lockUntil ?? DateTime.now().add(const Duration(minutes: 15));
       _errorMessage = e.message;
       notifyListeners();
       return AuthResultState.locked;
@@ -278,9 +271,13 @@ class AuthController extends ChangeNotifier {
           );
         } catch (_) {}
 
-        String registeredName = _pendingFullName?.trim() ?? matchedUser?.fullName ?? 'Khách hàng FinCredit';
+        String registeredName =
+            _pendingFullName?.trim() ??
+            matchedUser?.fullName ??
+            'Khách hàng FinCredit';
         if (registeredName.isEmpty) registeredName = 'Khách hàng FinCredit';
-        final uid = matchedUser?.userId ?? DateTime.now().millisecondsSinceEpoch;
+        final uid =
+            matchedUser?.userId ?? DateTime.now().millisecondsSinceEpoch;
 
         _currentUser = UserModel(
           userId: uid,
@@ -291,7 +288,8 @@ class AuthController extends ChangeNotifier {
           token: 'jwt_verified_token_$uid',
           createdAt: DateTime.now(),
         );
-        _biometricEnabled = false; // Mới tạo tài khoản -> chưa bật sinh trắc học
+        _biometricEnabled =
+            false; // Mới tạo tài khoản -> chưa bật sinh trắc học
         await loadSessions();
       }
 
@@ -424,7 +422,9 @@ class AuthController extends ChangeNotifier {
       await _authRepository.revokeSession(sessionId);
       _activeSessions = await _authRepository.getActiveSessions();
     } catch (_) {
-      _activeSessions = _activeSessions.where((s) => s.id != sessionId).toList();
+      _activeSessions = _activeSessions
+          .where((s) => s.id != sessionId)
+          .toList();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -467,7 +467,8 @@ class AuthController extends ChangeNotifier {
         break;
       case DevAuthState.invalidCredentials:
         _isLoading = false;
-        _errorMessage = 'Thông tin đăng nhập không hợp lệ. Vui lòng kiểm tra lại.';
+        _errorMessage =
+            'Thông tin đăng nhập không hợp lệ. Vui lòng kiểm tra lại.';
         break;
       case DevAuthState.accountUnverified:
         _isLoading = false;
@@ -480,8 +481,7 @@ class AuthController extends ChangeNotifier {
       case DevAuthState.accountLocked:
         _isLoading = false;
         _lockUntil = DateTime.now().add(const Duration(minutes: 15));
-        _errorMessage =
-            'Tài khoản bị tạm khóa 15 phút do nhập sai nhiều lần.';
+        _errorMessage = 'Tài khoản bị tạm khóa 15 phút do nhập sai nhiều lần.';
         break;
       case DevAuthState.networkError:
         _isLoading = false;

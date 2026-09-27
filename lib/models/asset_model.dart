@@ -40,14 +40,14 @@ class AssetModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'asset_id': id,
-        'user_id': userId,
-        'loan_id': loanId,
-        'asset_name': name,
-        'asset_type': type,
-        'asset_value': value,
-        'valuation_date': valuationDate?.toIso8601String(),
-        'description': description,
-        'created_at': createdAt?.toIso8601String(),
-      };
+    'asset_id': id,
+    'user_id': userId,
+    'loan_id': loanId,
+    'asset_name': name,
+    'asset_type': type,
+    'asset_value': value,
+    'valuation_date': valuationDate?.toIso8601String(),
+    'description': description,
+    'created_at': createdAt?.toIso8601String(),
+  };
 }

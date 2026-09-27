@@ -53,41 +53,40 @@ abstract final class AppRouter {
 
   /// Bảng ánh xạ route của ứng dụng
   static Map<String, WidgetBuilder> get routes => {
-        splash: (context) => const SplashScreen(),
-        login: (context) => const LoginScreen(),
-        register: (context) => const RegisterScreen(),
-        otp: (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-          return OtpVerificationScreen(
-            fullName: args?['fullName'] as String?,
-            email: args?['email'] as String?,
-            phone: args?['phone'] as String?,
-            flow: (args?['flow'] as OtpFlow?) ?? OtpFlow.register,
-          );
-        },
-        resetPassword: (context) => const ResetPasswordScreen(),
-        security: (context) => const SecuritySettingsScreen(),
-        home: (context) => const HomeScreen(),
-        loans: (context) => const LoanListScreen(),
-        loanDetail: (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-          return LoanDetailScreen(
-            loanId: args?['loanId'] as String?,
-          );
-        },
-        loanForm: (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-          return LoanFormScreen(
-            initialLoan: args?['loan'] as LoanModel?,
-            prefilledData: args?['prefilled'] as Map<String, dynamic>?,
-          );
-        },
-        loanCollateralOcr: (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-          return LoanCollateralOcrScreen(
-            loanId: args?['loanId'] as String?,
-          );
-        },
-      };
+    splash: (context) => const SplashScreen(),
+    login: (context) => const LoginScreen(),
+    register: (context) => const RegisterScreen(),
+    otp: (context) {
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      return OtpVerificationScreen(
+        fullName: args?['fullName'] as String?,
+        email: args?['email'] as String?,
+        phone: args?['phone'] as String?,
+        flow: (args?['flow'] as OtpFlow?) ?? OtpFlow.register,
+      );
+    },
+    resetPassword: (context) => const ResetPasswordScreen(),
+    security: (context) => const SecuritySettingsScreen(),
+    home: (context) => const HomeScreen(),
+    loans: (context) => const LoanListScreen(),
+    loanDetail: (context) {
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      return LoanDetailScreen(loanId: args?['loanId'] as String?);
+    },
+    loanForm: (context) {
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      return LoanFormScreen(
+        initialLoan: args?['loan'] as LoanModel?,
+        prefilledData: args?['prefilled'] as Map<String, dynamic>?,
+      );
+    },
+    loanCollateralOcr: (context) {
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      return LoanCollateralOcrScreen(loanId: args?['loanId'] as String?);
+    },
+  };
 }
-

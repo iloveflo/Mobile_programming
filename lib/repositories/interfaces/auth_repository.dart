@@ -10,7 +10,9 @@ import '../../models/user_model.dart';
 class InvalidCredentialsException implements Exception {
   final String message;
 
-  const InvalidCredentialsException([this.message = 'Thông tin đăng nhập không chính xác.']);
+  const InvalidCredentialsException([
+    this.message = 'Thông tin đăng nhập không chính xác.',
+  ]);
 
   @override
   String toString() => message;
@@ -21,10 +23,7 @@ class AccountLockedException implements Exception {
   final String message;
   final DateTime? lockUntil;
 
-  const AccountLockedException(
-    this.message, {
-    this.lockUntil,
-  });
+  const AccountLockedException(this.message, {this.lockUntil});
 
   @override
   String toString() => message;
@@ -66,7 +65,10 @@ class OtpException implements Exception {
 class NetworkAuthException implements Exception {
   final String message;
 
-  const NetworkAuthException([this.message = 'Không thể kết nối đến máy chủ bảo mật. Vui lòng kiểm tra mạng.']);
+  const NetworkAuthException([
+    this.message =
+        'Không thể kết nối đến máy chủ bảo mật. Vui lòng kiểm tra mạng.',
+  ]);
 
   @override
   String toString() => message;
@@ -90,18 +92,13 @@ abstract class AuthRepository {
   Future<void> register(Map<String, dynamic> registerData);
 
   /// Xác thực mã OTP (flowType: 'REGISTER' hoặc 'FORGOT_PASSWORD')
-  Future<bool> verifyOtp({
-    required String otp,
-    required String flowType,
-  });
+  Future<bool> verifyOtp({required String otp, required String flowType});
 
   /// Yêu cầu gửi lại mã OTP tới số điện thoại/email
   Future<void> resendOtp();
 
   /// Đặt mật khẩu mới sau khi đã xác thực OTP thành công (Quên mật khẩu)
-  Future<void> resetPassword({
-    required String newPassword,
-  });
+  Future<void> resetPassword({required String newPassword});
 
   /// Đổi mật khẩu chủ động từ màn hình Cài đặt Bảo mật (M06)
   Future<void> changePassword({

@@ -49,9 +49,14 @@ class SessionModel {
 
     return SessionModel(
       id: (json['id'] ?? json['session_id'] ?? '') as String,
-      deviceName: (json['device_name'] ?? json['deviceName'] ?? 'Thiết bị chưa xác định') as String,
+      deviceName:
+          (json['device_name'] ??
+                  json['deviceName'] ??
+                  'Thiết bị chưa xác định')
+              as String,
       platform: (json['platform'] ?? 'Ứng dụng FinCredit') as String,
-      ipAddress: (json['ip_address'] ?? json['ipAddress'] ?? '127.0.0.1') as String,
+      ipAddress:
+          (json['ip_address'] ?? json['ipAddress'] ?? '127.0.0.1') as String,
       location: (json['location'] ?? 'Việt Nam') as String,
       lastActive: parseDate(json['last_active'] ?? json['lastActive']),
       isCurrent: (json['is_current'] ?? json['isCurrent'] ?? false) as bool,
@@ -59,12 +64,12 @@ class SessionModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'device_name': deviceName,
-        'platform': platform,
-        'ip_address': ipAddress,
-        'location': location,
-        'last_active': lastActive.toIso8601String(),
-        'is_current': isCurrent,
-      };
+    'id': id,
+    'device_name': deviceName,
+    'platform': platform,
+    'ip_address': ipAddress,
+    'location': location,
+    'last_active': lastActive.toIso8601String(),
+    'is_current': isCurrent,
+  };
 }

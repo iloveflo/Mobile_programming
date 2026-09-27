@@ -90,29 +90,32 @@ void main() {
       authRepo = ApiAuthRepository(client: fakeClient);
     });
 
-    test('Đăng nhập thành công và tự động thiết lập Bearer Token vào ApiClient', () async {
-      fakeClient.postResponse = {
-        'data': {
-          'token': 'jwt_real_token_xyz',
-          'user': {
-            'user_id': 101,
-            'full_name': 'Nguyễn Văn Backend',
-            'email': 'backend@fincredit.vn',
-            'phone': '0988776655',
-            'password_hash': 'hash_xyz',
-          }
-        }
-      };
+    test(
+      'Đăng nhập thành công và tự động thiết lập Bearer Token vào ApiClient',
+      () async {
+        fakeClient.postResponse = {
+          'data': {
+            'token': 'jwt_real_token_xyz',
+            'user': {
+              'user_id': 101,
+              'full_name': 'Nguyễn Văn Backend',
+              'email': 'backend@fincredit.vn',
+              'phone': '0988776655',
+              'password_hash': 'hash_xyz',
+            },
+          },
+        };
 
-      final user = await authRepo.login(
-        identifier: 'backend@fincredit.vn',
-        password: 'Password123!',
-      );
+        final user = await authRepo.login(
+          identifier: 'backend@fincredit.vn',
+          password: 'Password123!',
+        );
 
-      expect(user.fullName, 'Nguyễn Văn Backend');
-      expect(user.email, 'backend@fincredit.vn');
-      expect(fakeClient.authToken, 'jwt_real_token_xyz');
-    });
+        expect(user.fullName, 'Nguyễn Văn Backend');
+        expect(user.email, 'backend@fincredit.vn');
+        expect(fakeClient.authToken, 'jwt_real_token_xyz');
+      },
+    );
 
     test('Chuyển đổi lỗi 401 sang InvalidCredentialsException', () async {
       fakeClient.throwException = const ApiException(
@@ -126,13 +129,16 @@ void main() {
       );
     });
 
-    test('Đăng xuất thành công tự động xóa Bearer Token khỏi ApiClient', () async {
-      fakeClient.setAuthToken('token_can_xoa');
-      fakeClient.postResponse = {'success': true};
+    test(
+      'Đăng xuất thành công tự động xóa Bearer Token khỏi ApiClient',
+      () async {
+        fakeClient.setAuthToken('token_can_xoa');
+        fakeClient.postResponse = {'success': true};
 
-      await authRepo.logout();
-      expect(fakeClient.authToken, isNull);
-    });
+        await authRepo.logout();
+        expect(fakeClient.authToken, isNull);
+      },
+    );
   });
 
   group('ApiLoanRepository Tests', () {
@@ -144,34 +150,37 @@ void main() {
       loanRepo = ApiLoanRepository(client: fakeClient);
     });
 
-    test('Lấy danh sách khoản vay và ánh xạ JSON sang List<LoanModel>', () async {
-      fakeClient.getResponse = {
-        'data': [
-          {
-            'loan_id': 201,
-            'user_id': 1,
-            'loan_type_id': 1,
-            'loan_type': 'MORTGAGE',
-            'loan_name': 'Vay mua chung cư Times City',
-            'lender_name': 'Vietcombank',
-            'principal_amount': 1500000000.0,
-            'outstanding_amount': 1400000000.0,
-            'interest_rate': 0.075,
-            'interest_method': 'REDUCING_BALANCE',
-            'term_months': 120,
-            'start_date': '2026-01-15T00:00:00.000',
-            'status': 'ACTIVE',
-          }
-        ]
-      };
+    test(
+      'Lấy danh sách khoản vay và ánh xạ JSON sang List<LoanModel>',
+      () async {
+        fakeClient.getResponse = {
+          'data': [
+            {
+              'loan_id': 201,
+              'user_id': 1,
+              'loan_type_id': 1,
+              'loan_type': 'MORTGAGE',
+              'loan_name': 'Vay mua chung cư Times City',
+              'lender_name': 'Vietcombank',
+              'principal_amount': 1500000000.0,
+              'outstanding_amount': 1400000000.0,
+              'interest_rate': 0.075,
+              'interest_method': 'REDUCING_BALANCE',
+              'term_months': 120,
+              'start_date': '2026-01-15T00:00:00.000',
+              'status': 'ACTIVE',
+            },
+          ],
+        };
 
-      final List<LoanModel> loans = await loanRepo.getLoans();
-      expect(loans.length, 1);
-      expect(loans.first.id, 201);
-      expect(loans.first.lenderName, 'Vietcombank');
-      expect(loans.first.loanTypeKey, 'MORTGAGE');
-      expect(loans.first.principalAmount, 1500000000.0);
-    });
+        final List<LoanModel> loans = await loanRepo.getLoans();
+        expect(loans.length, 1);
+        expect(loans.first.id, 201);
+        expect(loans.first.lenderName, 'Vietcombank');
+        expect(loans.first.loanTypeKey, 'MORTGAGE');
+        expect(loans.first.principalAmount, 1500000000.0);
+      },
+    );
 
     test('Cập nhật khoản vay sử dụng HTTP PUT', () async {
       fakeClient.putResponse = {
@@ -194,28 +203,31 @@ void main() {
       expect(updated.termMonths, 180);
     });
 
-    test('Lấy danh sách tài sản bảo đảm ánh xạ chuẩn sang List<CollateralModel>', () async {
-      fakeClient.getResponse = {
-        'data': [
-          {
-            'asset_id': 501,
-            'user_id': 1,
-            'loan_id': 201,
-            'asset_name': 'Sổ hồng căn hộ Park 5',
-            'asset_type': 'REAL_ESTATE',
-            'asset_value': 3200000000.0,
-            'valuation_date': '2026-01-10T00:00:00.000',
-          }
-        ]
-      };
+    test(
+      'Lấy danh sách tài sản bảo đảm ánh xạ chuẩn sang List<CollateralModel>',
+      () async {
+        fakeClient.getResponse = {
+          'data': [
+            {
+              'asset_id': 501,
+              'user_id': 1,
+              'loan_id': 201,
+              'asset_name': 'Sổ hồng căn hộ Park 5',
+              'asset_type': 'REAL_ESTATE',
+              'asset_value': 3200000000.0,
+              'valuation_date': '2026-01-10T00:00:00.000',
+            },
+          ],
+        };
 
-      final List<CollateralModel> collaterals = await loanRepo.getCollateralsByLoan('201');
-      expect(collaterals.length, 1);
-      expect(collaterals.first.id, 501);
-      expect(collaterals.first.name, 'Sổ hồng căn hộ Park 5');
-      expect(collaterals.first.type, 'REAL_ESTATE');
-      expect(collaterals.first.value, 3200000000.0);
-    });
+        final List<CollateralModel> collaterals = await loanRepo
+            .getCollateralsByLoan('201');
+        expect(collaterals.length, 1);
+        expect(collaterals.first.id, 501);
+        expect(collaterals.first.name, 'Sổ hồng căn hộ Park 5');
+        expect(collaterals.first.type, 'REAL_ESTATE');
+        expect(collaterals.first.value, 3200000000.0);
+      },
+    );
   });
 }
-

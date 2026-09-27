@@ -97,7 +97,11 @@ class MockLoanRepository implements LoanRepository {
 
     // 3. Lọc theo bên cho vay
     if (lender != null && lender.trim().isNotEmpty && lender != 'Tất cả') {
-      results = results.where((l) => l.lenderName.toLowerCase() == lender.trim().toLowerCase()).toList();
+      results = results
+          .where(
+            (l) => l.lenderName.toLowerCase() == lender.trim().toLowerCase(),
+          )
+          .toList();
     }
 
     return results;
@@ -108,9 +112,11 @@ class MockLoanRepository implements LoanRepository {
     await _simulateDelay(300, 600);
 
     final loan = _loans.cast<LoanModel?>().firstWhere(
-          (l) => l?.id.toString() == loanId || l?.loanCode.toLowerCase() == loanId.toLowerCase(),
-          orElse: () => null,
-        );
+      (l) =>
+          l?.id.toString() == loanId ||
+          l?.loanCode.toLowerCase() == loanId.toLowerCase(),
+      orElse: () => null,
+    );
 
     if (loan != null) {
       return loan;
@@ -124,9 +130,20 @@ class MockLoanRepository implements LoanRepository {
     await _simulateDelay();
 
     final int newId = DateTime.now().millisecondsSinceEpoch % 100000;
-    final double principal = (loanData['principal_amount'] ?? loanData['principalAmount'] as num?)?.toDouble() ?? 100000000.0;
-    final int termMonths = (loanData['tenor_months'] ?? loanData['term_months'] ?? loanData['termMonths'] as num?)?.toInt() ?? 24;
-    final double rawRate = (loanData['interest_rate'] ?? loanData['interestRate'] as num?)?.toDouble() ?? 8.5;
+    final double principal =
+        (loanData['principal_amount'] ?? loanData['principalAmount'] as num?)
+            ?.toDouble() ??
+        100000000.0;
+    final int termMonths =
+        (loanData['tenor_months'] ??
+                loanData['term_months'] ??
+                loanData['termMonths'] as num?)
+            ?.toInt() ??
+        24;
+    final double rawRate =
+        (loanData['interest_rate'] ?? loanData['interestRate'] as num?)
+            ?.toDouble() ??
+        8.5;
     final double interestRate = rawRate > 1.0 ? rawRate / 100.0 : rawRate;
 
     DateTime startDate = DateTime.now();
@@ -144,28 +161,52 @@ class MockLoanRepository implements LoanRepository {
         startDate = DateTime.tryParse(str) ?? DateTime.now();
       }
     }
-    final DateTime endDate = DateTime(startDate.year, startDate.month + termMonths, startDate.day);
+    final DateTime endDate = DateTime(
+      startDate.year,
+      startDate.month + termMonths,
+      startDate.day,
+    );
 
     final currentUserId = _getCurrentUserId();
-    final String loanType = (loanData['loan_type'] ?? loanData['loanType'] ?? 'CONSUMER').toString();
-    final int loanTypeId = (loanData['loan_type_id'] ?? loanData['loanTypeId'] as num?)?.toInt() ??
+    final String loanType =
+        (loanData['loan_type'] ?? loanData['loanType'] ?? 'CONSUMER')
+            .toString();
+    final int loanTypeId =
+        (loanData['loan_type_id'] ?? loanData['loanTypeId'] as num?)?.toInt() ??
         (loanType == 'MORTGAGE' || loanType == 'CREDIT_CARD' ? 2 : 1);
 
     final newLoan = LoanModel(
       id: newId,
-      userId: (loanData['user_id'] is num ? (loanData['user_id'] as num).toInt() : null) ?? currentUserId ?? 1,
+      userId:
+          (loanData['user_id'] is num
+              ? (loanData['user_id'] as num).toInt()
+              : null) ??
+          currentUserId ??
+          1,
       loanTypeId: loanTypeId,
       loanType: loanType,
-      name: (loanData['loan_name'] ?? loanData['name'] ?? 'Khoản vay mới').toString(),
-      lender: (loanData['lender_name'] ?? loanData['lender'] ?? 'Ngân hàng TMCP').toString(),
+      name: (loanData['loan_name'] ?? loanData['name'] ?? 'Khoản vay mới')
+          .toString(),
+      lender:
+          (loanData['lender_name'] ?? loanData['lender'] ?? 'Ngân hàng TMCP')
+              .toString(),
       principalAmount: principal,
       interestRate: interestRate,
-      interestMethod: (loanData['interest_method'] ?? loanData['interestMethod'] ?? 'REDUCING_BALANCE').toString(),
+      interestMethod:
+          (loanData['interest_method'] ??
+                  loanData['interestMethod'] ??
+                  'REDUCING_BALANCE')
+              .toString(),
       termMonths: termMonths,
       startDate: startDate,
       endDate: endDate,
-      outstandingAmount: (loanData['outstanding_amount'] ?? principal as num).toDouble(),
-      earlyPaymentFeeRate: (loanData['early_payment_fee_rate'] ?? loanData['earlyPaymentFeeRate'] as num?)?.toDouble() ?? 0.02,
+      outstandingAmount: (loanData['outstanding_amount'] ?? principal as num)
+          .toDouble(),
+      earlyPaymentFeeRate:
+          (loanData['early_payment_fee_rate'] ??
+                  loanData['earlyPaymentFeeRate'] as num?)
+              ?.toDouble() ??
+          0.02,
       status: (loanData['status'] ?? 'ACTIVE').toString(),
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
@@ -174,7 +215,8 @@ class MockLoanRepository implements LoanRepository {
     _loans.insert(0, newLoan);
 
     // Gắn tài sản thế chấp nếu có thông tin định giá đi kèm
-    if (loanData['collateral_name'] != null && (loanData['collateral_value'] as num?) != null) {
+    if (loanData['collateral_name'] != null &&
+        (loanData['collateral_value'] as num?) != null) {
       _assets.insert(
         0,
         CollateralModel(
@@ -194,11 +236,16 @@ class MockLoanRepository implements LoanRepository {
   }
 
   @override
-  Future<LoanModel> updateLoan(String loanId, Map<String, dynamic> loanData) async {
+  Future<LoanModel> updateLoan(
+    String loanId,
+    Map<String, dynamic> loanData,
+  ) async {
     await _simulateDelay();
 
     final index = _loans.indexWhere(
-      (l) => l.id.toString() == loanId || l.loanCode.toLowerCase() == loanId.toLowerCase(),
+      (l) =>
+          l.id.toString() == loanId ||
+          l.loanCode.toLowerCase() == loanId.toLowerCase(),
     );
 
     if (index == -1) {
@@ -206,10 +253,22 @@ class MockLoanRepository implements LoanRepository {
     }
 
     final current = _loans[index];
-    final int termMonths = (loanData['tenor_months'] ?? loanData['term_months'] ?? loanData['termMonths'] as num?)?.toInt() ?? current.termMonths;
-    final double? rawRate = (loanData['interest_rate'] ?? loanData['interestRate'] as num?)?.toDouble();
-    final double interestRate = rawRate != null ? (rawRate > 1.0 ? rawRate / 100.0 : rawRate) : current.interestRate;
-    final String? loanType = loanData['loan_type']?.toString() ?? loanData['loanType']?.toString() ?? current.loanType;
+    final int termMonths =
+        (loanData['tenor_months'] ??
+                loanData['term_months'] ??
+                loanData['termMonths'] as num?)
+            ?.toInt() ??
+        current.termMonths;
+    final double? rawRate =
+        (loanData['interest_rate'] ?? loanData['interestRate'] as num?)
+            ?.toDouble();
+    final double interestRate = rawRate != null
+        ? (rawRate > 1.0 ? rawRate / 100.0 : rawRate)
+        : current.interestRate;
+    final String? loanType =
+        loanData['loan_type']?.toString() ??
+        loanData['loanType']?.toString() ??
+        current.loanType;
 
     DateTime startDate = current.startDate;
     if (loanData['start_date'] != null) {
@@ -226,19 +285,36 @@ class MockLoanRepository implements LoanRepository {
         startDate = DateTime.tryParse(str) ?? current.startDate;
       }
     }
-    final DateTime endDate = DateTime(startDate.year, startDate.month + termMonths, startDate.day);
+    final DateTime endDate = DateTime(
+      startDate.year,
+      startDate.month + termMonths,
+      startDate.day,
+    );
 
     final updatedLoan = current.copyWith(
-      name: (loanData['loan_name'] ?? loanData['name'] ?? current.name).toString(),
-      lender: (loanData['lender_name'] ?? loanData['lender'] ?? current.lender).toString(),
+      name: (loanData['loan_name'] ?? loanData['name'] ?? current.name)
+          .toString(),
+      lender: (loanData['lender_name'] ?? loanData['lender'] ?? current.lender)
+          .toString(),
       loanType: loanType,
-      principalAmount: (loanData['principal_amount'] ?? loanData['principalAmount'] as num?)?.toDouble() ?? current.principalAmount,
+      principalAmount:
+          (loanData['principal_amount'] ?? loanData['principalAmount'] as num?)
+              ?.toDouble() ??
+          current.principalAmount,
       interestRate: interestRate,
-      interestMethod: (loanData['interest_method'] ?? loanData['interestMethod'] ?? current.interestMethod).toString(),
+      interestMethod:
+          (loanData['interest_method'] ??
+                  loanData['interestMethod'] ??
+                  current.interestMethod)
+              .toString(),
       termMonths: termMonths,
       startDate: startDate,
       endDate: endDate,
-      outstandingAmount: (loanData['outstanding_amount'] ?? loanData['outstandingAmount'] as num?)?.toDouble() ?? current.outstandingAmount,
+      outstandingAmount:
+          (loanData['outstanding_amount'] ??
+                  loanData['outstandingAmount'] as num?)
+              ?.toDouble() ??
+          current.outstandingAmount,
       status: (loanData['status'] ?? current.status).toString(),
       updatedAt: DateTime.now(),
     );
@@ -252,7 +328,9 @@ class MockLoanRepository implements LoanRepository {
     await _simulateDelay();
 
     final index = _loans.indexWhere(
-      (l) => l.id.toString() == loanId || l.loanCode.toLowerCase() == loanId.toLowerCase(),
+      (l) =>
+          l.id.toString() == loanId ||
+          l.loanCode.toLowerCase() == loanId.toLowerCase(),
     );
 
     if (index == -1) {
@@ -263,7 +341,9 @@ class MockLoanRepository implements LoanRepository {
 
     // Quy tắc quản lý: Nếu đã phát sinh trả nợ (paidAmount > 0) thì TUYỆT ĐỐI KHÔNG ĐƯỢC XÓA
     if (current.paidAmount > 0) {
-      throw Exception('Khoản vay đã phát sinh lịch sử thanh toán, không được phép xóa.');
+      throw Exception(
+        'Khoản vay đã phát sinh lịch sử thanh toán, không được phép xóa.',
+      );
     }
 
     _loans.removeAt(index);
@@ -289,7 +369,9 @@ class MockLoanRepository implements LoanRepository {
   }
 
   @override
-  Future<CollateralModel> addCollateral(Map<String, dynamic> collateralData) async {
+  Future<CollateralModel> addCollateral(
+    Map<String, dynamic> collateralData,
+  ) async {
     await _simulateDelay(300, 600);
 
     final currentUserId = _getCurrentUserId() ?? 1;
@@ -302,8 +384,16 @@ class MockLoanRepository implements LoanRepository {
       id: newId,
       userId: currentUserId,
       loanId: loanId,
-      name: (collateralData['name'] ?? collateralData['asset_name'] ?? 'Tài sản mới').toString(),
-      type: (collateralData['type'] ?? collateralData['asset_type'] ?? 'REAL_ESTATE').toString(),
+      name:
+          (collateralData['name'] ??
+                  collateralData['asset_name'] ??
+                  'Tài sản mới')
+              .toString(),
+      type:
+          (collateralData['type'] ??
+                  collateralData['asset_type'] ??
+                  'REAL_ESTATE')
+              .toString(),
       value: (collateralData['value'] as num?)?.toDouble() ?? 0.0,
       valuationDate: DateTime.now(),
       description: collateralData['description']?.toString(),
@@ -331,7 +421,8 @@ class MockLoanRepository implements LoanRepository {
       'start_date': '15/09/2026',
       'confidence_score': 0.96,
       'confidence': 0.96,
-      'raw_extracted_text': 'HỢP ĐỒNG TÍN DỤNG SỐ VCB/2026/HD-9021. BÊN VAY: NGUYEN VAN A. SỐ TIỀN: 350,000,000 VND. THỜI HẠN: 36 THÁNG. LÃI SUẤT: 8.9%/NĂM.',
+      'raw_extracted_text':
+          'HỢP ĐỒNG TÍN DỤNG SỐ VCB/2026/HD-9021. BÊN VAY: NGUYEN VAN A. SỐ TIỀN: 350,000,000 VND. THỜI HẠN: 36 THÁNG. LÃI SUẤT: 8.9%/NĂM.',
     };
   }
 }

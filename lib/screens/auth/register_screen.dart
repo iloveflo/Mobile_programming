@@ -73,7 +73,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_agreeToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vui lòng đồng ý với điều khoản sử dụng FinCredit để tiếp tục.'),
+          content: Text(
+            'Vui lòng đồng ý với điều khoản sử dụng FinCredit để tiếp tục.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -107,7 +109,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_authController.errorMessage ?? 'Đăng ký không thành công.'),
+          content: Text(
+            _authController.errorMessage ?? 'Đăng ký không thành công.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -122,7 +126,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -140,7 +147,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           listenable: _authController,
           builder: (context, _) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 16.0,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -155,7 +165,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.verified_user_outlined, color: AppColors.primary, size: 20.0),
+                          const Icon(
+                            Icons.verified_user_outlined,
+                            color: AppColors.primary,
+                            size: 20.0,
+                          ),
                           const SizedBox(width: 8.0),
                           const Expanded(
                             child: Text(
@@ -168,14 +182,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                              vertical: 2.0,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primary,
                               borderRadius: BorderRadius.circular(12.0),
                             ),
                             child: const Text(
                               '50%',
-                              style: TextStyle(fontSize: 11.0, color: Colors.white, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 11.0,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -188,7 +209,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       label: 'Họ và tên (theo CCCD)',
                       hint: 'NGUYEN VAN A',
                       controller: _nameController,
-                      prefixIcon: const Icon(Icons.person_outline, color: AppColors.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.person_outline,
+                        color: AppColors.textSecondary,
+                      ),
                       textInputAction: TextInputAction.next,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -204,14 +228,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       label: 'Email nhận thông báo',
                       hint: 'example@gmail.com',
                       controller: _emailController,
-                      prefixIcon: const Icon(Icons.mail_outline, color: AppColors.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.mail_outline,
+                        color: AppColors.textSecondary,
+                      ),
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Vui lòng nhập email';
                         }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
+                        if (!RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        ).hasMatch(value.trim())) {
                           return 'Định dạng email không hợp lệ';
                         }
                         return null;
@@ -224,7 +253,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       label: 'Số điện thoại liên kết CIC',
                       hint: '0912 345 678',
                       controller: _phoneController,
-                      prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.phone_outlined,
+                        color: AppColors.textSecondary,
+                      ),
                       keyboardType: TextInputType.phone,
                       textInputAction: TextInputAction.next,
                       validator: (value) {
@@ -248,8 +280,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           label: 'Ngày sinh (trên 18 tuổi)',
                           hint: 'DD/MM/YYYY',
                           controller: _dobController,
-                          prefixIcon: const Icon(Icons.calendar_today_outlined, color: AppColors.textSecondary),
-                          suffixIcon: const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+                          prefixIcon: const Icon(
+                            Icons.calendar_today_outlined,
+                            color: AppColors.textSecondary,
+                          ),
+                          suffixIcon: const Icon(
+                            Icons.arrow_drop_down,
+                            color: AppColors.textSecondary,
+                          ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Vui lòng chọn ngày sinh';
@@ -267,7 +305,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hint: 'Tối thiểu 8 ký tự, chữ hoa, số & ký tự',
                       controller: _passwordController,
                       isPassword: true,
-                      prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: AppColors.textSecondary,
+                      ),
                       textInputAction: TextInputAction.next,
                       onChanged: (val) {
                         setState(() {
@@ -293,7 +334,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hint: 'Nhập lại mật khẩu phía trên',
                       controller: _confirmPasswordController,
                       isPassword: true,
-                      prefixIcon: const Icon(Icons.lock_reset_outlined, color: AppColors.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.lock_reset_outlined,
+                        color: AppColors.textSecondary,
+                      ),
                       textInputAction: TextInputAction.done,
                       validator: (value) {
                         if (value != _passwordController.text) {
@@ -314,7 +358,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: Checkbox(
                             value: _agreeToTerms,
                             activeColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4.0),
+                            ),
                             onChanged: (val) {
                               setState(() {
                                 _agreeToTerms = val ?? false;
@@ -327,7 +373,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: RichText(
                             text: const TextSpan(
                               text: 'Tôi đồng ý với ',
-                              style: TextStyle(fontSize: 13.0, color: AppColors.textSecondary),
+                              style: TextStyle(
+                                fontSize: 13.0,
+                                color: AppColors.textSecondary,
+                              ),
                               children: [
                                 TextSpan(
                                   text: 'Điều khoản dịch vụ',
@@ -367,7 +416,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         const Text(
                           'Đã có tài khoản? ',
-                          style: TextStyle(fontSize: 14.0, color: AppColors.textSecondary),
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                         GestureDetector(
                           onTap: () => Navigator.pop(context),
@@ -393,4 +445,3 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
-

@@ -2,7 +2,7 @@ import '../models/notification_preference_model.dart';
 
 class NotificationPreferenceMockData {
   static final List<NotificationPreferenceModel>
-      notificationPreferencesDatabase = [
+  notificationPreferencesDatabase = [
     NotificationPreferenceModel(
       id: 1,
       userId: 1,

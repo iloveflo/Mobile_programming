@@ -190,8 +190,8 @@ class LoanMockData {
 
   /// Lấy mức lãi suất cơ sở tham chiếu theo ngân hàng và loại khoản vay
   static double getBenchmarkRate(String bank, String loanType) {
-    final bankRates = benchmarkRates[bank] ?? benchmarkRates['Khác/Tổ chức tín dụng']!;
+    final bankRates =
+        benchmarkRates[bank] ?? benchmarkRates['Khác/Tổ chức tín dụng']!;
     return bankRates[loanType] ?? bankRates['OTHER'] ?? 10.0;
   }
 }
-

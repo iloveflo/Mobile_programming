@@ -12,11 +12,7 @@ class LoanFormScreen extends StatefulWidget {
   final LoanModel? initialLoan;
   final Map<String, dynamic>? prefilledData;
 
-  const LoanFormScreen({
-    super.key,
-    this.initialLoan,
-    this.prefilledData,
-  });
+  const LoanFormScreen({super.key, this.initialLoan, this.prefilledData});
 
   @override
   State<LoanFormScreen> createState() => _LoanFormScreenState();
@@ -84,7 +80,8 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
       } else {
         _selectedLoanType = 'MORTGAGE';
       }
-      final parsedTenor = int.tryParse(prefilled['tenor_months']?.toString() ?? '24') ?? 24;
+      final parsedTenor =
+          int.tryParse(prefilled['tenor_months']?.toString() ?? '24') ?? 24;
       _tenorMonths = parsedTenor;
     } else {
       _selectedBank = 'Techcombank';
@@ -92,7 +89,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
       _tenorMonths = 24;
     }
 
-    _nameController = TextEditingController(text: loan?.loanName ?? prefilled?['loan_name'] ?? '');
+    _nameController = TextEditingController(
+      text: loan?.loanName ?? prefilled?['loan_name'] ?? '',
+    );
     _amountController = TextEditingController(
       text: loan != null
           ? loan.principalAmount.round().toString()
@@ -107,19 +106,27 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
       final r = double.tryParse(prefilled['interest_rate'].toString()) ?? 8.5;
       initialRate = r <= 1.0 ? r * 100.0 : r;
     } else {
-      initialRate = LoanMockData.getBenchmarkRate(_selectedBank, _selectedLoanType);
+      initialRate = LoanMockData.getBenchmarkRate(
+        _selectedBank,
+        _selectedLoanType,
+      );
     }
-    _rateController = TextEditingController(text: initialRate.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), ''));
+    _rateController = TextEditingController(
+      text: initialRate.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), ''),
+    );
 
     _tenorController = TextEditingController(text: _tenorMonths.toString());
     _startDateController = TextEditingController(
-      text: '${_startDate.day.toString().padLeft(2, '0')}/${_startDate.month.toString().padLeft(2, '0')}/${_startDate.year}',
+      text:
+          '${_startDate.day.toString().padLeft(2, '0')}/${_startDate.month.toString().padLeft(2, '0')}/${_startDate.year}',
     );
 
     _collateralNameController = TextEditingController();
     _collateralValController = TextEditingController();
 
-    if (loan != null && (loan.interestMethod.contains('ban đầu') || loan.interestMethod == 'FLAT')) {
+    if (loan != null &&
+        (loan.interestMethod.contains('ban đầu') ||
+            loan.interestMethod == 'FLAT')) {
       _selectedMethod = InterestMethod.flatRate;
     }
   }
@@ -127,7 +134,8 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (args != null && !_isEdit && _nameController.text.isEmpty) {
       final loan = args['loan'] as LoanModel?;
       final prefilled = args['prefilled'] as Map<String, dynamic>?;
@@ -144,12 +152,15 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
           _selectedLoanType = loan.loanTypeKey;
           _amountController.text = loan.principalAmount.round().toString();
           final r = loan.interestRatePercent;
-          _rateController.text = r.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '');
+          _rateController.text = r
+              .toStringAsFixed(1)
+              .replaceAll(RegExp(r'\.0$'), '');
           _tenorMonths = loan.tenorMonths;
           _tenorController.text = _tenorMonths.toString();
           _startDate = loan.startDate;
           _startDateController.text = loan.startDateFormatted;
-          if (loan.interestMethod.contains('ban đầu') || loan.interestMethod == 'FLAT') {
+          if (loan.interestMethod.contains('ban đầu') ||
+              loan.interestMethod == 'FLAT') {
             _selectedMethod = InterestMethod.flatRate;
           }
         });
@@ -164,10 +175,18 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
           if (type != null && LoanMockData.loanTypeLabels.containsKey(type)) {
             _selectedLoanType = type;
           }
-          _amountController.text = prefilled['principal_amount']?.toString() ?? '';
-          final r = double.tryParse(prefilled['interest_rate']?.toString() ?? '8.5') ?? 8.5;
-          _rateController.text = (r <= 1.0 ? r * 100.0 : r).toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '');
-          _tenorMonths = int.tryParse(prefilled['tenor_months']?.toString() ?? '24') ?? 24;
+          _amountController.text =
+              prefilled['principal_amount']?.toString() ?? '';
+          final r =
+              double.tryParse(
+                prefilled['interest_rate']?.toString() ?? '8.5',
+              ) ??
+              8.5;
+          _rateController.text = (r <= 1.0 ? r * 100.0 : r)
+              .toStringAsFixed(1)
+              .replaceAll(RegExp(r'\.0$'), '');
+          _tenorMonths =
+              int.tryParse(prefilled['tenor_months']?.toString() ?? '24') ?? 24;
           _tenorController.text = _tenorMonths.toString();
           if (prefilled['start_date'] != null) {
             _startDateController.text = prefilled['start_date'].toString();
@@ -189,12 +208,28 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
     super.dispose();
   }
 
-  double get _currentPrincipal => double.tryParse(_amountController.text.replaceAll('.', '').replaceAll(',', '').trim()) ?? 0.0;
-  double get _currentRate => double.tryParse(_rateController.text.trim()) ?? 0.0;
-  double get _currentCollateralVal => double.tryParse(_collateralValController.text.replaceAll('.', '').replaceAll(',', '').trim()) ?? 0.0;
+  double get _currentPrincipal =>
+      double.tryParse(
+        _amountController.text.replaceAll('.', '').replaceAll(',', '').trim(),
+      ) ??
+      0.0;
+  double get _currentRate =>
+      double.tryParse(_rateController.text.trim()) ?? 0.0;
+  double get _currentCollateralVal =>
+      double.tryParse(
+        _collateralValController.text
+            .replaceAll('.', '')
+            .replaceAll(',', '')
+            .trim(),
+      ) ??
+      0.0;
 
   DateTime get _calculatedEndDate {
-    return DateTime(_startDate.year, _startDate.month + _tenorMonths, _startDate.day);
+    return DateTime(
+      _startDate.year,
+      _startDate.month + _tenorMonths,
+      _startDate.day,
+    );
   }
 
   String get _calculatedEndDateFormatted {
@@ -209,8 +244,13 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
 
   void _updateBenchmarkRate() {
     if (_isEdit) return; // Không tự đè khi đang sửa hợp đồng cũ
-    final rate = LoanMockData.getBenchmarkRate(_selectedBank, _selectedLoanType);
-    _rateController.text = rate.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '');
+    final rate = LoanMockData.getBenchmarkRate(
+      _selectedBank,
+      _selectedLoanType,
+    );
+    _rateController.text = rate
+        .toStringAsFixed(1)
+        .replaceAll(RegExp(r'\.0$'), '');
   }
 
   void _onTenorChanged(int newTenor) {
@@ -268,7 +308,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
       if (_collateralNameController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Vay thế chấp yêu cầu phải có thông tin tài sản đảm bảo.'),
+            content: Text(
+              'Vay thế chấp yêu cầu phải có thông tin tài sản đảm bảo.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -277,7 +319,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
       if (_currentCollateralVal < config.minValue) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Giá trị định giá cho ${config.displayName} tối thiểu là ${config.minFormatted}.'),
+            content: Text(
+              'Giá trị định giá cho ${config.displayName} tối thiểu là ${config.minFormatted}.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -286,7 +330,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
       if (_currentCollateralVal > config.maxValue) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Giá trị định giá cho ${config.displayName} tối đa là ${config.maxFormatted}.'),
+            content: Text(
+              'Giá trị định giá cho ${config.displayName} tối đa là ${config.maxFormatted}.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -319,19 +365,32 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
       final shouldSave = await showDialog<bool>(
         context: context,
         builder: (dialogCtx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
           title: const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 24.0),
+              Icon(
+                Icons.warning_amber_rounded,
+                color: AppColors.warning,
+                size: 24.0,
+              ),
               SizedBox(width: 8.0),
               Expanded(
-                child: Text('Cảnh báo thay đổi tài chính', style: TextStyle(fontSize: 17.0, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'Cảnh báo thay đổi tài chính',
+                  style: TextStyle(fontSize: 17.0, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
           content: const Text(
             'Thay đổi các thông số kỳ hạn sẽ làm sai lệch lịch phân kỳ cũ. Bạn cần tính toán lại lịch trả nợ sau khi lưu.',
-            style: TextStyle(fontSize: 14.0, color: AppColors.textSecondary, height: 1.4),
+            style: TextStyle(
+              fontSize: 14.0,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
           ),
           actions: [
             TextButton(
@@ -359,7 +418,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
     final rate = _currentRate;
     final tenor = _tenorMonths;
     final startDateStr = _startDateController.text.trim();
-    final methodStr = _selectedMethod == InterestMethod.reducingBalance ? 'Dư nợ giảm dần' : 'Dư nợ ban đầu';
+    final methodStr = _selectedMethod == InterestMethod.reducingBalance
+        ? 'Dư nợ giảm dần'
+        : 'Dư nợ ban đầu';
 
     final payload = <String, dynamic>{
       'loan_name': name,
@@ -390,7 +451,11 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
     if (mounted && success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_isEdit ? 'Đã cập nhật khoản vay thành công!' : 'Đã tạo mới khoản vay thành công!'),
+          content: Text(
+            _isEdit
+                ? 'Đã cập nhật khoản vay thành công!'
+                : 'Đã tạo mới khoản vay thành công!',
+          ),
           backgroundColor: AppColors.success,
         ),
       );
@@ -400,7 +465,10 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final benchmarkRate = LoanMockData.getBenchmarkRate(_selectedBank, _selectedLoanType);
+    final benchmarkRate = LoanMockData.getBenchmarkRate(
+      _selectedBank,
+      _selectedLoanType,
+    );
     final ltv = _currentLtvRatio;
 
     return Scaffold(
@@ -409,12 +477,20 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20.0),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+            size: 20.0,
+          ),
           onPressed: () => Navigator.maybePop(context),
         ),
         title: Text(
           _isEdit ? 'Chỉnh sửa khoản vay' : 'Thêm mới khoản vay',
-          style: const TextStyle(fontSize: 18.0, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          style: const TextStyle(
+            fontSize: 18.0,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
         ),
       ),
       body: SafeArea(
@@ -429,7 +505,10 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                 // Thẻ thông tin Hợp đồng nếu ở Edit mode
                 if (_isEdit && _loanCodeToEdit != null) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14.0,
+                      vertical: 10.0,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primarySoft,
                       borderRadius: BorderRadius.circular(10.0),
@@ -437,11 +516,19 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.lock_outline, size: 16.0, color: AppColors.primary),
+                        const Icon(
+                          Icons.lock_outline,
+                          size: 16.0,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 8.0),
                         Text(
                           'Mã hợp đồng: $_loanCodeToEdit (Cố định pháp lý)',
-                          style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: AppColors.primary),
+                          style: const TextStyle(
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ],
                     ),
@@ -454,9 +541,14 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                   label: 'Tên khoản vay / Mục đích vay *',
                   hint: 'Ví dụ: Vay mua xe VinFast, Vay kinh doanh...',
                   controller: _nameController,
-                  prefixIcon: const Icon(Icons.description_outlined, color: AppColors.primary, size: 20.0),
+                  prefixIcon: const Icon(
+                    Icons.description_outlined,
+                    color: AppColors.primary,
+                    size: 20.0,
+                  ),
                   validator: (val) {
-                    if (val == null || val.trim().isEmpty) return 'Vui lòng nhập tên khoản vay';
+                    if (val == null || val.trim().isEmpty)
+                      return 'Vui lòng nhập tên khoản vay';
                     return null;
                   },
                 ),
@@ -470,23 +562,37 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                       children: [
                         const Text(
                           'Ngân hàng / Đơn vị cấp tín dụng *',
-                          style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                          style: TextStyle(
+                            fontSize: 13.0,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                         if (_isEdit) ...[
                           const SizedBox(width: 6.0),
-                          const Icon(Icons.lock_outline, size: 14.0, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.lock_outline,
+                            size: 14.0,
+                            color: AppColors.textSecondary,
+                          ),
                         ],
                       ],
                     ),
                     const SizedBox(height: 6.0),
                     DropdownButtonFormField<String>(
-                      initialValue: LoanMockData.standardBanks.contains(_selectedBank)
+                      initialValue:
+                          LoanMockData.standardBanks.contains(_selectedBank)
                           ? _selectedBank
                           : LoanMockData.standardBanks.first,
                       decoration: InputDecoration(
                         filled: true,
-                        fillColor: _isEdit ? const Color(0xFFF1F5F9) : AppColors.surface,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
+                        fillColor: _isEdit
+                            ? const Color(0xFFF1F5F9)
+                            : AppColors.surface,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14.0,
+                          vertical: 14.0,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
                           borderSide: const BorderSide(color: AppColors.border),
@@ -495,7 +601,11 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                           borderRadius: BorderRadius.circular(12.0),
                           borderSide: const BorderSide(color: AppColors.border),
                         ),
-                        prefixIcon: const Icon(Icons.account_balance_outlined, color: AppColors.primary, size: 20.0),
+                        prefixIcon: const Icon(
+                          Icons.account_balance_outlined,
+                          color: AppColors.primary,
+                          size: 20.0,
+                        ),
                       ),
                       items: LoanMockData.standardBanks.map((bank) {
                         return DropdownMenuItem<String>(
@@ -503,7 +613,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                           child: Text(
                             bank,
                             style: TextStyle(
-                              color: _isEdit ? AppColors.textSecondary : AppColors.textPrimary,
+                              color: _isEdit
+                                  ? AppColors.textSecondary
+                                  : AppColors.textPrimary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -532,11 +644,19 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                       children: [
                         const Text(
                           'Loại khoản vay *',
-                          style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                          style: TextStyle(
+                            fontSize: 13.0,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                         if (_isEdit) ...[
                           const SizedBox(width: 6.0),
-                          const Icon(Icons.lock_outline, size: 14.0, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.lock_outline,
+                            size: 14.0,
+                            color: AppColors.textSecondary,
+                          ),
                         ],
                       ],
                     ),
@@ -545,8 +665,13 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                       initialValue: _selectedLoanType,
                       decoration: InputDecoration(
                         filled: true,
-                        fillColor: _isEdit ? const Color(0xFFF1F5F9) : AppColors.surface,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
+                        fillColor: _isEdit
+                            ? const Color(0xFFF1F5F9)
+                            : AppColors.surface,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14.0,
+                          vertical: 14.0,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
                           borderSide: const BorderSide(color: AppColors.border),
@@ -555,7 +680,11 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                           borderRadius: BorderRadius.circular(12.0),
                           borderSide: const BorderSide(color: AppColors.border),
                         ),
-                        prefixIcon: const Icon(Icons.category_outlined, color: AppColors.primary, size: 20.0),
+                        prefixIcon: const Icon(
+                          Icons.category_outlined,
+                          color: AppColors.primary,
+                          size: 20.0,
+                        ),
                       ),
                       items: LoanMockData.loanTypeLabels.entries.map((entry) {
                         return DropdownMenuItem<String>(
@@ -563,7 +692,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                           child: Text(
                             entry.value,
                             style: TextStyle(
-                              color: _isEdit ? AppColors.textSecondary : AppColors.textPrimary,
+                              color: _isEdit
+                                  ? AppColors.textSecondary
+                                  : AppColors.textPrimary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -590,14 +721,23 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                   hint: 'Ví dụ: 300000000',
                   controller: _amountController,
                   keyboardType: TextInputType.number,
-                  prefixIcon: const Icon(Icons.payments_outlined, color: AppColors.primary, size: 20.0),
+                  prefixIcon: const Icon(
+                    Icons.payments_outlined,
+                    color: AppColors.primary,
+                    size: 20.0,
+                  ),
                   onChanged: (_) => setState(() {}),
                   validator: (val) {
-                    if (val == null || val.trim().isEmpty) return 'Vui lòng nhập số tiền vay';
-                    final num = double.tryParse(val.replaceAll('.', '').replaceAll(',', ''));
+                    if (val == null || val.trim().isEmpty)
+                      return 'Vui lòng nhập số tiền vay';
+                    final num = double.tryParse(
+                      val.replaceAll('.', '').replaceAll(',', ''),
+                    );
                     if (num == null) return 'Số tiền vay không hợp lệ';
-                    if (num < 5000000) return 'Số tiền vay tối thiểu là 5.000.000 VNĐ (5 triệu)';
-                    if (num > 50000000000) return 'Số tiền vay tối đa là 50.000.000.000 VNĐ (50 tỷ)';
+                    if (num < 5000000)
+                      return 'Số tiền vay tối thiểu là 5.000.000 VNĐ (5 triệu)';
+                    if (num > 50000000000)
+                      return 'Số tiền vay tối đa là 50.000.000.000 VNĐ (50 tỷ)';
                     return null;
                   },
                 ),
@@ -606,14 +746,19 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                   padding: EdgeInsets.only(left: 4.0),
                   child: Text(
                     'Hạn mức cho phép: 5.000.000 đ – 50.000.000.000 đ (50 tỷ VNĐ)',
-                    style: TextStyle(fontSize: 11.0, color: AppColors.textSecondary),
+                    style: TextStyle(
+                      fontSize: 11.0,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
                 if (!_isEdit) ...[
                   const SizedBox(height: 8.0),
                   QuickChipSelector<double>(
                     items: _quickAmounts,
-                    selectedItem: _quickAmounts.contains(_currentPrincipal) ? _currentPrincipal : null,
+                    selectedItem: _quickAmounts.contains(_currentPrincipal)
+                        ? _currentPrincipal
+                        : null,
                     labelBuilder: (amt) => _formatAmountLabel(amt),
                     onSelected: (amt) {
                       setState(() {
@@ -640,24 +785,43 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.percent_rounded, color: AppColors.primary, size: 18.0),
+                              Icon(
+                                Icons.percent_rounded,
+                                color: AppColors.primary,
+                                size: 18.0,
+                              ),
                               SizedBox(width: 6.0),
                               Text(
                                 'Lãi suất áp dụng *',
-                                style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                                style: TextStyle(
+                                  fontSize: 13.0,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10.0,
+                              vertical: 4.0,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primarySoft,
                               borderRadius: BorderRadius.circular(8.0),
-                              border: Border.all(color: AppColors.primaryLight.withValues(alpha: 0.5)),
+                              border: Border.all(
+                                color: AppColors.primaryLight.withValues(
+                                  alpha: 0.5,
+                                ),
+                              ),
                             ),
                             child: Text(
                               '${_currentRate.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}% / năm',
-                              style: const TextStyle(fontSize: 15.0, fontWeight: FontWeight.w800, color: AppColors.primary),
+                              style: const TextStyle(
+                                fontSize: 15.0,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ),
                         ],
@@ -666,14 +830,22 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.lock_outline_rounded, size: 14.0, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.lock_outline_rounded,
+                            size: 14.0,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(width: 6.0),
                           Expanded(
                             child: Text(
                               _isEdit
                                   ? 'Lãi suất cố định theo hợp đồng đã ký. Không cho phép sửa đổi.'
                                   : 'Lãi suất được áp dụng tự động theo biểu niêm yết của $_selectedBank (${LoanMockData.loanTypeLabels[_selectedLoanType] ?? 'khoản vay'}: $benchmarkRate%/năm). Cố định theo quy định.',
-                              style: const TextStyle(fontSize: 12.0, color: AppColors.textSecondary, height: 1.3),
+                              style: const TextStyle(
+                                fontSize: 12.0,
+                                color: AppColors.textSecondary,
+                                height: 1.3,
+                              ),
                             ),
                           ),
                         ],
@@ -699,17 +871,28 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                         children: [
                           const Text(
                             'Kỳ hạn vay (tháng) *',
-                            style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                            style: TextStyle(
+                              fontSize: 13.0,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10.0,
+                              vertical: 4.0,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primarySoft,
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             child: Text(
                               '$_tenorMonths tháng (${(_tenorMonths / 12).toStringAsFixed(_tenorMonths % 12 == 0 ? 0 : 1)} năm)',
-                              style: const TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              style: const TextStyle(
+                                fontSize: 13.0,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ),
                         ],
@@ -736,7 +919,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                       // Presets chọn nhanh
                       QuickChipSelector<int>(
                         items: _quickTenors,
-                        selectedItem: _quickTenors.contains(_tenorMonths) ? _tenorMonths : null,
+                        selectedItem: _quickTenors.contains(_tenorMonths)
+                            ? _tenorMonths
+                            : null,
                         labelBuilder: (t) => '$t tháng',
                         onSelected: (t) => _onTenorChanged(t),
                       ),
@@ -745,11 +930,19 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                       // Ngày đáo hạn tự động tính toán thời gian thực
                       Row(
                         children: [
-                          const Icon(Icons.event_available_rounded, size: 15.0, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.event_available_rounded,
+                            size: 15.0,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(width: 6.0),
                           Text(
                             'Ngày đáo hạn dự kiến: $_calculatedEndDateFormatted',
-                            style: const TextStyle(fontSize: 12.0, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              fontSize: 12.0,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
@@ -766,11 +959,19 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                       children: [
                         const Text(
                           'Ngày bắt đầu giải ngân *',
-                          style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                          style: TextStyle(
+                            fontSize: 13.0,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                         if (_isEdit) ...[
                           const SizedBox(width: 6.0),
-                          const Icon(Icons.lock_outline, size: 14.0, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.lock_outline,
+                            size: 14.0,
+                            color: AppColors.textSecondary,
+                          ),
                         ],
                       ],
                     ),
@@ -783,8 +984,18 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                           label: '',
                           hint: 'DD/MM/YYYY',
                           controller: _startDateController,
-                          prefixIcon: const Icon(Icons.calendar_today_outlined, color: AppColors.primary, size: 20.0),
-                          suffixIcon: _isEdit ? const Icon(Icons.lock_outline, size: 18.0, color: AppColors.textSecondary) : null,
+                          prefixIcon: const Icon(
+                            Icons.calendar_today_outlined,
+                            color: AppColors.primary,
+                            size: 20.0,
+                          ),
+                          suffixIcon: _isEdit
+                              ? const Icon(
+                                  Icons.lock_outline,
+                                  size: 18.0,
+                                  color: AppColors.textSecondary,
+                                )
+                              : null,
                         ),
                       ),
                     ),
@@ -811,7 +1022,11 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.shield_rounded, color: AppColors.primary, size: 18.0),
+                            Icon(
+                              Icons.shield_rounded,
+                              color: AppColors.primary,
+                              size: 18.0,
+                            ),
                             SizedBox(width: 6.0),
                             Text(
                               'THẨM ĐỊNH TÀI SẢN BẢO ĐẢM (BẮT BUỘC)',
@@ -831,21 +1046,35 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                             labelText: 'Loại tài sản bảo đảm *',
                             filled: true,
                             fillColor: AppColors.surface,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14.0,
+                              vertical: 14.0,
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
-                              borderSide: const BorderSide(color: AppColors.border),
+                              borderSide: const BorderSide(
+                                color: AppColors.border,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
-                              borderSide: const BorderSide(color: AppColors.border),
+                              borderSide: const BorderSide(
+                                color: AppColors.border,
+                              ),
                             ),
-                            prefixIcon: const Icon(Icons.shield_outlined, color: AppColors.primary, size: 20.0),
+                            prefixIcon: const Icon(
+                              Icons.shield_outlined,
+                              color: AppColors.primary,
+                              size: 20.0,
+                            ),
                           ),
                           items: CollateralModel.typeConfigs.entries.map((e) {
                             return DropdownMenuItem<String>(
                               value: e.key,
-                              child: Text(e.value.displayName, style: const TextStyle(fontSize: 13.5)),
+                              child: Text(
+                                e.value.displayName,
+                                style: const TextStyle(fontSize: 13.5),
+                              ),
                             );
                           }).toList(),
                           onChanged: (val) {
@@ -861,27 +1090,46 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                           label: 'Tên tài sản bảo đảm (Sổ đỏ, Xe ô tô...) *',
                           hint: 'Ví dụ: Sổ hồng Căn hộ Masteri Thảo Điền',
                           controller: _collateralNameController,
-                          prefixIcon: const Icon(Icons.apartment_rounded, color: AppColors.primary, size: 20.0),
+                          prefixIcon: const Icon(
+                            Icons.apartment_rounded,
+                            color: AppColors.primary,
+                            size: 20.0,
+                          ),
                         ),
                         const SizedBox(height: 12.0),
                         Builder(
                           builder: (context) {
-                            final collateralConfig = CollateralModel.getConfig(_selectedCollateralType);
+                            final collateralConfig = CollateralModel.getConfig(
+                              _selectedCollateralType,
+                            );
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 AppTextField(
-                                  label: 'Giá trị định giá ban đầu của ngân hàng (VNĐ) *',
-                                  hint: 'Theo Chứng thư định giá / Hợp đồng thế chấp',
+                                  label:
+                                      'Giá trị định giá ban đầu của ngân hàng (VNĐ) *',
+                                  hint:
+                                      'Theo Chứng thư định giá / Hợp đồng thế chấp',
                                   controller: _collateralValController,
                                   keyboardType: TextInputType.number,
-                                  prefixIcon: const Icon(Icons.assessment_outlined, color: AppColors.primary, size: 20.0),
+                                  prefixIcon: const Icon(
+                                    Icons.assessment_outlined,
+                                    color: AppColors.primary,
+                                    size: 20.0,
+                                  ),
                                   onChanged: (_) => setState(() {}),
                                   validator: (val) {
-                                    if (_selectedLoanType != 'MORTGAGE') return null;
-                                    if (val == null || val.trim().isEmpty) return 'Vui lòng nhập giá trị định giá tài sản';
-                                    final v = double.tryParse(val.replaceAll('.', '').replaceAll(',', ''));
-                                    if (v == null) return 'Giá trị định giá không hợp lệ';
+                                    if (_selectedLoanType != 'MORTGAGE')
+                                      return null;
+                                    if (val == null || val.trim().isEmpty)
+                                      return 'Vui lòng nhập giá trị định giá tài sản';
+                                    final v = double.tryParse(
+                                      val
+                                          .replaceAll('.', '')
+                                          .replaceAll(',', ''),
+                                    );
+                                    if (v == null)
+                                      return 'Giá trị định giá không hợp lệ';
                                     if (v < collateralConfig.minValue) {
                                       return 'Định giá tối thiểu cho ${collateralConfig.displayName} là ${collateralConfig.minFormatted}';
                                     }
@@ -896,7 +1144,10 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                                   padding: const EdgeInsets.only(left: 4.0),
                                   child: Text(
                                     'Hạn mức định giá cho ${collateralConfig.displayName}: ${collateralConfig.limitRangeText}',
-                                    style: const TextStyle(fontSize: 11.0, color: AppColors.textSecondary),
+                                    style: const TextStyle(
+                                      fontSize: 11.0,
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -913,8 +1164,12 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                               color: ltv > 85
                                   ? AppColors.error.withValues(alpha: 0.1)
                                   : (ltv > 70
-                                      ? AppColors.warning.withValues(alpha: 0.1)
-                                      : AppColors.success.withValues(alpha: 0.1)),
+                                        ? AppColors.warning.withValues(
+                                            alpha: 0.1,
+                                          )
+                                        : AppColors.success.withValues(
+                                            alpha: 0.1,
+                                          )),
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             child: Row(
@@ -922,11 +1177,15 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                                 Icon(
                                   ltv > 85
                                       ? Icons.dangerous_rounded
-                                      : (ltv > 70 ? Icons.warning_rounded : Icons.check_circle_rounded),
+                                      : (ltv > 70
+                                            ? Icons.warning_rounded
+                                            : Icons.check_circle_rounded),
                                   size: 18.0,
                                   color: ltv > 85
                                       ? AppColors.error
-                                      : (ltv > 70 ? AppColors.warning : AppColors.success),
+                                      : (ltv > 70
+                                            ? AppColors.warning
+                                            : AppColors.success),
                                 ),
                                 const SizedBox(width: 8.0),
                                 Expanded(
@@ -934,14 +1193,16 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                                     ltv > 85
                                         ? 'CẢNH BÁO LTV: ${ltv.toStringAsFixed(1)}% vượt trần cho phép của ngân hàng (85%). Nguy cơ bị từ chối giải ngân!'
                                         : (ltv > 70
-                                            ? 'CẢNH BÁO: Khoản vay vượt quá tỷ lệ giải ngân an toàn trên tài sản đảm bảo (LTV: ${ltv.toStringAsFixed(1)}% > 70%).'
-                                            : 'Tỷ lệ LTV: ${ltv.toStringAsFixed(1)}% (Mức giải ngân an toàn theo chuẩn ngân hàng).'),
+                                              ? 'CẢNH BÁO: Khoản vay vượt quá tỷ lệ giải ngân an toàn trên tài sản đảm bảo (LTV: ${ltv.toStringAsFixed(1)}% > 70%).'
+                                              : 'Tỷ lệ LTV: ${ltv.toStringAsFixed(1)}% (Mức giải ngân an toàn theo chuẩn ngân hàng).'),
                                     style: TextStyle(
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w600,
                                       color: ltv > 85
                                           ? AppColors.error
-                                          : (ltv > 70 ? const Color(0xFFB45309) : AppColors.success),
+                                          : (ltv > 70
+                                                ? const Color(0xFFB45309)
+                                                : AppColors.success),
                                     ),
                                   ),
                                 ),
@@ -958,7 +1219,11 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                 // 9. Phương thức tính lãi
                 const Text(
                   'Phương thức tính lãi *',
-                  style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: 13.0,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 8.0),
                 InterestMethodCard(
@@ -990,7 +1255,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                   listenable: _loanController,
                   builder: (context, _) {
                     return AppPrimaryButton(
-                      label: _isEdit ? 'Lưu thay đổi khoản vay' : 'Tạo khoản vay mới',
+                      label: _isEdit
+                          ? 'Lưu thay đổi khoản vay'
+                          : 'Tạo khoản vay mới',
                       isLoading: _loanController.isLoading,
                       onPressed: _handleSubmit,
                     );
@@ -1005,4 +1272,3 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
     );
   }
 }
-

@@ -32,12 +32,12 @@ class NotificationPreferenceModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'preference_id': id,
-        'user_id': userId,
-        'push_enabled': pushEnabled,
-        'email_enabled': emailEnabled,
-        'sms_enabled': smsEnabled,
-        'reminder_days': reminderDays,
-        'updated_at': updatedAt?.toIso8601String(),
-      };
+    'preference_id': id,
+    'user_id': userId,
+    'push_enabled': pushEnabled,
+    'email_enabled': emailEnabled,
+    'sms_enabled': smsEnabled,
+    'reminder_days': reminderDays,
+    'updated_at': updatedAt?.toIso8601String(),
+  };
 }

@@ -35,13 +35,13 @@ class PaymentModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'payment_id': id,
-        'schedule_id': scheduleId,
-        'paid_amount': paidAmount,
-        'paid_date': paidDate.toIso8601String(),
-        'payment_method': paymentMethod,
-        'transaction_reference': transactionReference,
-        'note': note,
-        'created_at': createdAt?.toIso8601String(),
-      };
+    'payment_id': id,
+    'schedule_id': scheduleId,
+    'paid_amount': paidAmount,
+    'paid_date': paidDate.toIso8601String(),
+    'payment_method': paymentMethod,
+    'transaction_reference': transactionReference,
+    'note': note,
+    'created_at': createdAt?.toIso8601String(),
+  };
 }

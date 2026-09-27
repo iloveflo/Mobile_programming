@@ -37,13 +37,13 @@ class LoanDocumentModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'document_id': id,
-        'loan_id': loanId,
-        'document_type': documentType,
-        'file_url': fileUrl,
-        'ocr_status': ocrStatus,
-        'ocr_result': ocrResult,
-        'created_at': createdAt?.toIso8601String(),
-        'updated_at': updatedAt?.toIso8601String(),
-      };
+    'document_id': id,
+    'loan_id': loanId,
+    'document_type': documentType,
+    'file_url': fileUrl,
+    'ocr_status': ocrStatus,
+    'ocr_result': ocrResult,
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+  };
 }

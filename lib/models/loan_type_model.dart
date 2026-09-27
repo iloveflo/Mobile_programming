@@ -23,9 +23,9 @@ class LoanTypeModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'loan_type_id': id,
-        'type_name': name,
-        'description': description,
-        'created_at': createdAt?.toIso8601String(),
-      };
+    'loan_type_id': id,
+    'type_name': name,
+    'description': description,
+    'created_at': createdAt?.toIso8601String(),
+  };
 }

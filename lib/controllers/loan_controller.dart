@@ -47,7 +47,10 @@ class LoanController extends ChangeNotifier {
 
   /// Tổng số tiền gốc đã thanh toán
   double get totalPaidAmount =>
-      (totalOriginalPrincipal - totalRemainingPrincipal).clamp(0.0, totalOriginalPrincipal);
+      (totalOriginalPrincipal - totalRemainingPrincipal).clamp(
+        0.0,
+        totalOriginalPrincipal,
+      );
 
   /// Tỷ lệ hoàn thành thanh toán danh mục (0.0 -> 1.0)
   double get paidRatio => totalOriginalPrincipal > 0
@@ -77,18 +80,30 @@ class LoanController extends ChangeNotifier {
   Future<void> setFilterStatus(LoanStatus status) async {
     if (_currentFilterStatus != status) {
       _currentFilterStatus = status;
-      await fetchLoans(keyword: _searchKeyword, status: status, lender: _selectedLender);
+      await fetchLoans(
+        keyword: _searchKeyword,
+        status: status,
+        lender: _selectedLender,
+      );
     }
   }
 
   Future<void> setSearchKeyword(String query) async {
     _searchKeyword = query;
-    await fetchLoans(keyword: query, status: _currentFilterStatus, lender: _selectedLender);
+    await fetchLoans(
+      keyword: query,
+      status: _currentFilterStatus,
+      lender: _selectedLender,
+    );
   }
 
   Future<void> setSelectedLender(String? lender) async {
     _selectedLender = lender;
-    await fetchLoans(keyword: _searchKeyword, status: _currentFilterStatus, lender: lender);
+    await fetchLoans(
+      keyword: _searchKeyword,
+      status: _currentFilterStatus,
+      lender: lender,
+    );
   }
 
   void clearError() {
@@ -136,9 +151,11 @@ class LoanController extends ChangeNotifier {
   Future<void> getDetail(String id) async {
     // 1. Tối ưu UX - Instant Cache: Nếu khoản vay đã có sẵn trong danh sách thì hiển thị tức thì
     final cached = _loans.cast<LoanModel?>().firstWhere(
-          (l) => l?.id.toString() == id || l?.loanCode.toLowerCase() == id.toLowerCase(),
-          orElse: () => null,
-        );
+      (l) =>
+          l?.id.toString() == id ||
+          l?.loanCode.toLowerCase() == id.toLowerCase(),
+      orElse: () => null,
+    );
     if (cached != null) {
       _selectedLoan = cached;
     } else {
@@ -195,7 +212,9 @@ class LoanController extends ChangeNotifier {
 
     try {
       final updated = await _loanRepository.updateLoan(id, data);
-      final index = _loans.indexWhere((l) => l.id.toString() == id || l.loanCode == id);
+      final index = _loans.indexWhere(
+        (l) => l.id.toString() == id || l.loanCode == id,
+      );
       if (index != -1) {
         _loans[index] = updated;
       }
@@ -225,7 +244,9 @@ class LoanController extends ChangeNotifier {
         'status': 'SETTLED',
       });
 
-      final index = _loans.indexWhere((l) => l.id.toString() == id || l.loanCode == id);
+      final index = _loans.indexWhere(
+        (l) => l.id.toString() == id || l.loanCode == id,
+      );
       if (index != -1) {
         _loans[index] = updated;
       }
@@ -253,14 +274,18 @@ class LoanController extends ChangeNotifier {
     try {
       LoanModel? loanTarget;
       try {
-        loanTarget = _loans.firstWhere((l) => l.id.toString() == id || l.loanCode == id);
+        loanTarget = _loans.firstWhere(
+          (l) => l.id.toString() == id || l.loanCode == id,
+        );
       } catch (_) {
         loanTarget = _selectedLoan;
       }
 
       // Nếu đã phát sinh thanh toán (paidAmount > 0) -> Tuyệt đối không được phép xóa
       if (loanTarget != null && !loanTarget.canHardDelete) {
-        throw Exception('Khoản vay này đã phát sinh giao dịch thanh toán nên không thể xóa.');
+        throw Exception(
+          'Khoản vay này đã phát sinh giao dịch thanh toán nên không thể xóa.',
+        );
       }
 
       await _loanRepository.deleteLoan(id, softDelete: false);
@@ -293,7 +318,8 @@ class LoanController extends ChangeNotifier {
       return result;
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Không thể bóc tách tài liệu hợp đồng: ${e.toString().replaceAll('Exception: ', '')}';
+      _errorMessage =
+          'Không thể bóc tách tài liệu hợp đồng: ${e.toString().replaceAll('Exception: ', '')}';
       notifyListeners();
       return null;
     }
@@ -333,10 +359,14 @@ class LoanController extends ChangeNotifier {
     try {
       final config = CollateralModel.getConfig(type);
       if (value < config.minValue) {
-        throw Exception('Giá trị định giá cho ${config.displayName} tối thiểu là ${config.minFormatted}.');
+        throw Exception(
+          'Giá trị định giá cho ${config.displayName} tối thiểu là ${config.minFormatted}.',
+        );
       }
       if (value > config.maxValue) {
-        throw Exception('Giá trị định giá cho ${config.displayName} tối đa là ${config.maxFormatted}.');
+        throw Exception(
+          'Giá trị định giá cho ${config.displayName} tối đa là ${config.maxFormatted}.',
+        );
       }
 
       final payload = <String, dynamic>{

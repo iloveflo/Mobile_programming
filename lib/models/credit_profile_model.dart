@@ -41,15 +41,15 @@ class CreditProfileModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'profile_id': id,
-        'user_id': userId,
-        'credit_score': creditScore,
-        'dti_ratio': dtiRatio,
-        'ltv_ratio': ltvRatio,
-        'credit_utilization': creditUtilization,
-        'on_time_payment_rate': onTimePaymentRate,
-        'active_loan_count': activeLoanCount,
-        'risk_level': riskLevel,
-        'updated_at': updatedAt?.toIso8601String(),
-      };
+    'profile_id': id,
+    'user_id': userId,
+    'credit_score': creditScore,
+    'dti_ratio': dtiRatio,
+    'ltv_ratio': ltvRatio,
+    'credit_utilization': creditUtilization,
+    'on_time_payment_rate': onTimePaymentRate,
+    'active_loan_count': activeLoanCount,
+    'risk_level': riskLevel,
+    'updated_at': updatedAt?.toIso8601String(),
+  };
 }

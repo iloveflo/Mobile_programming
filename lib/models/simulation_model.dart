@@ -30,8 +30,7 @@ class SimulationModel {
       loanId: json['loan_id'] as int,
       extraPayment: (json['extra_payment'] as num?)?.toDouble() ?? 0,
       earlyPaymentFee: (json['early_payment_fee'] as num?)?.toDouble() ?? 0,
-      estimatedInterest:
-          (json['estimated_interest'] as num?)?.toDouble() ?? 0,
+      estimatedInterest: (json['estimated_interest'] as num?)?.toDouble() ?? 0,
       estimatedInterestSaved:
           (json['estimated_interest_saved'] as num?)?.toDouble() ?? 0,
       monthsReduced: json['months_reduced'] as int? ?? 0,
@@ -43,15 +42,15 @@ class SimulationModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'simulation_id': id,
-        'user_id': userId,
-        'loan_id': loanId,
-        'extra_payment': extraPayment,
-        'early_payment_fee': earlyPaymentFee,
-        'estimated_interest': estimatedInterest,
-        'estimated_interest_saved': estimatedInterestSaved,
-        'months_reduced': monthsReduced,
-        'total_saving': totalSaving,
-        'created_at': createdAt?.toIso8601String(),
-      };
+    'simulation_id': id,
+    'user_id': userId,
+    'loan_id': loanId,
+    'extra_payment': extraPayment,
+    'early_payment_fee': earlyPaymentFee,
+    'estimated_interest': estimatedInterest,
+    'estimated_interest_saved': estimatedInterestSaved,
+    'months_reduced': monthsReduced,
+    'total_saving': totalSaving,
+    'created_at': createdAt?.toIso8601String(),
+  };
 }

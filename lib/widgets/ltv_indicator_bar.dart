@@ -65,7 +65,11 @@ class LtvIndicatorBar extends StatelessWidget {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.shield_outlined, size: 18.0, color: AppColors.primary),
+                  Icon(
+                    Icons.shield_outlined,
+                    size: 18.0,
+                    color: AppColors.primary,
+                  ),
                   SizedBox(width: 6.0),
                   Text(
                     'Tỷ lệ LTV (Loan-to-Value)',
@@ -78,7 +82,10 @@ class LtvIndicatorBar extends StatelessWidget {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 3.0,
+                ),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8.0),
@@ -100,7 +107,10 @@ class LtvIndicatorBar extends StatelessWidget {
             children: [
               const Text(
                 'Dư nợ / Giá trị TSBĐ',
-                style: TextStyle(fontSize: 12.0, color: AppColors.textSecondary),
+                style: TextStyle(
+                  fontSize: 12.0,
+                  color: AppColors.textSecondary,
+                ),
               ),
               Text(
                 '$percentInt%',
@@ -122,18 +132,27 @@ class LtvIndicatorBar extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),
-          if (showDetailText && outstandingAmount != null && collateralValue != null) ...[
+          if (showDetailText &&
+              outstandingAmount != null &&
+              collateralValue != null) ...[
             const SizedBox(height: 10.0),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Dư nợ: ${_formatCurrency(outstandingAmount!)}',
-                  style: const TextStyle(fontSize: 11.0, color: AppColors.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 11.0,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 Text(
                   'TSBĐ: ${_formatCurrency(collateralValue!)}',
-                  style: const TextStyle(fontSize: 11.0, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  style: const TextStyle(
+                    fontSize: 11.0,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ],
             ),

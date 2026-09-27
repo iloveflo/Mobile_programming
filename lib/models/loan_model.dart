@@ -22,7 +22,8 @@ class LoanModel {
   final String? lender; // Tên ngân hàng / bên cho vay
   final double principalAmount;
   final double interestRate; // Ví dụ 0.085 tương ứng 8.5%/năm
-  final String interestMethod; // REDUCING_BALANCE (Dư nợ giảm dần) hoặc FLAT (Gốc ban đầu)
+  final String
+  interestMethod; // REDUCING_BALANCE (Dư nợ giảm dần) hoặc FLAT (Gốc ban đầu)
   final int termMonths;
   final DateTime startDate;
   final DateTime? endDate;
@@ -59,7 +60,9 @@ class LoanModel {
     }
     if (loanTypeId == 2 || isCreditCard) return 'CREDIT_CARD';
     final lower = name.toLowerCase();
-    if (lower.contains('nhà') || lower.contains('thế chấp') || lower.contains('bất động sản')) {
+    if (lower.contains('nhà') ||
+        lower.contains('thế chấp') ||
+        lower.contains('bất động sản')) {
       return 'MORTGAGE';
     }
     if (lower.contains('xe') || lower.contains('ô tô')) {
@@ -86,7 +89,8 @@ class LoanModel {
   }
 
   /// Lãi suất định dạng phần trăm (%/năm, ví dụ 8.5)
-  double get interestRatePercent => interestRate <= 1.0 ? (interestRate * 100.0) : interestRate;
+  double get interestRatePercent =>
+      interestRate <= 1.0 ? (interestRate * 100.0) : interestRate;
 
   /// Chuỗi hiển thị lãi suất chuẩn hóa (ví dụ "8.5%/năm")
   String get interestRateFormatted =>
@@ -106,8 +110,10 @@ class LoanModel {
     if (lender != null && lender!.isNotEmpty) return lender!;
     // Trích xuất từ tên khoản vay nếu có
     final lower = name.toLowerCase();
-    if (lower.contains('vietcombank') || lower.contains('vcb')) return 'Vietcombank';
-    if (lower.contains('techcombank') || lower.contains('tcb')) return 'Techcombank';
+    if (lower.contains('vietcombank') || lower.contains('vcb'))
+      return 'Vietcombank';
+    if (lower.contains('techcombank') || lower.contains('tcb'))
+      return 'Techcombank';
     if (lower.contains('mbbank') || lower.contains('mb')) return 'MBBank';
     if (lower.contains('bidv')) return 'BIDV';
     if (lower.contains('vpbank')) return 'VPBank';
@@ -157,7 +163,11 @@ class LoanModel {
     if (endDate != null) {
       return '${endDate!.day.toString().padLeft(2, '0')}/${endDate!.month.toString().padLeft(2, '0')}/${endDate!.year}';
     }
-    final calcEnd = DateTime(startDate.year, startDate.month + termMonths, startDate.day);
+    final calcEnd = DateTime(
+      startDate.year,
+      startDate.month + termMonths,
+      startDate.day,
+    );
     return '${calcEnd.day.toString().padLeft(2, '0')}/${calcEnd.month.toString().padLeft(2, '0')}/${calcEnd.year}';
   }
 
@@ -172,14 +182,17 @@ class LoanModel {
       name.toLowerCase().contains('credit card');
 
   /// Số tiền gốc đã trả
-  double get paidAmount => (principalAmount - outstandingAmount).clamp(0.0, principalAmount);
+  double get paidAmount =>
+      (principalAmount - outstandingAmount).clamp(0.0, principalAmount);
 
   /// Tiến độ thanh toán (0.0 -> 1.0)
-  double get progressRatio =>
-      principalAmount > 0 ? (paidAmount / principalAmount).clamp(0.0, 1.0) : 0.0;
+  double get progressRatio => principalAmount > 0
+      ? (paidAmount / principalAmount).clamp(0.0, 1.0)
+      : 0.0;
 
   bool get isActive => status.toUpperCase() == 'ACTIVE';
-  bool get isClosed => status.toUpperCase() == 'CLOSED' || status.toUpperCase() == 'SETTLED';
+  bool get isClosed =>
+      status.toUpperCase() == 'CLOSED' || status.toUpperCase() == 'SETTLED';
   bool get isSettled => status.toUpperCase() == 'SETTLED';
   bool get isOverdue => status.toUpperCase() == 'OVERDUE';
 
@@ -280,16 +293,33 @@ class LoanModel {
       loanType: json['loan_type']?.toString() ?? json['loanType']?.toString(),
       name: (json['loan_name'] ?? json['name'] ?? 'Khoản vay') as String,
       lender: json['lender_name'] ?? json['lender'] as String?,
-      principalAmount: (json['principal_amount'] ?? json['principalAmount'] as num?)?.toDouble() ?? 0.0,
-      interestRate: (json['interest_rate'] ?? json['interestRate'] as num?)?.toDouble() ?? 0.0,
-      interestMethod: (json['interest_method'] ?? json['interestMethod'] ?? 'REDUCING_BALANCE') as String,
+      principalAmount:
+          (json['principal_amount'] ?? json['principalAmount'] as num?)
+              ?.toDouble() ??
+          0.0,
+      interestRate:
+          (json['interest_rate'] ?? json['interestRate'] as num?)?.toDouble() ??
+          0.0,
+      interestMethod:
+          (json['interest_method'] ??
+                  json['interestMethod'] ??
+                  'REDUCING_BALANCE')
+              as String,
       termMonths: json['term_months'] is num
           ? (json['term_months'] as num).toInt()
           : int.tryParse(json['termMonths']?.toString() ?? '12') ?? 12,
-      startDate: parseDate(json['start_date'] ?? json['startDate']) ?? DateTime.now(),
+      startDate:
+          parseDate(json['start_date'] ?? json['startDate']) ?? DateTime.now(),
       endDate: parseDate(json['end_date'] ?? json['endDate']),
-      outstandingAmount: (json['outstanding_amount'] ?? json['outstandingAmount'] as num?)?.toDouble() ?? 0.0,
-      earlyPaymentFeeRate: (json['early_payment_fee_rate'] ?? json['earlyPaymentFeeRate'] as num?)?.toDouble() ?? 0.02,
+      outstandingAmount:
+          (json['outstanding_amount'] ?? json['outstandingAmount'] as num?)
+              ?.toDouble() ??
+          0.0,
+      earlyPaymentFeeRate:
+          (json['early_payment_fee_rate'] ??
+                  json['earlyPaymentFeeRate'] as num?)
+              ?.toDouble() ??
+          0.02,
       status: (json['status'] ?? 'ACTIVE') as String,
       createdAt: parseDate(json['created_at'] ?? json['createdAt']),
       updatedAt: parseDate(json['updated_at'] ?? json['updatedAt']),
@@ -297,22 +327,22 @@ class LoanModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'loan_id': id,
-        'user_id': userId,
-        'loan_type_id': loanTypeId,
-        'loan_type': loanTypeKey,
-        'loan_name': name,
-        'lender_name': lender,
-        'principal_amount': principalAmount,
-        'interest_rate': interestRate,
-        'interest_method': interestMethod,
-        'term_months': termMonths,
-        'start_date': startDate.toIso8601String(),
-        'end_date': endDate?.toIso8601String(),
-        'outstanding_amount': outstandingAmount,
-        'early_payment_fee_rate': earlyPaymentFeeRate,
-        'status': status,
-        'created_at': createdAt?.toIso8601String(),
-        'updated_at': updatedAt?.toIso8601String(),
-      };
+    'loan_id': id,
+    'user_id': userId,
+    'loan_type_id': loanTypeId,
+    'loan_type': loanTypeKey,
+    'loan_name': name,
+    'lender_name': lender,
+    'principal_amount': principalAmount,
+    'interest_rate': interestRate,
+    'interest_method': interestMethod,
+    'term_months': termMonths,
+    'start_date': startDate.toIso8601String(),
+    'end_date': endDate?.toIso8601String(),
+    'outstanding_amount': outstandingAmount,
+    'early_payment_fee_rate': earlyPaymentFeeRate,
+    'status': status,
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+  };
 }

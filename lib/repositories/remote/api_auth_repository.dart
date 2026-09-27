@@ -20,14 +20,21 @@ class ApiAuthRepository implements AuthRepository {
       return response as T;
     } on ApiException catch (e) {
       if (e.statusCode == 401) {
-        throw const InvalidCredentialsException('Thông tin đăng nhập không hợp lệ hoặc phiên đã hết hạn.');
+        throw const InvalidCredentialsException(
+          'Thông tin đăng nhập không hợp lệ hoặc phiên đã hết hạn.',
+        );
       }
       if (e.statusCode == 403) {
         final msg = e.message.toLowerCase();
         if (msg.contains('unverified') || msg.contains('chưa kích hoạt')) {
-          throw const AccountUnverifiedException('user@fincredit.vn', message: 'Tài khoản chưa được kích hoạt qua OTP.');
+          throw const AccountUnverifiedException(
+            'user@fincredit.vn',
+            message: 'Tài khoản chưa được kích hoạt qua OTP.',
+          );
         }
-        throw const AccountLockedException('Tài khoản bị tạm khóa do vi phạm chính sách bảo mật.');
+        throw const AccountLockedException(
+          'Tài khoản bị tạm khóa do vi phạm chính sách bảo mật.',
+        );
       }
       if (e.statusCode == 429) {
         throw const OtpException(
@@ -41,20 +48,32 @@ class ApiAuthRepository implements AuthRepository {
       }
       throw NetworkAuthException(e.message);
     } on SocketException catch (_) {
-      throw const NetworkAuthException('Mất kết nối mạng. Vui lòng kiểm tra Wifi/4G.');
+      throw const NetworkAuthException(
+        'Mất kết nối mạng. Vui lòng kiểm tra Wifi/4G.',
+      );
     } on TimeoutException catch (_) {
-      throw const NetworkAuthException('Yêu cầu đã quá thời gian phản hồi (Timeout). Vui lòng thử lại.');
+      throw const NetworkAuthException(
+        'Yêu cầu đã quá thời gian phản hồi (Timeout). Vui lòng thử lại.',
+      );
     } catch (e) {
       final errorString = e.toString().toLowerCase();
 
       if (errorString.contains('401')) {
-        throw const InvalidCredentialsException('Thông tin đăng nhập không hợp lệ hoặc phiên đã hết hạn.');
+        throw const InvalidCredentialsException(
+          'Thông tin đăng nhập không hợp lệ hoặc phiên đã hết hạn.',
+        );
       }
       if (errorString.contains('403')) {
-        if (errorString.contains('unverified') || errorString.contains('chưa kích hoạt')) {
-          throw const AccountUnverifiedException('user@fincredit.vn', message: 'Tài khoản chưa được kích hoạt qua OTP.');
+        if (errorString.contains('unverified') ||
+            errorString.contains('chưa kích hoạt')) {
+          throw const AccountUnverifiedException(
+            'user@fincredit.vn',
+            message: 'Tài khoản chưa được kích hoạt qua OTP.',
+          );
         }
-        throw const AccountLockedException('Tài khoản bị tạm khóa do vi phạm chính sách bảo mật.');
+        throw const AccountLockedException(
+          'Tài khoản bị tạm khóa do vi phạm chính sách bảo mật.',
+        );
       }
       if (errorString.contains('429')) {
         throw const OtpException(
@@ -65,10 +84,15 @@ class ApiAuthRepository implements AuthRepository {
       }
       if (errorString.contains('400') || errorString.contains('422')) {
         throw InvalidCredentialsException(
-          e.toString().replaceAll('Exception: ', '').replaceAll('UnimplementedError: ', ''),
+          e
+              .toString()
+              .replaceAll('Exception: ', '')
+              .replaceAll('UnimplementedError: ', ''),
         );
       }
-      if (errorString.contains('network') || errorString.contains('connection') || errorString.contains('socket')) {
+      if (errorString.contains('network') ||
+          errorString.contains('connection') ||
+          errorString.contains('socket')) {
         throw NetworkAuthException(e.toString());
       }
 
@@ -79,10 +103,16 @@ class ApiAuthRepository implements AuthRepository {
   @override
   Future<AuthTokenModel?> checkSession() async {
     try {
-      final response = await _handleApiCall<dynamic>(() => client.get('/api/auth/session'));
+      final response = await _handleApiCall<dynamic>(
+        () => client.get('/api/auth/session'),
+      );
       if (response == null) return null;
-      final data = response is Map<String, dynamic> ? (response['data'] ?? response) : response;
-      final session = AuthTokenModel.fromJson(Map<String, dynamic>.from(data as Map));
+      final data = response is Map<String, dynamic>
+          ? (response['data'] ?? response)
+          : response;
+      final session = AuthTokenModel.fromJson(
+        Map<String, dynamic>.from(data as Map),
+      );
       if (session.accessToken.isNotEmpty) {
         client.setAuthToken(session.accessToken);
       }
@@ -103,18 +133,24 @@ class ApiAuthRepository implements AuthRepository {
     final response = await _handleApiCall<dynamic>(
       () => client.post(
         '/api/auth/login',
-        body: {
-          'identifier': identifier.trim(),
-          'password': password,
-        },
+        body: {'identifier': identifier.trim(), 'password': password},
       ),
     );
 
-    final raw = response is Map<String, dynamic> ? response : <String, dynamic>{};
-    final data = raw['data'] is Map<String, dynamic> ? raw['data'] as Map<String, dynamic> : raw;
+    final raw = response is Map<String, dynamic>
+        ? response
+        : <String, dynamic>{};
+    final data = raw['data'] is Map<String, dynamic>
+        ? raw['data'] as Map<String, dynamic>
+        : raw;
 
     // Trích xuất Token xác thực và lưu vào ApiClient
-    final token = data['token'] ?? data['accessToken'] ?? data['access_token'] ?? raw['token'] ?? raw['accessToken'];
+    final token =
+        data['token'] ??
+        data['accessToken'] ??
+        data['access_token'] ??
+        raw['token'] ??
+        raw['accessToken'];
     if (token != null && token.toString().isNotEmpty) {
       client.setAuthToken(token.toString());
     }
@@ -133,10 +169,7 @@ class ApiAuthRepository implements AuthRepository {
   @override
   Future<void> register(Map<String, dynamic> registerData) async {
     await _handleApiCall<dynamic>(
-      () => client.post(
-        '/api/auth/register',
-        body: registerData,
-      ),
+      () => client.post('/api/auth/register', body: registerData),
     );
   }
 
@@ -148,10 +181,7 @@ class ApiAuthRepository implements AuthRepository {
     final response = await _handleApiCall<dynamic>(
       () => client.post(
         '/api/auth/verify-otp',
-        body: {
-          'otp': otp,
-          'flow_type': flowType,
-        },
+        body: {'otp': otp, 'flow_type': flowType},
       ),
     );
 
@@ -163,21 +193,15 @@ class ApiAuthRepository implements AuthRepository {
 
   @override
   Future<void> resendOtp() async {
-    await _handleApiCall<dynamic>(
-      () => client.post('/api/auth/resend-otp'),
-    );
+    await _handleApiCall<dynamic>(() => client.post('/api/auth/resend-otp'));
   }
 
   @override
-  Future<void> resetPassword({
-    required String newPassword,
-  }) async {
+  Future<void> resetPassword({required String newPassword}) async {
     await _handleApiCall<dynamic>(
       () => client.post(
         '/api/auth/reset-password',
-        body: {
-          'new_password': newPassword,
-        },
+        body: {'new_password': newPassword},
       ),
     );
   }
@@ -206,10 +230,15 @@ class ApiAuthRepository implements AuthRepository {
 
     final List<dynamic> list = response is List
         ? response
-        : (response is Map<String, dynamic> ? (response['data'] as List? ?? []) : []);
+        : (response is Map<String, dynamic>
+              ? (response['data'] as List? ?? [])
+              : []);
 
     return list
-        .map((item) => SessionModel.fromJson(Map<String, dynamic>.from(item as Map)))
+        .map(
+          (item) =>
+              SessionModel.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
         .toList();
   }
 
@@ -223,12 +252,9 @@ class ApiAuthRepository implements AuthRepository {
   @override
   Future<void> logout() async {
     try {
-      await _handleApiCall<dynamic>(
-        () => client.post('/api/auth/logout'),
-      );
+      await _handleApiCall<dynamic>(() => client.post('/api/auth/logout'));
     } finally {
       client.clearAuthToken();
     }
   }
 }
-
