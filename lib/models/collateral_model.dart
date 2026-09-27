@@ -97,8 +97,12 @@ class CollateralModel {
 
   factory CollateralModel.fromJson(Map<String, dynamic> json) {
     DateTime? parseDate(dynamic val) {
-      if (val == null) return null;
-      if (val is DateTime) return val;
+      if (val == null) {
+        return null;
+      }
+      if (val is DateTime) {
+        return val;
+      }
       return DateTime.tryParse(val.toString());
     }
 

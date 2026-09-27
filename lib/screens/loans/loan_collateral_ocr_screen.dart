@@ -583,8 +583,9 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                     ),
                   ],
                   onChanged: (val) {
-                    if (val != null)
+                    if (val != null) {
                       setState(() => _selectedDocumentType = val);
+                    }
                   },
                 ),
                 const SizedBox(height: 14.0),

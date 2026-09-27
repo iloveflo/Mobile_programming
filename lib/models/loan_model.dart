@@ -107,18 +107,32 @@ class LoanModel {
 
   /// Tên ngân hàng / bên cho vay
   String get lenderName {
-    if (lender != null && lender!.isNotEmpty) return lender!;
+    if (lender != null && lender!.isNotEmpty) {
+      return lender!;
+    }
     // Trích xuất từ tên khoản vay nếu có
     final lower = name.toLowerCase();
-    if (lower.contains('vietcombank') || lower.contains('vcb'))
+    if (lower.contains('vietcombank') || lower.contains('vcb')) {
       return 'Vietcombank';
-    if (lower.contains('techcombank') || lower.contains('tcb'))
+    }
+    if (lower.contains('techcombank') || lower.contains('tcb')) {
       return 'Techcombank';
-    if (lower.contains('mbbank') || lower.contains('mb')) return 'MBBank';
-    if (lower.contains('bidv')) return 'BIDV';
-    if (lower.contains('vpbank')) return 'VPBank';
-    if (lower.contains('vib')) return 'VIB';
-    if (lower.contains('fe credit')) return 'FE Credit';
+    }
+    if (lower.contains('mbbank') || lower.contains('mb')) {
+      return 'MBBank';
+    }
+    if (lower.contains('bidv')) {
+      return 'BIDV';
+    }
+    if (lower.contains('vpbank')) {
+      return 'VPBank';
+    }
+    if (lower.contains('vib')) {
+      return 'VIB';
+    }
+    if (lower.contains('fe credit')) {
+      return 'FE Credit';
+    }
     return 'Ngân hàng / TCTD';
   }
 
@@ -277,8 +291,12 @@ class LoanModel {
 
   factory LoanModel.fromJson(Map<String, dynamic> json) {
     DateTime? parseDate(dynamic val) {
-      if (val == null) return null;
-      if (val is DateTime) return val;
+      if (val == null) {
+        return null;
+      }
+      if (val is DateTime) {
+        return val;
+      }
       return DateTime.tryParse(val.toString());
     }
 

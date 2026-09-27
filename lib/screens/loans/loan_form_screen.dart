@@ -547,8 +547,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                     size: 20.0,
                   ),
                   validator: (val) {
-                    if (val == null || val.trim().isEmpty)
+                    if (val == null || val.trim().isEmpty) {
                       return 'Vui lòng nhập tên khoản vay';
+                    }
                     return null;
                   },
                 ),
@@ -728,16 +729,21 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                   ),
                   onChanged: (_) => setState(() {}),
                   validator: (val) {
-                    if (val == null || val.trim().isEmpty)
+                    if (val == null || val.trim().isEmpty) {
                       return 'Vui lòng nhập số tiền vay';
+                    }
                     final num = double.tryParse(
                       val.replaceAll('.', '').replaceAll(',', ''),
                     );
-                    if (num == null) return 'Số tiền vay không hợp lệ';
-                    if (num < 5000000)
+                    if (num == null) {
+                      return 'Số tiền vay không hợp lệ';
+                    }
+                    if (num < 5000000) {
                       return 'Số tiền vay tối thiểu là 5.000.000 VNĐ (5 triệu)';
-                    if (num > 50000000000)
+                    }
+                    if (num > 50000000000) {
                       return 'Số tiền vay tối đa là 50.000.000.000 VNĐ (50 tỷ)';
+                    }
                     return null;
                   },
                 ),
@@ -1119,17 +1125,20 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                                   ),
                                   onChanged: (_) => setState(() {}),
                                   validator: (val) {
-                                    if (_selectedLoanType != 'MORTGAGE')
+                                    if (_selectedLoanType != 'MORTGAGE') {
                                       return null;
-                                    if (val == null || val.trim().isEmpty)
+                                    }
+                                    if (val == null || val.trim().isEmpty) {
                                       return 'Vui lòng nhập giá trị định giá tài sản';
+                                    }
                                     final v = double.tryParse(
                                       val
                                           .replaceAll('.', '')
                                           .replaceAll(',', ''),
                                     );
-                                    if (v == null)
+                                    if (v == null) {
                                       return 'Giá trị định giá không hợp lệ';
+                                    }
                                     if (v < collateralConfig.minValue) {
                                       return 'Định giá tối thiểu cho ${collateralConfig.displayName} là ${collateralConfig.minFormatted}';
                                     }

@@ -19,14 +19,20 @@ class AuthTokenModel {
 
   /// Kiểm tra xem token đã hết hạn hay chưa
   bool get isExpired {
-    if (expiresAt == null) return false;
+    if (expiresAt == null) {
+      return false;
+    }
     return DateTime.now().isAfter(expiresAt!);
   }
 
   factory AuthTokenModel.fromJson(Map<String, dynamic> json) {
     DateTime? parseDate(dynamic val) {
-      if (val == null) return null;
-      if (val is DateTime) return val;
+      if (val == null) {
+        return null;
+      }
+      if (val is DateTime) {
+        return val;
+      }
       return DateTime.tryParse(val.toString());
     }
 

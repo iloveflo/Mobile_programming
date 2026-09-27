@@ -57,10 +57,15 @@ class ApiLoanRepository implements LoanRepository {
     String? lender,
   }) async {
     final queryParams = <String, String>{};
-    if (keyword != null && keyword.isNotEmpty) queryParams['keyword'] = keyword;
-    if (status != null && status != LoanStatus.all)
+    if (keyword != null && keyword.isNotEmpty) {
+      queryParams['keyword'] = keyword;
+    }
+    if (status != null && status != LoanStatus.all) {
       queryParams['status'] = status.name.toUpperCase();
-    if (lender != null && lender.isNotEmpty) queryParams['lender'] = lender;
+    }
+    if (lender != null && lender.isNotEmpty) {
+      queryParams['lender'] = lender;
+    }
 
     final queryString = queryParams.isNotEmpty
         ? '?${queryParams.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&')}'

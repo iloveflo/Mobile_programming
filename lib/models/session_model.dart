@@ -40,7 +40,9 @@ class SessionModel {
 
   factory SessionModel.fromJson(Map<String, dynamic> json) {
     DateTime parseDate(dynamic val) {
-      if (val is DateTime) return val;
+      if (val is DateTime) {
+        return val;
+      }
       if (val is String) {
         return DateTime.tryParse(val) ?? DateTime.now();
       }
