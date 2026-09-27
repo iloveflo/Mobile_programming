@@ -10,7 +10,7 @@ void main() {
 
     test('đăng nhập thành công với tài khoản mẫu', () async {
       final result = await controller.login('dev@test.com', '123456');
-      expect(result, isTrue);
+      expect(result, AuthResultState.success);
       expect(controller.isAuthenticated, isTrue);
       expect(controller.currentUser?.email, 'dev@test.com');
       expect(controller.isLoading, isFalse);
@@ -19,17 +19,19 @@ void main() {
 
     test('đăng nhập thất bại và trả về thông báo lỗi', () async {
       final result = await controller.login('dev@test.com', 'sai-mat-khau');
-      expect(result, isFalse);
+      expect(result, AuthResultState.invalid);
       expect(controller.isAuthenticated, isFalse);
       expect(controller.isLoading, isFalse);
       expect(controller.errorMessage, isNotEmpty);
     });
 
-    test('đăng xuất xóa người dùng hiện tại', () async {
+    test('đăng xuất xóa người dùng hiện tại nhưng giữ nguyên cài đặt sinh trắc học của thiết bị', () async {
       await controller.login('dev@test.com', '123456');
-      controller.logout();
+      controller.setBiometricEnabled(true);
+      await controller.logout();
       expect(controller.isAuthenticated, isFalse);
       expect(controller.currentUser, isNull);
+      expect(controller.isBiometricEnabled, isTrue);
     });
   });
 }
