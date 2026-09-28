@@ -17,6 +17,17 @@ CREATE TABLE users (
     monthly_income DECIMAL(15,2),
     date_of_birth DATE,
 
+    -- Thông tin hồ sơ định danh, việc làm & tín dụng (khớp UserModel FinCredit)
+    id_card_number VARCHAR(20) UNIQUE NULL,
+    address VARCHAR(255) NULL,
+    occupation VARCHAR(100) NULL,
+    workplace VARCHAR(150) NULL,
+    contract_type VARCHAR(100) NULL,
+    is_ekyc_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    ekyc_tier VARCHAR(30) NULL,
+    membership_tier VARCHAR(30) NOT NULL DEFAULT 'STANDARD',
+    cic_score INT NULL,
+
     -- Bổ sung trường phục vụ bảo mật & quản trị tài khoản
     is_biometric_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -31,7 +42,34 @@ CREATE TABLE users (
 
 
 -- =========================================================
--- 2. LOAN TYPES
+-- 2. BANK ACCOUNTS (TÀI KHOẢN NGÂN HÀNG LIÊN KẾT)
+-- =========================================================
+CREATE TABLE bank_accounts (
+    account_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    bank_name VARCHAR(100) NOT NULL,
+    account_number VARCHAR(50) NOT NULL,
+    account_holder_name VARCHAR(100) NOT NULL,
+    is_default_disbursal BOOLEAN NOT NULL DEFAULT FALSE,
+    is_auto_debit BOOLEAN NOT NULL DEFAULT FALSE,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_bank_accounts_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(user_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT uq_user_bank_account
+        UNIQUE (user_id, bank_name, account_number)
+);
+
+
+-- =========================================================
+-- 3. LOAN TYPES
 -- =========================================================
 CREATE TABLE loan_types (
     loan_type_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -43,7 +81,7 @@ CREATE TABLE loan_types (
 
 
 -- =========================================================
--- 3. LOANS
+-- 4. LOANS
 -- =========================================================
 CREATE TABLE loans (
     loan_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -87,7 +125,7 @@ CREATE TABLE loans (
 
 
 -- =========================================================
--- 4. ASSETS (TÀI SẢN BẢO ĐẢM / COLLATERAL)
+-- 5. ASSETS (TÀI SẢN BẢO ĐẢM / COLLATERAL)
 -- =========================================================
 CREATE TABLE assets (
     asset_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -118,7 +156,7 @@ CREATE TABLE assets (
 
 
 -- =========================================================
--- 5. LOAN DOCUMENTS
+-- 6. LOAN DOCUMENTS
 -- =========================================================
 CREATE TABLE loan_documents (
     document_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -144,7 +182,7 @@ CREATE TABLE loan_documents (
 
 
 -- =========================================================
--- 6. PAYMENT SCHEDULES
+-- 7. PAYMENT SCHEDULES
 -- =========================================================
 CREATE TABLE payment_schedules (
     schedule_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -177,7 +215,7 @@ CREATE TABLE payment_schedules (
 
 
 -- =========================================================
--- 7. PAYMENTS
+-- 8. PAYMENTS
 -- =========================================================
 CREATE TABLE payments (
     payment_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -202,7 +240,7 @@ CREATE TABLE payments (
 
 
 -- =========================================================
--- 8. CREDIT PROFILES
+-- 9. CREDIT PROFILES
 -- =========================================================
 CREATE TABLE credit_profiles (
     profile_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -230,7 +268,7 @@ CREATE TABLE credit_profiles (
 
 
 -- =========================================================
--- 9. CREDIT REPORTS
+-- 10. CREDIT REPORTS
 -- =========================================================
 CREATE TABLE credit_reports (
     report_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -260,7 +298,7 @@ CREATE TABLE credit_reports (
 
 
 -- =========================================================
--- 10. NOTIFICATIONS
+-- 11. NOTIFICATIONS
 -- =========================================================
 CREATE TABLE notifications (
     notification_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -296,7 +334,7 @@ CREATE TABLE notifications (
 
 
 -- =========================================================
--- 11. DEBT STRATEGIES
+-- 12. DEBT STRATEGIES
 -- =========================================================
 CREATE TABLE debt_strategies (
     strategy_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -320,7 +358,7 @@ CREATE TABLE debt_strategies (
 
 
 -- =========================================================
--- 12. SIMULATIONS
+-- 13. SIMULATIONS
 -- =========================================================
 CREATE TABLE simulations (
     simulation_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -354,7 +392,7 @@ CREATE TABLE simulations (
 
 
 -- =========================================================
--- 13. REFRESH TOKENS & SESSIONS (QUẢN LÝ PHIÊN THIẾT BỊ)
+-- 14. REFRESH TOKENS & SESSIONS (QUẢN LÝ PHIÊN THIẾT BỊ)
 -- =========================================================
 CREATE TABLE refresh_tokens (
     token_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -384,7 +422,7 @@ CREATE TABLE refresh_tokens (
 
 
 -- =========================================================
--- 14. OTP VERIFICATIONS
+-- 15. OTP VERIFICATIONS
 -- =========================================================
 CREATE TABLE otp_verifications (
     otp_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -415,7 +453,7 @@ CREATE TABLE otp_verifications (
 
 
 -- =========================================================
--- 15. NOTIFICATION PREFERENCES
+-- 16. NOTIFICATION PREFERENCES
 -- =========================================================
 CREATE TABLE notification_preferences (
     preference_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -440,7 +478,7 @@ CREATE TABLE notification_preferences (
 
 
 -- =========================================================
--- 16. DỮ LIỆU KHỞI TẠO MẪU (SEED DATA TƯƠNG THÍCH VỚI APP)
+-- 17. DỮ LIỆU KHỞI TẠO MẪU (SEED DATA TƯƠNG THÍCH VỚI APP)
 -- =========================================================
 
 -- A. LOAN TYPES
@@ -453,34 +491,54 @@ INSERT INTO loan_types (loan_type_id, type_code, type_name, description) VALUES
 ON DUPLICATE KEY UPDATE type_name=VALUES(type_name);
 
 -- B. USERS (Tài khoản thử nghiệm tương thích UserMockData)
-INSERT INTO users (user_id, full_name, email, phone, password_hash, monthly_income, date_of_birth, is_biometric_enabled, is_active) VALUES
-(1, 'Nguyen Van Dev', 'dev@test.com', '0900000001', '123456', 25000000.00, '1998-05-12', TRUE, TRUE)
+INSERT INTO users (
+    user_id, full_name, email, phone, password_hash, monthly_income, date_of_birth,
+    id_card_number, address, occupation, workplace, contract_type,
+    is_ekyc_verified, ekyc_tier, membership_tier, cic_score,
+    is_biometric_enabled, is_active
+) VALUES (
+    1, 'Nguyen Van Dev', 'dev@test.com', '0900000001', '123456', 25000000.00, '1998-05-12',
+    '079201008888', 'Tòa nhà Landmark 81, P. 22, Q. Bình Thạnh, TP. Hồ Chí Minh', 'Kỹ sư Phần mềm Senior', 'Tập đoàn Công nghệ FPT', 'Hợp đồng lao động không xác định thời hạn',
+    TRUE, 'C06', 'GOLD', 745,
+    TRUE, TRUE
+)
 ON DUPLICATE KEY UPDATE full_name=VALUES(full_name);
 
--- C. LOANS (Các khoản vay mẫu khớp với LoanMockData)
+-- C. BANK ACCOUNTS (Tài khoản ngân hàng liên kết khớp UserMockData)
+INSERT INTO bank_accounts (account_id, user_id, bank_name, account_number, account_holder_name, is_default_disbursal, is_auto_debit) VALUES
+(1, 1, 'Techcombank', '190382918888', 'NGUYEN VAN DEV', TRUE, FALSE),
+(2, 1, 'Vietcombank', '007100129999', 'NGUYEN VAN DEV', FALSE, TRUE)
+ON DUPLICATE KEY UPDATE bank_name=VALUES(bank_name);
+
+-- D. LOANS (Các khoản vay mẫu khớp với LoanMockData)
 INSERT INTO loans (loan_id, user_id, loan_type_id, loan_name, lender_name, loan_type, principal_amount, interest_rate, interest_method, term_months, start_date, end_date, outstanding_amount, early_payment_fee_rate, status) VALUES
 (101, 1, 3, 'Vay mua xe VinFast VF8', 'Vietcombank', 'CAR', 500000000.00, 0.0850, 'REDUCING_BALANCE', 48, '2025-06-15', '2029-06-15', 385000000.00, 0.0150, 'ACTIVE'),
 (102, 1, 4, 'Thẻ tín dụng VIB Super Card', 'VIB', 'CREDIT_CARD', 100000000.00, 0.2400, 'FLAT', 12, '2026-01-05', '2027-01-05', 28500000.00, 0.0000, 'ACTIVE'),
 (103, 1, 1, 'Vay tiêu dùng tín chấp', 'MBBank', 'CONSUMER', 80000000.00, 0.1200, 'REDUCING_BALANCE', 24, '2026-02-20', '2028-02-20', 62000000.00, 0.0200, 'ACTIVE'),
-(104, 1, 2, 'Vay mua căn hộ Sunrise City', 'Techcombank', 'MORTGAGE', 1800000000.00, 0.0790, 'REDUCING_BALANCE', 120, '2024-03-10', '2034-03-10', 1540000000.00, 0.0200, 'ACTIVE')
+(104, 1, 2, 'Vay mua căn hộ Sunrise City', 'Techcombank', 'MORTGAGE', 1800000000.00, 0.0790, 'REDUCING_BALANCE', 120, '2024-03-10', '2034-03-10', 1540000000.00, 0.0250, 'ACTIVE'),
+(105, 1, 1, 'Vay tiền mặt qua sao kê lương', 'FE Credit', 'CONSUMER', 30000000.00, 0.1800, 'FLAT', 12, '2025-01-15', '2026-01-15', 0.00, 0.0300, 'CLOSED')
 ON DUPLICATE KEY UPDATE loan_name=VALUES(loan_name);
 
--- D. ASSETS (Tài sản thế chấp khớp với AssetMockData)
+-- E. ASSETS (Tài sản thế chấp khớp với AssetMockData)
 INSERT INTO assets (asset_id, user_id, loan_id, asset_name, asset_type, asset_value, valuation_date, description) VALUES
 (1, 1, 101, 'Ô tô VinFast VF8 Plus 2023', 'VEHICLE', 750000000.00, '2025-06-01', 'Xe thế chấp giải ngân khoản vay Vietcombank. Cavet gốc giữ tại ngân hàng.'),
 (2, 1, 104, 'Căn hộ chung cư Sunrise City (85m2)', 'REAL_ESTATE', 2800000000.00, '2024-02-20', 'Sổ hồng căn hộ tháp W2, tầng 18. Thế chấp vay Techcombank.'),
 (3, 1, NULL, 'Sổ tiết kiệm BIDV kỳ hạn 12 tháng', 'SAVINGS', 250000000.00, '2026-08-31', 'Tài sản thanh khoản cao dùng dự phòng tài chính.')
 ON DUPLICATE KEY UPDATE asset_name=VALUES(asset_name);
 
--- E. SESSIONS & REFRESH TOKENS (Các phiên đăng nhập khớp SessionModel)
+-- F. SESSIONS & REFRESH TOKENS (Các phiên đăng nhập khớp SessionModel)
 INSERT INTO refresh_tokens (token_id, user_id, token, device_name, platform, ip_address, location, last_active, expires_at) VALUES
 (1, 1, 'mock_refresh_token_001', 'iPhone 15 Pro Max', 'iOS 17.5 • FinCredit App', '113.161.45.12', 'TP. Hồ Chí Minh, Việt Nam', NOW(), '2026-12-31 23:59:59'),
 (2, 1, 'mock_refresh_token_002', 'MacBook Pro 16" M3', 'macOS Sonoma • Chrome 128', '113.161.45.12', 'TP. Hồ Chí Minh, Việt Nam', DATE_SUB(NOW(), INTERVAL 3 HOUR), '2026-12-31 23:59:59'),
 (3, 1, 'mock_refresh_token_003', 'Samsung Galaxy S24 Ultra', 'Android 14 • OneUI 6.1', '14.232.208.9', 'Hà Nội, Việt Nam', DATE_SUB(NOW(), INTERVAL 2 DAY), '2026-12-31 23:59:59')
 ON DUPLICATE KEY UPDATE device_name=VALUES(device_name);
 
--- F. CREDIT PROFILE
+-- G. CREDIT PROFILE
 INSERT INTO credit_profiles (user_id, credit_score, dti_ratio, ltv_ratio, credit_utilization, on_time_payment_rate, active_loan_count, risk_level) VALUES
 (1, 745, 0.3200, 0.5500, 0.2850, 0.9800, 4, 'LOW')
 ON DUPLICATE KEY UPDATE credit_score=VALUES(credit_score);
-);
+
+-- H. NOTIFICATION PREFERENCES
+INSERT INTO notification_preferences (user_id, push_enabled, email_enabled, sms_enabled, reminder_days) VALUES
+(1, TRUE, TRUE, FALSE, 3)
+ON DUPLICATE KEY UPDATE push_enabled=VALUES(push_enabled);

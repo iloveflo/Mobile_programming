@@ -3,6 +3,7 @@ import 'dart:io';
 
 import '../../core/network/api_client.dart';
 import '../../models/auth_token_model.dart';
+import '../../models/bank_account_model.dart';
 import '../../models/session_model.dart';
 import '../../models/user_model.dart';
 import '../interfaces/auth_repository.dart';
@@ -246,6 +247,75 @@ class ApiAuthRepository implements AuthRepository {
   Future<void> revokeSession(String sessionId) async {
     await _handleApiCall<dynamic>(
       () => client.delete('/api/auth/sessions/$sessionId'),
+    );
+  }
+
+  @override
+  Future<UserModel> getProfile() async {
+    final response = await _handleApiCall<dynamic>(
+      () => client.get('/api/user/profile'),
+    );
+    final raw = response is Map<String, dynamic>
+        ? response
+        : <String, dynamic>{};
+    final data = raw['data'] is Map<String, dynamic>
+        ? raw['data'] as Map<String, dynamic>
+        : raw;
+    return UserModel.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
+  @override
+  Future<UserModel> updateProfile(Map<String, dynamic> profileData) async {
+    final response = await _handleApiCall<dynamic>(
+      () => client.put('/api/user/profile', body: profileData),
+    );
+    final raw = response is Map<String, dynamic>
+        ? response
+        : <String, dynamic>{};
+    final data = raw['data'] is Map<String, dynamic>
+        ? raw['data'] as Map<String, dynamic>
+        : raw;
+    return UserModel.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
+  @override
+  Future<List<BankAccountModel>> getBankAccounts() async {
+    final response = await _handleApiCall<dynamic>(
+      () => client.get('/api/user/bank-accounts'),
+    );
+    final list = response is List
+        ? response
+        : (response is Map<String, dynamic>
+              ? (response['data'] as List? ?? [])
+              : []);
+    return list
+        .map(
+          (item) =>
+              BankAccountModel.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
+        .toList();
+  }
+
+  @override
+  Future<BankAccountModel> addBankAccount(
+    Map<String, dynamic> accountData,
+  ) async {
+    final response = await _handleApiCall<dynamic>(
+      () => client.post('/api/user/bank-accounts', body: accountData),
+    );
+    final raw = response is Map<String, dynamic>
+        ? response
+        : <String, dynamic>{};
+    final data = raw['data'] is Map<String, dynamic>
+        ? raw['data'] as Map<String, dynamic>
+        : raw;
+    return BankAccountModel.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
+  @override
+  Future<void> deleteBankAccount(String accountId) async {
+    await _handleApiCall<dynamic>(
+      () => client.delete('/api/user/bank-accounts/$accountId'),
     );
   }
 

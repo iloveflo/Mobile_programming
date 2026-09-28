@@ -249,6 +249,9 @@ class LoanModel {
     }
   }
 
+  /// Ước tính số tiền thanh toán kỳ tháng tới (alias)
+  double get estimatedMonthlyPayment => monthlyInstallmentEstimate;
+
   LoanModel copyWith({
     int? id,
     int? userId,

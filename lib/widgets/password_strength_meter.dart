@@ -96,16 +96,18 @@ class PasswordStrengthMeter extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              strength == PasswordStrength.none
-                  ? 'Gồm ít nhất 8 ký tự, chữ hoa, số & ký tự đặc biệt'
-                  : 'Độ bảo mật: ${strength.label}',
-              style: TextStyle(
-                fontSize: 12.0,
-                fontWeight: FontWeight.w500,
-                color: strength == PasswordStrength.none
-                    ? AppColors.textSecondary
-                    : strength.color,
+            Expanded(
+              child: Text(
+                strength == PasswordStrength.none
+                    ? 'Gồm ít nhất 8 ký tự, chữ hoa, số & ký tự đặc biệt'
+                    : 'Độ bảo mật: ${strength.label}',
+                style: TextStyle(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.w500,
+                  color: strength == PasswordStrength.none
+                      ? AppColors.textSecondary
+                      : strength.color,
+                ),
               ),
             ),
           ],

@@ -4,6 +4,7 @@ import 'dart:math';
 import '../../mock_data/refresh_token_mock_data.dart';
 import '../../mock_data/user_mock_data.dart';
 import '../../models/auth_token_model.dart';
+import '../../models/bank_account_model.dart';
 import '../../models/session_model.dart';
 import '../../models/user_model.dart';
 import '../interfaces/auth_repository.dart';
@@ -373,6 +374,119 @@ class MockAuthRepository implements AuthRepository {
     await _simulateDelay(400, 800);
     final uid = _currentUser?.userId ?? 1;
     _userSessions[uid]?.removeWhere((s) => s.id == sessionId);
+  }
+
+  @override
+  Future<UserModel> getProfile() async {
+    await _simulateDelay();
+    if (_currentUser != null) {
+      return _currentUser!;
+    }
+    if (UserMockData.usersDatabase.isNotEmpty) {
+      _currentUser = UserMockData.usersDatabase.first;
+      return _currentUser!;
+    }
+    throw const InvalidCredentialsException('Không tìm thấy thông tin hồ sơ.');
+  }
+
+  @override
+  Future<UserModel> updateProfile(Map<String, dynamic> profileData) async {
+    await _simulateDelay();
+    final base = _currentUser ?? UserMockData.usersDatabase.first;
+
+    final updated = base.copyWith(
+      fullName:
+          profileData['full_name']?.toString() ??
+          profileData['fullName']?.toString() ??
+          base.fullName,
+      phone: profileData['phone']?.toString() ?? base.phone,
+      monthlyIncome:
+          (profileData['monthly_income'] ??
+                  profileData['monthlyIncome'] as num?)
+              ?.toDouble() ??
+          base.monthlyIncome,
+      idCardNumber:
+          profileData['id_card_number']?.toString() ??
+          profileData['idCardNumber']?.toString() ??
+          base.idCardNumber,
+      address: profileData['address']?.toString() ?? base.address,
+      occupation: profileData['occupation']?.toString() ?? base.occupation,
+      workplace: profileData['workplace']?.toString() ?? base.workplace,
+      contractType:
+          profileData['contract_type']?.toString() ??
+          profileData['contractType']?.toString() ??
+          base.contractType,
+      isEkycVerified:
+          profileData['is_ekyc_verified'] as bool? ??
+          profileData['isEkycVerified'] as bool? ??
+          base.isEkycVerified,
+      ekycTier:
+          profileData['ekyc_tier']?.toString() ??
+          profileData['ekycTier']?.toString() ??
+          base.ekycTier,
+      membershipTier:
+          profileData['membership_tier']?.toString() ??
+          profileData['membershipTier']?.toString() ??
+          base.membershipTier,
+      cicScore:
+          (profileData['cic_score'] ?? profileData['cicScore'] as num?)
+              ?.toInt() ??
+          base.cicScore,
+      updatedAt: DateTime.now(),
+    );
+
+    _currentUser = updated;
+    final index = UserMockData.usersDatabase.indexWhere(
+      (u) => u.userId == updated.userId,
+    );
+    if (index != -1) {
+      UserMockData.usersDatabase[index] = updated;
+    }
+    return updated;
+  }
+
+  @override
+  Future<List<BankAccountModel>> getBankAccounts() async {
+    await _simulateDelay();
+    return _currentUser?.bankAccounts ?? [];
+  }
+
+  @override
+  Future<BankAccountModel> addBankAccount(
+    Map<String, dynamic> accountData,
+  ) async {
+    await _simulateDelay();
+    final newAccount = BankAccountModel.fromJson(accountData);
+    final user = _currentUser ?? UserMockData.usersDatabase.first;
+    final updatedList = List<BankAccountModel>.from(user.bankAccounts)
+      ..removeWhere((a) => a.id == newAccount.id)
+      ..add(newAccount);
+
+    _currentUser = user.copyWith(bankAccounts: updatedList);
+    final index = UserMockData.usersDatabase.indexWhere(
+      (u) => u.userId == user.userId,
+    );
+    if (index != -1) {
+      UserMockData.usersDatabase[index] = _currentUser!;
+    }
+    return newAccount;
+  }
+
+  @override
+  Future<void> deleteBankAccount(String accountId) async {
+    await _simulateDelay();
+    if (_currentUser != null) {
+      final updatedList = _currentUser!.bankAccounts
+          .where((a) => a.id != accountId)
+          .toList();
+      _currentUser = _currentUser!.copyWith(bankAccounts: updatedList);
+      final index = UserMockData.usersDatabase.indexWhere(
+        (u) => u.userId == _currentUser!.userId,
+      );
+      if (index != -1) {
+        UserMockData.usersDatabase[index] = _currentUser!;
+      }
+    }
   }
 
   @override

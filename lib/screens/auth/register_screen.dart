@@ -68,16 +68,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _handleRegister() async {
     _authController.clearError();
 
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     if (!_agreeToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Vui lòng đồng ý với điều khoản sử dụng FinCredit để tiếp tục.',
-          ),
-          backgroundColor: AppColors.error,
-        ),
+      AppSnackBar.showError(
+        context,
+        'Vui lòng đồng ý với điều khoản sử dụng FinCredit để tiếp tục.',
       );
       return;
     }
@@ -93,7 +91,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     final isSuccess = await _authController.register(request);
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     if (isSuccess) {
       Navigator.pushNamed(
@@ -107,13 +107,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         },
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _authController.errorMessage ?? 'Đăng ký không thành công.',
-          ),
-          backgroundColor: AppColors.error,
-        ),
+      AppSnackBar.showError(
+        context,
+        _authController.errorMessage ?? 'Đăng ký không thành công.',
       );
     }
   }
@@ -214,12 +210,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         color: AppColors.textSecondary,
                       ),
                       textInputAction: TextInputAction.next,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Vui lòng nhập họ và tên';
-                        }
-                        return null;
-                      },
+                      validator: AppValidators.validateFullName,
                     ),
                     const SizedBox(height: 16.0),
 
@@ -234,17 +225,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Vui lòng nhập email';
-                        }
-                        if (!RegExp(
-                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                        ).hasMatch(value.trim())) {
-                          return 'Định dạng email không hợp lệ';
-                        }
-                        return null;
-                      },
+                      validator: AppValidators.validateEmail,
                     ),
                     const SizedBox(height: 16.0),
 
@@ -259,15 +240,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       keyboardType: TextInputType.phone,
                       textInputAction: TextInputAction.next,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Vui lòng nhập số điện thoại';
-                        }
-                        if (value.trim().length < 9) {
-                          return 'Số điện thoại không hợp lệ';
-                        }
-                        return null;
-                      },
+                      validator: AppValidators.validatePhone,
                     ),
                     const SizedBox(height: 16.0),
 
@@ -292,6 +265,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             if (value == null || value.isEmpty) {
                               return 'Vui lòng chọn ngày sinh';
                             }
+                            if (_selectedDob != null) {
+                              final now = DateTime.now();
+                              final age =
+                                  now.year -
+                                  _selectedDob!.year -
+                                  (now.isBefore(
+                                        DateTime(
+                                          now.year,
+                                          _selectedDob!.month,
+                                          _selectedDob!.day,
+                                        ),
+                                      )
+                                      ? 1
+                                      : 0);
+                              if (age < 18) {
+                                return 'Bạn phải từ đủ 18 tuổi trở lên';
+                              }
+                            }
                             return null;
                           },
                         ),
@@ -302,7 +293,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // Mật khẩu
                     AppTextField(
                       label: 'Mật khẩu bảo mật',
-                      hint: 'Tối thiểu 8 ký tự, chữ hoa, số & ký tự',
+                      hint: 'Tối thiểu 8 ký tự, gồm chữ cái & chữ số',
                       controller: _passwordController,
                       isPassword: true,
                       prefixIcon: const Icon(
@@ -315,12 +306,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           _currentPassword = val;
                         });
                       },
-                      validator: (value) {
-                        if (value == null || value.length < 8) {
-                          return 'Mật khẩu phải từ 8 ký tự trở lên';
-                        }
-                        return null;
-                      },
+                      validator: AppValidators.validatePassword,
                     ),
                     const SizedBox(height: 8.0),
 
@@ -339,12 +325,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         color: AppColors.textSecondary,
                       ),
                       textInputAction: TextInputAction.done,
-                      validator: (value) {
-                        if (value != _passwordController.text) {
-                          return 'Mật khẩu xác nhận không khớp';
-                        }
-                        return null;
-                      },
+                      validator: (value) =>
+                          AppValidators.validateConfirmPassword(
+                            value,
+                            _passwordController.text,
+                          ),
                     ),
                     const SizedBox(height: 16.0),
 

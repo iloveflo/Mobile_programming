@@ -306,35 +306,23 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
     if (_selectedLoanType == 'MORTGAGE') {
       final config = CollateralModel.getConfig(_selectedCollateralType);
       if (_collateralNameController.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Vay thế chấp yêu cầu phải có thông tin tài sản đảm bảo.',
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        AppSnackBar.showError(
+          context,
+          'Vay thế chấp yêu cầu phải có thông tin tài sản đảm bảo.',
         );
         return;
       }
       if (_currentCollateralVal < config.minValue) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Giá trị định giá cho ${config.displayName} tối thiểu là ${config.minFormatted}.',
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        AppSnackBar.showError(
+          context,
+          'Giá trị định giá cho ${config.displayName} tối thiểu là ${config.minFormatted}.',
         );
         return;
       }
       if (_currentCollateralVal > config.maxValue) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Giá trị định giá cho ${config.displayName} tối đa là ${config.maxFormatted}.',
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        AppSnackBar.showError(
+          context,
+          'Giá trị định giá cho ${config.displayName} tối đa là ${config.maxFormatted}.',
         );
         return;
       }
@@ -342,20 +330,16 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
 
     // Giới hạn số tiền vay
     if (_currentPrincipal < 5000000) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Số tiền vay tối thiểu là 5.000.000 VNĐ (5 triệu).'),
-          backgroundColor: AppColors.error,
-        ),
+      AppSnackBar.showError(
+        context,
+        'Số tiền vay tối thiểu là 5.000.000 VNĐ (5 triệu).',
       );
       return;
     }
     if (_currentPrincipal > 50000000000) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Số tiền vay tối đa là 50.000.000.000 VNĐ (50 tỷ).'),
-          backgroundColor: AppColors.error,
-        ),
+      AppSnackBar.showError(
+        context,
+        'Số tiền vay tối đa là 50.000.000.000 VNĐ (50 tỷ).',
       );
       return;
     }
@@ -449,15 +433,11 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
     }
 
     if (mounted && success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _isEdit
-                ? 'Đã cập nhật khoản vay thành công!'
-                : 'Đã tạo mới khoản vay thành công!',
-          ),
-          backgroundColor: AppColors.success,
-        ),
+      AppSnackBar.showSuccess(
+        context,
+        _isEdit
+            ? 'Đã cập nhật khoản vay thành công!'
+            : 'Đã tạo mới khoản vay thành công!',
       );
       Navigator.pop(context);
     }
@@ -546,12 +526,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                     color: AppColors.primary,
                     size: 20.0,
                   ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Vui lòng nhập tên khoản vay';
-                    }
-                    return null;
-                  },
+                  validator: AppValidators.validateLoanName,
                 ),
                 const SizedBox(height: 16.0),
 
@@ -728,24 +703,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                     size: 20.0,
                   ),
                   onChanged: (_) => setState(() {}),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Vui lòng nhập số tiền vay';
-                    }
-                    final num = double.tryParse(
-                      val.replaceAll('.', '').replaceAll(',', ''),
-                    );
-                    if (num == null) {
-                      return 'Số tiền vay không hợp lệ';
-                    }
-                    if (num < 5000000) {
-                      return 'Số tiền vay tối thiểu là 5.000.000 VNĐ (5 triệu)';
-                    }
-                    if (num > 50000000000) {
-                      return 'Số tiền vay tối đa là 50.000.000.000 VNĐ (50 tỷ)';
-                    }
-                    return null;
-                  },
+                  validator: AppValidators.validateLoanAmount,
                 ),
                 const SizedBox(height: 4.0),
                 const Padding(
@@ -1101,6 +1059,11 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                             color: AppColors.primary,
                             size: 20.0,
                           ),
+                          validator: (val) =>
+                              AppValidators.validateCollateralName(
+                                val,
+                                required: _selectedLoanType == 'MORTGAGE',
+                              ),
                         ),
                         const SizedBox(height: 12.0),
                         Builder(
@@ -1124,29 +1087,20 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                                     size: 20.0,
                                   ),
                                   onChanged: (_) => setState(() {}),
-                                  validator: (val) {
-                                    if (_selectedLoanType != 'MORTGAGE') {
-                                      return null;
-                                    }
-                                    if (val == null || val.trim().isEmpty) {
-                                      return 'Vui lòng nhập giá trị định giá tài sản';
-                                    }
-                                    final v = double.tryParse(
-                                      val
-                                          .replaceAll('.', '')
-                                          .replaceAll(',', ''),
-                                    );
-                                    if (v == null) {
-                                      return 'Giá trị định giá không hợp lệ';
-                                    }
-                                    if (v < collateralConfig.minValue) {
-                                      return 'Định giá tối thiểu cho ${collateralConfig.displayName} là ${collateralConfig.minFormatted}';
-                                    }
-                                    if (v > collateralConfig.maxValue) {
-                                      return 'Định giá tối đa cho ${collateralConfig.displayName} là ${collateralConfig.maxFormatted}';
-                                    }
-                                    return null;
-                                  },
+                                  validator: (val) =>
+                                      AppValidators.validateCollateralValue(
+                                        val,
+                                        min: collateralConfig.minValue,
+                                        max: collateralConfig.maxValue,
+                                        displayName:
+                                            collateralConfig.displayName,
+                                        minFormatted:
+                                            collateralConfig.minFormatted,
+                                        maxFormatted:
+                                            collateralConfig.maxFormatted,
+                                        required:
+                                            _selectedLoanType == 'MORTGAGE',
+                                      ),
                                 ),
                                 const SizedBox(height: 4.0),
                                 Padding(

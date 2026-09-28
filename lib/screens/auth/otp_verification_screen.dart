@@ -57,7 +57,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     final parts = email.split('@');
     final name = parts[0];
     final domain = parts[1];
-    if (name.length <= 2) return '$name***@$domain';
+    if (name.length <= 2) {
+      return '$name***@$domain';
+    }
     return '${name.substring(0, 2)}***@$domain';
   }
 
@@ -67,17 +69,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
     final isSuccess = await _authController.verifyOtp(otp, flow: widget.flow);
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     if (isSuccess) {
       if (widget.flow == OtpFlow.register) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Xác thực tài khoản thành công! Đang chuyển hướng vào ứng dụng...',
-            ),
-            backgroundColor: AppColors.success,
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          'Xác thực tài khoản thành công! Đang chuyển hướng vào ứng dụng...',
         );
         Navigator.pushNamedAndRemoveUntil(
           context,
@@ -89,13 +89,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         Navigator.pushReplacementNamed(context, AppRouter.resetPassword);
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _authController.errorMessage ?? 'Mã OTP không chính xác.',
-          ),
-          backgroundColor: AppColors.error,
-        ),
+      AppSnackBar.showError(
+        context,
+        _authController.errorMessage ?? 'Mã OTP không chính xác.',
       );
     }
   }

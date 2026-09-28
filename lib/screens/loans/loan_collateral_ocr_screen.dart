@@ -79,17 +79,16 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
         _ocrResult = result;
       });
       if (result != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bóc tách tài liệu hợp đồng thành công!'),
-            backgroundColor: AppColors.success,
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          'Bóc tách tài liệu hợp đồng thành công!',
         );
       }
     }
   }
 
   void _showAddCollateralDialog() {
+    final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController();
     final valCtrl = TextEditingController();
     String type = 'REAL_ESTATE';
@@ -109,44 +108,56 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: nameCtrl,
-                    decoration: const InputDecoration(
-                      labelText:
-                          'Tên tài sản (ví dụ: Sổ đỏ Chung cư Times City)',
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: nameCtrl,
+                      decoration: const InputDecoration(
+                        labelText:
+                            'Tên tài sản (ví dụ: Sổ đỏ Chung cư Times City) *',
+                      ),
+                      validator: AppValidators.validateCollateralName,
                     ),
-                  ),
-                  const SizedBox(height: 12.0),
-                  DropdownButtonFormField<String>(
-                    initialValue: type,
-                    decoration: const InputDecoration(
-                      labelText: 'Loại tài sản bảo đảm',
+                    const SizedBox(height: 12.0),
+                    DropdownButtonFormField<String>(
+                      initialValue: type,
+                      decoration: const InputDecoration(
+                        labelText: 'Loại tài sản bảo đảm *',
+                      ),
+                      items: CollateralModel.typeConfigs.entries.map((e) {
+                        return DropdownMenuItem(
+                          value: e.key,
+                          child: Text(e.value.displayName),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) setDialogState(() => type = val);
+                      },
                     ),
-                    items: CollateralModel.typeConfigs.entries.map((e) {
-                      return DropdownMenuItem(
-                        value: e.key,
-                        child: Text(e.value.displayName),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setDialogState(() => type = val);
-                    },
-                  ),
-                  const SizedBox(height: 12.0),
-                  TextField(
-                    controller: valCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Giá trị định giá (VNĐ)',
-                      helperText: 'Hạn mức: ${config.limitRangeText}',
-                      helperMaxLines: 2,
+                    const SizedBox(height: 12.0),
+                    TextFormField(
+                      controller: valCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Giá trị định giá (VNĐ) *',
+                        helperText: 'Hạn mức: ${config.limitRangeText}',
+                        helperMaxLines: 2,
+                      ),
+                      validator: (val) => AppValidators.validateCollateralValue(
+                        val,
+                        min: config.minValue,
+                        max: config.maxValue,
+                        displayName: config.displayName,
+                        minFormatted: config.minFormatted,
+                        maxFormatted: config.maxFormatted,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             actions: [
@@ -156,49 +167,16 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
               ),
               ElevatedButton(
                 onPressed: () async {
+                  if (!formKey.currentState!.validate()) {
+                    return;
+                  }
                   final rawVal = valCtrl.text
                       .replaceAll('.', '')
                       .replaceAll(',', '')
                       .trim();
                   final val = double.tryParse(rawVal) ?? 0.0;
                   final name = nameCtrl.text.trim();
-                  final currentConfig = CollateralModel.getConfig(type);
 
-                  if (name.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Vui lòng nhập tên tài sản bảo đảm.'),
-                        backgroundColor: AppColors.error,
-                      ),
-                    );
-                    return;
-                  }
-
-                  if (val < currentConfig.minValue) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Giá trị định giá cho ${currentConfig.displayName} tối thiểu là ${currentConfig.minFormatted}.',
-                        ),
-                        backgroundColor: AppColors.error,
-                      ),
-                    );
-                    return;
-                  }
-
-                  if (val > currentConfig.maxValue) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Giá trị định giá cho ${currentConfig.displayName} tối đa là ${currentConfig.maxFormatted}.',
-                        ),
-                        backgroundColor: AppColors.error,
-                      ),
-                    );
-                    return;
-                  }
-
-                  final messenger = ScaffoldMessenger.of(context);
                   Navigator.pop(dialogCtx);
                   final success = await _loanController.addCollateral(
                     name: name,
@@ -207,25 +185,18 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                     loanId: widget.loanId,
                   );
 
-                  if (!mounted) return;
+                  if (!mounted) {
+                    return;
+                  }
                   if (success) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Đã ghi nhận tài sản "$name" (${_formatCurrency(val)}) thành công!',
-                        ),
-                        backgroundColor: AppColors.success,
-                      ),
+                    AppSnackBar.showSuccess(
+                      context,
+                      'Đã ghi nhận tài sản "$name" (${_formatCurrency(val)}) thành công!',
                     );
                   } else {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _loanController.errorMessage ??
-                              'Không thể thêm tài sản.',
-                        ),
-                        backgroundColor: AppColors.error,
-                      ),
+                    AppSnackBar.showError(
+                      context,
+                      _loanController.errorMessage ?? 'Không thể thêm tài sản.',
                     );
                   }
                 },
@@ -398,6 +369,7 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
               else
                 ListView.separated(
                   shrinkWrap: true,
+                  padding: EdgeInsets.zero,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: collaterals.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 10.0),

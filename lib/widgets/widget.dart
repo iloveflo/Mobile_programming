@@ -25,3 +25,6 @@ export 'password_strength_meter.dart';
 export 'portfolio_summary_card.dart';
 export 'quick_chip_selector.dart';
 export 'security_badge.dart';
+export 'custom_bottom_nav_bar.dart';
+export 'app_snack_bar.dart';
+export '../core/utils/app_validators.dart';

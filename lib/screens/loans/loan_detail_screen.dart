@@ -146,11 +146,9 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                         if (newOutstanding == 0) 'status': 'CLOSED',
                       });
                   if (mounted && success) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Đã ghi nhận thanh toán thành công!'),
-                        backgroundColor: AppColors.success,
-                      ),
+                    AppSnackBar.showSuccess(
+                      context,
+                      'Đã ghi nhận thanh toán thành công!',
                     );
                   }
                 },
@@ -465,13 +463,9 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                     loan.id.toString(),
                   );
                   if (mounted && success) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Đã tất toán khoản vay trước hạn thành công! Trạng thái hợp đồng đã đóng.',
-                        ),
-                        backgroundColor: AppColors.success,
-                      ),
+                    AppSnackBar.showSuccess(
+                      context,
+                      'Đã tất toán khoản vay trước hạn thành công! Trạng thái hợp đồng đã đóng.',
                     );
                   }
                 },
@@ -574,11 +568,9 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 loan.id.toString(),
               );
               if (mounted && success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Đã xóa vĩnh viễn khoản vay thành công!'),
-                    backgroundColor: AppColors.success,
-                  ),
+                AppSnackBar.showSuccess(
+                  context,
+                  'Đã xóa vĩnh viễn khoản vay thành công!',
                 );
                 Navigator.pop(context);
               }

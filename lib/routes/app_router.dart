@@ -6,13 +6,13 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/otp_verification_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/auth/reset_password_screen.dart';
-import '../screens/auth/security_settings_screen.dart';
 import '../screens/auth/splash_screen.dart';
-import '../screens/home/home_screen.dart';
+import '../screens/settings/app_settings_screen.dart';
 import '../screens/loans/loan_collateral_ocr_screen.dart';
 import '../screens/loans/loan_detail_screen.dart';
 import '../screens/loans/loan_form_screen.dart';
 import '../screens/loans/loan_list_screen.dart';
+import '../screens/main_shell_screen.dart';
 
 /// Hệ thống điều hướng tập trung theo Named Routes cho FinCredit
 abstract final class AppRouter {
@@ -33,8 +33,9 @@ abstract final class AppRouter {
   /// M04b: Màn hình Đặt lại mật khẩu
   static const String resetPassword = '/reset-password';
 
-  /// M06: Màn hình Cài đặt Bảo mật & Quản lý Phiên
+  /// Cài đặt Bảo mật & Hệ thống ứng dụng
   static const String security = '/security';
+  static const String settings = '/settings';
 
   /// Màn hình Trang chủ
   static const String home = '/home';
@@ -67,8 +68,9 @@ abstract final class AppRouter {
       );
     },
     resetPassword: (context) => const ResetPasswordScreen(),
-    security: (context) => const SecuritySettingsScreen(),
-    home: (context) => const HomeScreen(),
+    security: (context) => const AppSettingsScreen(),
+    settings: (context) => const AppSettingsScreen(),
+    home: (context) => const MainShellScreen(),
     loans: (context) => const LoanListScreen(),
     loanDetail: (context) {
       final args =

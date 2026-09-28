@@ -32,24 +32,24 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Future<void> _handleResetPassword() async {
     _authController.clearError();
 
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     final isSuccess = await _authController.resetPassword(
       _passwordController.text,
     );
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     if (isSuccess) {
       ResetSuccessDialog.show(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _authController.errorMessage ?? 'Không thể đặt lại mật khẩu.',
-          ),
-          backgroundColor: AppColors.error,
-        ),
+      AppSnackBar.showError(
+        context,
+        _authController.errorMessage ?? 'Không thể đặt lại mật khẩu.',
       );
     }
   }
@@ -153,12 +153,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           _currentPassword = val;
                         });
                       },
-                      validator: (value) {
-                        if (value == null || value.length < 8) {
-                          return 'Mật khẩu phải từ 8 ký tự trở lên';
-                        }
-                        return null;
-                      },
+                      validator: AppValidators.validatePassword,
                     ),
                     const SizedBox(height: 8.0),
 
@@ -177,12 +172,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         color: AppColors.textSecondary,
                       ),
                       textInputAction: TextInputAction.done,
-                      validator: (value) {
-                        if (value != _passwordController.text) {
-                          return 'Mật khẩu xác nhận không khớp';
-                        }
-                        return null;
-                      },
+                      validator: (value) =>
+                          AppValidators.validateConfirmPassword(
+                            value,
+                            _passwordController.text,
+                          ),
                     ),
                     const SizedBox(height: 32.0),
 

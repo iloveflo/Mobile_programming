@@ -1,4 +1,5 @@
 import '../../models/auth_token_model.dart';
+import '../../models/bank_account_model.dart';
 import '../../models/session_model.dart';
 import '../../models/user_model.dart';
 
@@ -111,6 +112,21 @@ abstract class AuthRepository {
 
   /// Thu hồi phiên thiết bị từ xa
   Future<void> revokeSession(String sessionId);
+
+  /// Lấy thông tin hồ sơ người dùng hiện tại
+  Future<UserModel> getProfile();
+
+  /// Cập nhật thông tin hồ sơ người dùng hiện tại
+  Future<UserModel> updateProfile(Map<String, dynamic> profileData);
+
+  /// Lấy danh sách tài khoản ngân hàng liên kết của người dùng
+  Future<List<BankAccountModel>> getBankAccounts();
+
+  /// Thêm mới tài khoản ngân hàng liên kết
+  Future<BankAccountModel> addBankAccount(Map<String, dynamic> accountData);
+
+  /// Xóa tài khoản ngân hàng liên kết theo mã định danh
+  Future<void> deleteBankAccount(String accountId);
 
   /// Đăng xuất, hủy phiên làm việc hiện tại
   Future<void> logout();

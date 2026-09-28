@@ -37,7 +37,9 @@ class _LoginScreenState extends State<LoginScreen> {
       _passwordController.text,
     );
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     switch (result) {
       case AuthResultState.success:
@@ -45,13 +47,9 @@ class _LoginScreenState extends State<LoginScreen> {
         break;
 
       case AuthResultState.unverified:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Tài khoản chưa được kích hoạt. Đang chuyển tới bước xác thực OTP.',
-            ),
-            backgroundColor: AppColors.primaryLight,
-          ),
+        AppSnackBar.showInfo(
+          context,
+          'Tài khoản chưa được kích hoạt. Đang chuyển tới bước xác thực OTP.',
         );
         Navigator.pushNamed(
           context,
@@ -71,14 +69,9 @@ class _LoginScreenState extends State<LoginScreen> {
         break;
 
       case AuthResultState.invalid:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _authController.errorMessage ??
-                  'Thông tin đăng nhập không hợp lệ.',
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        AppSnackBar.showError(
+          context,
+          _authController.errorMessage ?? 'Thông tin đăng nhập không hợp lệ.',
         );
         break;
     }
@@ -314,12 +307,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Vui lòng nhập Email hoặc Mã CIC';
-                        }
-                        return null;
-                      },
+                      validator: AppValidators.validateIdentifier,
                     ),
                     const SizedBox(height: 18.0),
 
@@ -337,6 +325,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Vui lòng nhập mật khẩu';
+                        }
+                        if (value.length < 6) {
+                          return 'Mật khẩu phải từ 6 ký tự trở lên';
                         }
                         return null;
                       },

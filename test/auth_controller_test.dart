@@ -36,5 +36,23 @@ void main() {
         expect(controller.isBiometricEnabled, isTrue);
       },
     );
+
+    test(
+      'updateCurrentUser cập nhật thông tin cá nhân và thông báo listeners',
+      () async {
+        await controller.login('dev@test.com', '123456');
+        expect(controller.currentUser?.fullName, 'Nguyen Van Dev');
+
+        controller.updateCurrentUser(
+          fullName: 'Nguyễn Văn A',
+          phone: '0988889999',
+          monthlyIncome: 45000000,
+        );
+
+        expect(controller.currentUser?.fullName, 'Nguyễn Văn A');
+        expect(controller.currentUser?.phone, '0988889999');
+        expect(controller.currentUser?.monthlyIncome, 45000000);
+      },
+    );
   });
 }

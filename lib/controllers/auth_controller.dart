@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 
 import '../mock_data/user_mock_data.dart';
+import '../models/bank_account_model.dart';
 import '../models/register_request_model.dart';
 import '../models/session_model.dart';
 import '../models/user_model.dart';
@@ -102,6 +103,125 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  /// Thiết lập đối tượng UserModel hiện tại (dùng khi fetch profile từ backend hoặc login)
+  void setCurrentUser(UserModel? user) {
+    _currentUser = user;
+    notifyListeners();
+  }
+
+  /// Cập nhật thông tin hồ sơ người dùng (thu nhập, họ tên, số điện thoại, nghề nghiệp, cccd, ...)
+  void updateCurrentUser({
+    String? fullName,
+    String? phone,
+    double? monthlyIncome,
+    DateTime? dateOfBirth,
+    String? idCardNumber,
+    String? address,
+    String? occupation,
+    String? workplace,
+    String? contractType,
+    bool? isEkycVerified,
+    String? ekycTier,
+    String? membershipTier,
+    int? cicScore,
+    List<BankAccountModel>? bankAccounts,
+  }) {
+    if (_currentUser == null) {
+      return;
+    }
+    _currentUser = _currentUser!.copyWith(
+      fullName: fullName,
+      phone: phone,
+      monthlyIncome: monthlyIncome,
+      dateOfBirth: dateOfBirth,
+      idCardNumber: idCardNumber,
+      address: address,
+      occupation: occupation,
+      workplace: workplace,
+      contractType: contractType,
+      isEkycVerified: isEkycVerified,
+      ekycTier: ekycTier,
+      membershipTier: membershipTier,
+      cicScore: cicScore,
+      bankAccounts: bankAccounts,
+      updatedAt: DateTime.now(),
+    );
+    notifyListeners();
+
+    // Đồng bộ xuống repository (nếu là API thật sẽ cập nhật backend)
+    final Map<String, dynamic> patchData = {};
+    if (fullName != null) patchData['full_name'] = fullName;
+    if (phone != null) patchData['phone'] = phone;
+    if (monthlyIncome != null) patchData['monthly_income'] = monthlyIncome;
+    if (idCardNumber != null) patchData['id_card_number'] = idCardNumber;
+    if (address != null) patchData['address'] = address;
+    if (occupation != null) patchData['occupation'] = occupation;
+    if (workplace != null) patchData['workplace'] = workplace;
+    if (contractType != null) patchData['contract_type'] = contractType;
+    if (isEkycVerified != null) patchData['is_ekyc_verified'] = isEkycVerified;
+    if (ekycTier != null) patchData['ekyc_tier'] = ekycTier;
+    if (membershipTier != null) patchData['membership_tier'] = membershipTier;
+    if (cicScore != null) patchData['cic_score'] = cicScore;
+
+    if (patchData.isNotEmpty) {
+      _authRepository.updateProfile(patchData).catchError((_) => _currentUser!);
+    }
+  }
+
+  /// Thêm tài khoản ngân hàng thụ hưởng liên kết
+  void addBankAccount(BankAccountModel account) {
+    if (_currentUser == null) {
+      return;
+    }
+    final updatedList = List<BankAccountModel>.from(_currentUser!.bankAccounts)
+      ..add(account);
+    _currentUser = _currentUser!.copyWith(
+      bankAccounts: updatedList,
+      updatedAt: DateTime.now(),
+    );
+    notifyListeners();
+    _authRepository.addBankAccount(account.toJson()).catchError((_) => account);
+  }
+
+  /// Xóa tài khoản ngân hàng liên kết
+  void removeBankAccount(String accountId) {
+    if (_currentUser == null) {
+      return;
+    }
+    final updatedList = _currentUser!.bankAccounts
+        .where((a) => a.id != accountId)
+        .toList();
+    _currentUser = _currentUser!.copyWith(
+      bankAccounts: updatedList,
+      updatedAt: DateTime.now(),
+    );
+    notifyListeners();
+    _authRepository.deleteBankAccount(accountId).catchError((_) {});
+  }
+
+  /// Tải thông tin hồ sơ mới nhất từ backend repository
+  Future<void> fetchProfile() async {
+    try {
+      final profile = await _authRepository.getProfile();
+      _currentUser = profile;
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  /// Đồng bộ cập nhật hồ sơ với chờ phản hồi (async await)
+  Future<bool> syncProfile(Map<String, dynamic> profileData) async {
+    try {
+      final updated = await _authRepository.updateProfile(profileData);
+      _currentUser = updated;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
   void setPendingVerification({
     String? fullName,
     required String email,
@@ -129,6 +249,11 @@ class AuthController extends ChangeNotifier {
       final token = await _authRepository.checkSession();
 
       if (token != null && !token.isExpired) {
+        if (_currentUser == null) {
+          try {
+            _currentUser = await _authRepository.getProfile();
+          } catch (_) {}
+        }
         if (_activeSessions.isEmpty) {
           await loadSessions();
         }

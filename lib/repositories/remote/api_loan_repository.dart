@@ -67,12 +67,11 @@ class ApiLoanRepository implements LoanRepository {
       queryParams['lender'] = lender;
     }
 
-    final queryString = queryParams.isNotEmpty
-        ? '?${queryParams.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&')}'
-        : '';
-
     final response = await _handleApiCall<dynamic>(
-      () => client.get('/api/loans$queryString'),
+      () => client.get(
+        '/api/loans',
+        queryParams: queryParams.isNotEmpty ? queryParams : null,
+      ),
     );
 
     final list = response is List
@@ -142,9 +141,11 @@ class ApiLoanRepository implements LoanRepository {
 
   @override
   Future<List<CollateralModel>> getCollaterals({String? loanId}) async {
-    final queryString = loanId != null ? '?loan_id=$loanId' : '';
     final response = await _handleApiCall<dynamic>(
-      () => client.get('/api/collaterals$queryString'),
+      () => client.get(
+        '/api/collaterals',
+        queryParams: loanId != null ? {'loan_id': loanId} : null,
+      ),
     );
     final list = response is List
         ? response
