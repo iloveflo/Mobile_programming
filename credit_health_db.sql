@@ -347,6 +347,8 @@ CREATE TABLE debt_strategies (
     estimated_interest_saved DECIMAL(15,2),
     estimated_months_saved INT,
 
+    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE', -- ACTIVE, INACTIVE, CANCELLED
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_strategies_user
@@ -374,6 +376,10 @@ CREATE TABLE simulations (
 
     months_reduced INT DEFAULT 0,
     total_saving DECIMAL(15,2) DEFAULT 0,
+
+    scenario_type VARCHAR(50) NOT NULL DEFAULT 'EXTRA_PAYMENT',
+    scenario_name VARCHAR(150) NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'SIMULATION_REFERENCE',
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -542,3 +548,152 @@ ON DUPLICATE KEY UPDATE credit_score=VALUES(credit_score);
 INSERT INTO notification_preferences (user_id, push_enabled, email_enabled, sms_enabled, reminder_days) VALUES
 (1, TRUE, TRUE, FALSE, 3)
 ON DUPLICATE KEY UPDATE push_enabled=VALUES(push_enabled);
+
+-- I. PAYMENT SCHEDULES (Lịch phân kỳ trả nợ mẫu khớp PaymentScheduleMockData)
+INSERT INTO payment_schedules (
+    schedule_id, loan_id, installment_number, due_date,
+    principal_amount, interest_amount, fee_amount, total_amount, remaining_balance, status, created_at
+) VALUES
+(1, 101, 1, '2026-08-10', 2083333.33, 625000.00, 0.00, 2708333.33, 47916666.67, 'PAID', '2026-01-10 10:10:00'),
+(2, 101, 2, '2026-09-10', 2083333.33, 598958.33, 0.00, 2682291.66, 45833333.34, 'PAID', '2026-01-10 10:10:00'),
+(3, 101, 3, '2026-10-10', 2083333.33, 572916.67, 50000.00, 2756250.00, 43750000.01, 'OVERDUE', '2026-01-10 10:10:00'),
+(4, 101, 4, '2026-11-10', 2083333.33, 546875.00, 0.00, 2630208.33, 41666666.68, 'PENDING', '2026-01-10 10:10:00'),
+(5, 101, 5, '2026-12-10', 2083333.33, 520833.33, 0.00, 2604166.66, 39583333.35, 'PENDING', '2026-01-10 10:10:00'),
+(6, 102, 1, '2026-11-05', 2500000.00, 570000.00, 0.00, 3070000.00, 25930000.00, 'PENDING', '2026-01-05 10:00:00')
+ON DUPLICATE KEY UPDATE status=VALUES(status);
+
+-- J. PAYMENTS (Lịch sử thanh toán khớp PaymentMockData)
+INSERT INTO payments (
+    payment_id, schedule_id, paid_amount, paid_date, payment_method, transaction_reference, note, created_at
+) VALUES
+(1, 1, 2708333.33, '2026-02-08 14:30:00', 'BANK_TRANSFER', 'MOCK-TXN-0001', 'Thanh toán kỳ đầu tiên.', '2026-02-08 14:30:00'),
+(2, 2, 2682291.66, '2026-03-08 14:25:00', 'BANK_TRANSFER', 'MOCK-TXN-0002', NULL, '2026-03-08 14:25:00')
+ON DUPLICATE KEY UPDATE paid_amount=VALUES(paid_amount);
+
+-- K. CREDIT REPORTS (Báo cáo tín dụng định kỳ khớp CreditReportMockData)
+INSERT INTO credit_reports (
+    report_id, user_id, credit_score, dti_ratio, ltv_ratio, credit_utilization,
+    on_time_payment_rate, total_debt, overdue_amount, risk_level, report_period, generated_at
+) VALUES
+(1, 1, 710, 0.3550, 0.0000, 0.4500, 0.9500, 58000000.00, 0.00, 'MEDIUM', '2026-06', '2026-07-01 08:00:00'),
+(2, 1, 730, 0.3120, 0.0000, 0.3800, 1.0000, 50000000.00, 0.00, 'LOW', '2026-07', '2026-08-01 08:00:00'),
+(3, 1, 745, 0.2850, 0.0000, 0.3200, 1.0000, 43750000.00, 0.00, 'LOW', '2026-08', '2026-09-01 08:00:00')
+ON DUPLICATE KEY UPDATE credit_score=VALUES(credit_score);
+
+-- L. NOTIFICATIONS (Thông báo nợ khớp NotificationMockData)
+INSERT INTO notifications (
+    notification_id, user_id, schedule_id, notification_type, channel,
+    title, message, scheduled_at, sent_at, status, created_at
+) VALUES
+(1, 1, 3, 'OVERDUE_ALERT', 'PUSH', 'Cảnh báo kỳ thanh toán quá hạn', 'Kỳ 3 khoản vay mua xe của bạn đã quá ngày đến hạn (10/10/2026). Vui lòng thanh toán sớm để bảo đảm điểm tín dụng.', '2026-10-11 08:00:00', '2026-10-11 08:01:00', 'SENT', '2026-10-10 23:59:00'),
+(2, 1, 6, 'PAYMENT_REMINDER', 'PUSH', 'Nhắc lịch thanh toán thẻ tín dụng', 'Kỳ 1 thẻ tín dụng VIB Super Card (3.070.000 đ) sẽ đến hạn vào ngày 05/11/2026.', '2026-11-02 08:00:00', NULL, 'PENDING', '2026-10-25 09:00:00'),
+(3, 1, 4, 'PAYMENT_REMINDER', 'EMAIL', 'Thông báo nghĩa vụ thanh toán kỳ 4', 'Kỳ 4 hợp đồng Vay mua xe VinFast VF8 số tiền 2.630.208 đ sẽ đến hạn vào 10/11/2026.', '2026-11-07 08:00:00', NULL, 'PENDING', '2026-10-26 10:00:00'),
+(4, 1, 2, 'PAYMENT_RECEIPT', 'PUSH', 'Ghi nhận thanh toán thành công', 'Bạn đã hoàn tất thanh toán kỳ 2 hợp đồng Vay mua xe số tiền 2.682.291 đ.', '2026-09-10 10:00:00', '2026-09-10 10:02:00', 'SENT', '2026-09-10 10:00:00'),
+(5, 1, 3, 'OVERDUE_ALERT', 'SMS', 'Nhắc nợ khẩn cấp qua SMS', 'Tin nhắn gửi qua SMS không thành công do sự cố mạng viễn thông.', '2026-10-11 08:00:00', NULL, 'FAILED', '2026-10-11 08:00:00')
+ON DUPLICATE KEY UPDATE status=VALUES(status);
+
+-- M. DEBT STRATEGIES (Chiến lược trả nợ tối ưu khớp DebtStrategyMockData)
+INSERT INTO debt_strategies (
+    strategy_id, user_id, strategy_type, extra_payment,
+    estimated_interest_saved, estimated_months_saved, status, created_at
+) VALUES
+(1, 1, 'AVALANCHE', 2000000.00, 3250000.00, 4, 'ACTIVE', '2026-09-01 09:00:00')
+ON DUPLICATE KEY UPDATE strategy_type=VALUES(strategy_type);
+
+-- N. SIMULATIONS (Kịch bản mô phỏng trả nợ khớp SimulationMockData)
+INSERT INTO simulations (
+    simulation_id, user_id, loan_id, extra_payment, early_payment_fee,
+    estimated_interest, estimated_interest_saved, months_reduced, total_saving,
+    scenario_type, scenario_name, status, created_at
+) VALUES
+(1, 1, 101, 2000000.00, 87500.00, 8250000.00, 3250000.00, 4, 3162500.00, 'EXTRA_PAYMENT', 'Trả thêm 2 triệu hàng tháng', 'SIMULATION_REFERENCE', '2026-09-01 09:30:00')
+ON DUPLICATE KEY UPDATE scenario_type=VALUES(scenario_type);
+
+-- O. LOAN DOCUMENTS (Tài liệu hợp đồng khoản vay khớp LoanDocumentMockData)
+INSERT INTO loan_documents (
+    document_id, loan_id, document_type, file_url, ocr_status, ocr_result, created_at, updated_at
+) VALUES
+(1, 101, 'CONTRACT', 'https://example.com/mock/loan-contract-001.pdf', 'COMPLETED', '{"loan_name": "Vay mua xe VinFast VF8", "principal_amount": 500000000.0}', '2025-06-10 08:30:00', '2025-06-10 08:35:00')
+ON DUPLICATE KEY UPDATE document_type=VALUES(document_type);
+
+-- P. OTP VERIFICATIONS (Mã xác thực OTP khớp OtpVerificationMockData)
+INSERT INTO otp_verifications (
+    otp_id, user_id, email, phone, otp_code, purpose, attempt_count, max_attempts, expires_at, verified_at, status, created_at
+) VALUES
+(1, 1, 'dev@test.com', '0900000001', '123456', 'EMAIL_VERIFICATION', 0, 5, '2026-09-22 10:05:00', '2026-09-22 09:57:00', 'VERIFIED', '2026-09-22 09:55:00')
+ON DUPLICATE KEY UPDATE otp_code=VALUES(otp_code);
+
+
+-- I. PAYMENT SCHEDULES (Lịch phân kỳ trả nợ mẫu khớp PaymentScheduleMockData)
+INSERT INTO payment_schedules (
+    schedule_id, loan_id, installment_number, due_date,
+    principal_amount, interest_amount, fee_amount, total_amount, remaining_balance, status, created_at
+) VALUES
+(1, 101, 1, '2026-08-10', 2083333.33, 625000.00, 0.00, 2708333.33, 47916666.67, 'PAID', '2026-01-10 10:10:00'),
+(2, 101, 2, '2026-09-10', 2083333.33, 598958.33, 0.00, 2682291.66, 45833333.34, 'PAID', '2026-01-10 10:10:00'),
+(3, 101, 3, '2026-10-10', 2083333.33, 572916.67, 50000.00, 2756250.00, 43750000.01, 'OVERDUE', '2026-01-10 10:10:00'),
+(4, 101, 4, '2026-11-10', 2083333.33, 546875.00, 0.00, 2630208.33, 41666666.68, 'PENDING', '2026-01-10 10:10:00'),
+(5, 101, 5, '2026-12-10', 2083333.33, 520833.33, 0.00, 2604166.66, 39583333.35, 'PENDING', '2026-01-10 10:10:00'),
+(6, 102, 1, '2026-11-05', 2500000.00, 570000.00, 0.00, 3070000.00, 25930000.00, 'PENDING', '2026-01-05 10:00:00')
+ON DUPLICATE KEY UPDATE status=VALUES(status);
+
+-- J. PAYMENTS (Lịch sử thanh toán khớp PaymentMockData)
+INSERT INTO payments (
+    payment_id, schedule_id, paid_amount, paid_date, payment_method, transaction_reference, note, created_at
+) VALUES
+(1, 1, 2708333.33, '2026-02-08 14:30:00', 'BANK_TRANSFER', 'MOCK-TXN-0001', 'Thanh toán kỳ đầu tiên.', '2026-02-08 14:30:00'),
+(2, 2, 2682291.66, '2026-03-08 14:25:00', 'BANK_TRANSFER', 'MOCK-TXN-0002', NULL, '2026-03-08 14:25:00')
+ON DUPLICATE KEY UPDATE paid_amount=VALUES(paid_amount);
+
+-- K. CREDIT REPORTS (Báo cáo tín dụng định kỳ khớp CreditReportMockData)
+INSERT INTO credit_reports (
+    report_id, user_id, credit_score, dti_ratio, ltv_ratio, credit_utilization,
+    on_time_payment_rate, total_debt, overdue_amount, risk_level, report_period, generated_at
+) VALUES
+(1, 1, 710, 0.3550, 0.0000, 0.4500, 0.9500, 58000000.00, 0.00, 'MEDIUM', '2026-06', '2026-07-01 08:00:00'),
+(2, 1, 730, 0.3120, 0.0000, 0.3800, 1.0000, 50000000.00, 0.00, 'LOW', '2026-07', '2026-08-01 08:00:00'),
+(3, 1, 745, 0.2850, 0.0000, 0.3200, 1.0000, 43750000.00, 0.00, 'LOW', '2026-08', '2026-09-01 08:00:00')
+ON DUPLICATE KEY UPDATE credit_score=VALUES(credit_score);
+
+-- L. NOTIFICATIONS (Thông báo nợ khớp NotificationMockData)
+INSERT INTO notifications (
+    notification_id, user_id, schedule_id, notification_type, channel,
+    title, message, scheduled_at, sent_at, status, created_at
+) VALUES
+(1, 1, 3, 'OVERDUE_ALERT', 'PUSH', 'Cảnh báo kỳ thanh toán quá hạn', 'Kỳ 3 khoản vay mua xe của bạn đã quá ngày đến hạn (10/10/2026). Vui lòng thanh toán sớm để bảo đảm điểm tín dụng.', '2026-10-11 08:00:00', '2026-10-11 08:01:00', 'SENT', '2026-10-10 23:59:00'),
+(2, 1, 6, 'PAYMENT_REMINDER', 'PUSH', 'Nhắc lịch thanh toán thẻ tín dụng', 'Kỳ 1 thẻ tín dụng VIB Super Card (3.070.000 đ) sẽ đến hạn vào ngày 05/11/2026.', '2026-11-02 08:00:00', NULL, 'PENDING', '2026-10-25 09:00:00'),
+(3, 1, 4, 'PAYMENT_REMINDER', 'EMAIL', 'Thông báo nghĩa vụ thanh toán kỳ 4', 'Kỳ 4 hợp đồng Vay mua xe VinFast VF8 số tiền 2.630.208 đ sẽ đến hạn vào 10/11/2026.', '2026-11-07 08:00:00', NULL, 'PENDING', '2026-10-26 10:00:00'),
+(4, 1, 2, 'PAYMENT_RECEIPT', 'PUSH', 'Ghi nhận thanh toán thành công', 'Bạn đã hoàn tất thanh toán kỳ 2 hợp đồng Vay mua xe số tiền 2.682.291 đ.', '2026-09-10 10:00:00', '2026-09-10 10:02:00', 'SENT', '2026-09-10 10:00:00'),
+(5, 1, 3, 'OVERDUE_ALERT', 'SMS', 'Nhắc nợ khẩn cấp qua SMS', 'Tin nhắn gửi qua SMS không thành công do sự cố mạng viễn thông.', '2026-10-11 08:00:00', NULL, 'FAILED', '2026-10-11 08:00:00')
+ON DUPLICATE KEY UPDATE status=VALUES(status);
+
+-- M. DEBT STRATEGIES (Chiến lược trả nợ tối ưu khớp DebtStrategyMockData)
+INSERT INTO debt_strategies (
+    strategy_id, user_id, strategy_type, extra_payment,
+    estimated_interest_saved, estimated_months_saved, status, created_at
+) VALUES
+(1, 1, 'AVALANCHE', 2000000.00, 3250000.00, 4, 'ACTIVE', '2026-09-01 09:00:00')
+ON DUPLICATE KEY UPDATE strategy_type=VALUES(strategy_type);
+
+-- N. SIMULATIONS (Kịch bản mô phỏng trả nợ khớp SimulationMockData)
+INSERT INTO simulations (
+    simulation_id, user_id, loan_id, extra_payment, early_payment_fee,
+    estimated_interest, estimated_interest_saved, months_reduced, total_saving,
+    scenario_type, scenario_name, status, created_at
+) VALUES
+(1, 1, 101, 2000000.00, 87500.00, 8250000.00, 3250000.00, 4, 3162500.00, 'EXTRA_PAYMENT', 'Trả thêm 2 triệu hàng tháng', 'SIMULATION_REFERENCE', '2026-09-01 09:30:00')
+ON DUPLICATE KEY UPDATE scenario_type=VALUES(scenario_type);
+
+-- O. LOAN DOCUMENTS (Tài liệu hợp đồng khoản vay khớp LoanDocumentMockData)
+INSERT INTO loan_documents (
+    document_id, loan_id, document_type, file_url, ocr_status, ocr_result, created_at, updated_at
+) VALUES
+(1, 101, 'CONTRACT', 'https://example.com/mock/loan-contract-001.pdf', 'COMPLETED', '{"loan_name": "Vay mua xe VinFast VF8", "principal_amount": 500000000.0}', '2025-06-10 08:30:00', '2025-06-10 08:35:00')
+ON DUPLICATE KEY UPDATE document_type=VALUES(document_type);
+
+-- P. OTP VERIFICATIONS (Mã xác thực OTP khớp OtpVerificationMockData)
+INSERT INTO otp_verifications (
+    otp_id, user_id, email, phone, otp_code, purpose, attempt_count, max_attempts, expires_at, verified_at, status, created_at
+) VALUES
+(1, 1, 'dev@test.com', '0900000001', '123456', 'EMAIL_VERIFICATION', 0, 5, '2026-09-22 10:05:00', '2026-09-22 09:57:00', 'VERIFIED', '2026-09-22 09:55:00')
+ON DUPLICATE KEY UPDATE otp_code=VALUES(otp_code);

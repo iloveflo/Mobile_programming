@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import '../common/app_colors.dart';
 
 /// Các mức độ bảo mật của mật khẩu
 enum PasswordStrength {

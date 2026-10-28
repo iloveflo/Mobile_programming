@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../screens/main_shell_screen.dart';
+import '../../screens/main_shell_screen.dart';
 
 /// Các phân loại thông báo nổi của hệ thống FinCredit
 enum AppSnackBarType { success, error, info, warning }

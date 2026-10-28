@@ -1,12 +1,14 @@
 import '../models/payment_schedule_model.dart';
 
+/// Cơ sở dữ liệu mẫu cho Lịch phân kỳ thanh toán (PaymentSchedule Database)
 class PaymentScheduleMockData {
   static final List<PaymentScheduleModel> paymentSchedulesDatabase = [
+    // Loan 101 (Vay mua xe)
     PaymentScheduleModel(
       id: 1,
-      loanId: 1,
+      loanId: 101,
       installmentNumber: 1,
-      dueDate: DateTime(2026, 2, 10),
+      dueDate: DateTime(2026, 8, 10),
       principalAmount: 2083333.33,
       interestAmount: 625000.0,
       feeAmount: 0.0,
@@ -17,9 +19,9 @@ class PaymentScheduleMockData {
     ),
     PaymentScheduleModel(
       id: 2,
-      loanId: 1,
+      loanId: 101,
       installmentNumber: 2,
-      dueDate: DateTime(2026, 3, 10),
+      dueDate: DateTime(2026, 9, 10),
       principalAmount: 2083333.33,
       interestAmount: 598958.33,
       feeAmount: 0.0,
@@ -27,6 +29,59 @@ class PaymentScheduleMockData {
       remainingBalance: 45833333.34,
       status: 'PAID',
       createdAt: DateTime(2026, 1, 10, 10, 10),
+    ),
+    PaymentScheduleModel(
+      id: 3,
+      loanId: 101,
+      installmentNumber: 3,
+      dueDate: DateTime(2026, 10, 10),
+      principalAmount: 2083333.33,
+      interestAmount: 572916.67,
+      feeAmount: 50000.0,
+      totalAmount: 2756250.0,
+      remainingBalance: 43750000.01,
+      status: 'OVERDUE',
+      createdAt: DateTime(2026, 1, 10, 10, 10),
+    ),
+    PaymentScheduleModel(
+      id: 4,
+      loanId: 101,
+      installmentNumber: 4,
+      dueDate: DateTime(2026, 11, 10),
+      principalAmount: 2083333.33,
+      interestAmount: 546875.0,
+      feeAmount: 0.0,
+      totalAmount: 2630208.33,
+      remainingBalance: 41666666.68,
+      status: 'PENDING',
+      createdAt: DateTime(2026, 1, 10, 10, 10),
+    ),
+    PaymentScheduleModel(
+      id: 5,
+      loanId: 101,
+      installmentNumber: 5,
+      dueDate: DateTime(2026, 12, 10),
+      principalAmount: 2083333.33,
+      interestAmount: 520833.33,
+      feeAmount: 0.0,
+      totalAmount: 2604166.66,
+      remainingBalance: 39583333.35,
+      status: 'PENDING',
+      createdAt: DateTime(2026, 1, 10, 10, 10),
+    ),
+    // Loan 102 (Thẻ tín dụng)
+    PaymentScheduleModel(
+      id: 6,
+      loanId: 102,
+      installmentNumber: 1,
+      dueDate: DateTime(2026, 11, 5),
+      principalAmount: 2500000.0,
+      interestAmount: 570000.0,
+      feeAmount: 0.0,
+      totalAmount: 3070000.0,
+      remainingBalance: 25930000.0,
+      status: 'PENDING',
+      createdAt: DateTime(2026, 1, 5, 10),
     ),
   ];
 }

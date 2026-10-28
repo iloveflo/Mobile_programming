@@ -366,4 +366,100 @@ class LoanModel {
     'created_at': createdAt?.toIso8601String(),
     'updated_at': updatedAt?.toIso8601String(),
   };
+
+  /// Danh mục các tổ chức tín dụng / ngân hàng chuẩn hóa
+  static const List<String> standardBanks = [
+    'Vietcombank',
+    'Techcombank',
+    'BIDV',
+    'VietinBank',
+    'MBBank',
+    'VPBank',
+    'TPBank',
+    'ACB',
+    'Khác/Tổ chức tín dụng',
+  ];
+
+  /// Danh mục các loại khoản vay
+  static const Map<String, String> loanTypeLabels = {
+    'MORTGAGE': 'Vay thế chấp / Bất động sản',
+    'CAR': 'Vay mua ô tô',
+    'CONSUMER': 'Vay tiêu dùng / Tín chấp',
+    'CREDIT_CARD': 'Thẻ tín dụng',
+    'OTHER': 'Khoản vay khác',
+  };
+
+  /// Bảng lãi suất tham chiếu cơ sở (Benchmark Interest Rates %/năm) theo Ngân hàng & Loại vay
+  static const Map<String, Map<String, double>> benchmarkRates = {
+    'Techcombank': {
+      'MORTGAGE': 8.5,
+      'CAR': 9.2,
+      'CONSUMER': 13.5,
+      'CREDIT_CARD': 26.0,
+      'OTHER': 10.0,
+    },
+    'Vietcombank': {
+      'MORTGAGE': 7.9,
+      'CAR': 8.5,
+      'CONSUMER': 11.5,
+      'CREDIT_CARD': 18.0,
+      'OTHER': 9.5,
+    },
+    'BIDV': {
+      'MORTGAGE': 7.8,
+      'CAR': 8.2,
+      'CONSUMER': 11.0,
+      'CREDIT_CARD': 18.0,
+      'OTHER': 9.5,
+    },
+    'VietinBank': {
+      'MORTGAGE': 8.0,
+      'CAR': 8.5,
+      'CONSUMER': 11.5,
+      'CREDIT_CARD': 18.5,
+      'OTHER': 9.8,
+    },
+    'MBBank': {
+      'MORTGAGE': 8.5,
+      'CAR': 9.0,
+      'CONSUMER': 12.5,
+      'CREDIT_CARD': 22.0,
+      'OTHER': 10.5,
+    },
+    'VPBank': {
+      'MORTGAGE': 9.5,
+      'CAR': 10.5,
+      'CONSUMER': 14.0,
+      'CREDIT_CARD': 28.0,
+      'OTHER': 12.0,
+    },
+    'TPBank': {
+      'MORTGAGE': 8.8,
+      'CAR': 9.5,
+      'CONSUMER': 13.0,
+      'CREDIT_CARD': 25.0,
+      'OTHER': 11.0,
+    },
+    'ACB': {
+      'MORTGAGE': 8.2,
+      'CAR': 8.9,
+      'CONSUMER': 12.0,
+      'CREDIT_CARD': 23.0,
+      'OTHER': 10.5,
+    },
+    'Khác/Tổ chức tín dụng': {
+      'MORTGAGE': 9.0,
+      'CAR': 10.0,
+      'CONSUMER': 15.0,
+      'CREDIT_CARD': 25.0,
+      'OTHER': 12.0,
+    },
+  };
+
+  /// Lấy mức lãi suất cơ sở tham chiếu theo ngân hàng và loại khoản vay
+  static double getBenchmarkRate(String bank, String loanType) {
+    final bankRates =
+        benchmarkRates[bank] ?? benchmarkRates['Khác/Tổ chức tín dụng']!;
+    return bankRates[loanType] ?? bankRates['OTHER'] ?? 10.0;
+  }
 }

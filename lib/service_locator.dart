@@ -1,15 +1,35 @@
 import 'package:get_it/get_it.dart';
 
 import 'controllers/auth_controller.dart';
+import 'controllers/credit_profile_controller.dart';
+import 'controllers/credit_report_controller.dart';
+import 'controllers/debt_strategy_controller.dart';
 import 'controllers/loan_controller.dart';
+import 'controllers/payment_schedule_controller.dart';
+import 'controllers/simulation_controller.dart';
 import 'core/config/app_env.dart';
 import 'core/network/api_client.dart';
 import 'repositories/interfaces/auth_repository.dart';
+import 'repositories/interfaces/credit_profile_repository.dart';
+import 'repositories/interfaces/credit_report_repository.dart';
+import 'repositories/interfaces/debt_strategy_repository.dart';
 import 'repositories/interfaces/loan_repository.dart';
+import 'repositories/interfaces/payment_schedule_repository.dart';
+import 'repositories/interfaces/simulation_repository.dart';
 import 'repositories/mock/mock_auth_repository.dart';
+import 'repositories/mock/mock_credit_profile_repository.dart';
+import 'repositories/mock/mock_credit_report_repository.dart';
+import 'repositories/mock/mock_debt_strategy_repository.dart';
 import 'repositories/mock/mock_loan_repository.dart';
+import 'repositories/mock/mock_payment_schedule_repository.dart';
+import 'repositories/mock/mock_simulation_repository.dart';
 import 'repositories/remote/api_auth_repository.dart';
+import 'repositories/remote/api_credit_profile_repository.dart';
+import 'repositories/remote/api_credit_report_repository.dart';
+import 'repositories/remote/api_debt_strategy_repository.dart';
 import 'repositories/remote/api_loan_repository.dart';
+import 'repositories/remote/api_payment_schedule_repository.dart';
+import 'repositories/remote/api_simulation_repository.dart';
 
 /// Service Locator trung tâm quản lý Dependency Injection cho toàn ứng dụng FinCredit
 final GetIt sl = GetIt.instance;
@@ -46,6 +66,31 @@ void setupServiceLocator({bool? isMock}) {
 
     // B. Quản lý Khoản vay (Mock)
     _registerLazySingletonIfNot<LoanRepository>(() => MockLoanRepository());
+
+    // C. Tối ưu Trả nợ (Mock)
+    _registerLazySingletonIfNot<DebtStrategyRepository>(
+      () => MockDebtStrategyRepository(),
+    );
+
+    // D. Mô phỏng Trả nợ (Mock)
+    _registerLazySingletonIfNot<SimulationRepository>(
+      () => MockSimulationRepository(),
+    );
+
+    // E. Sức khỏe Tín dụng (Mock)
+    _registerLazySingletonIfNot<CreditProfileRepository>(
+      () => MockCreditProfileRepository(),
+    );
+
+    // F. Báo cáo Tín dụng Định kỳ (Mock)
+    _registerLazySingletonIfNot<CreditReportRepository>(
+      () => MockCreditReportRepository(),
+    );
+
+    // G. Lịch phân kỳ & Nhắc nợ (Mock)
+    _registerLazySingletonIfNot<PaymentScheduleRepository>(
+      () => MockPaymentScheduleRepository(),
+    );
   } else {
     // A. Xác thực & Bảo mật (API Thật)
     _registerLazySingletonIfNot<AuthRepository>(
@@ -55,6 +100,31 @@ void setupServiceLocator({bool? isMock}) {
     // B. Quản lý Khoản vay (API Thật)
     _registerLazySingletonIfNot<LoanRepository>(
       () => ApiLoanRepository(client: sl<ApiClient>()),
+    );
+
+    // C. Tối ưu Trả nợ (API Thật)
+    _registerLazySingletonIfNot<DebtStrategyRepository>(
+      () => ApiDebtStrategyRepository(client: sl<ApiClient>()),
+    );
+
+    // D. Mô phỏng Trả nợ (API Thật)
+    _registerLazySingletonIfNot<SimulationRepository>(
+      () => ApiSimulationRepository(client: sl<ApiClient>()),
+    );
+
+    // E. Sức khỏe Tín dụng (API Thật)
+    _registerLazySingletonIfNot<CreditProfileRepository>(
+      () => ApiCreditProfileRepository(client: sl<ApiClient>()),
+    );
+
+    // F. Báo cáo Tín dụng Định kỳ (API Thật)
+    _registerLazySingletonIfNot<CreditReportRepository>(
+      () => ApiCreditReportRepository(client: sl<ApiClient>()),
+    );
+
+    // G. Lịch phân kỳ & Nhắc nợ (API Thật)
+    _registerLazySingletonIfNot<PaymentScheduleRepository>(
+      () => ApiPaymentScheduleRepository(client: sl<ApiClient>()),
     );
   }
 
@@ -68,6 +138,33 @@ void setupServiceLocator({bool? isMock}) {
   _registerLazySingletonIfNot<LoanController>(
     () => LoanController(sl<LoanRepository>()),
   );
+
+  _registerLazySingletonIfNot<DebtStrategyController>(
+    () => DebtStrategyController(
+      sl<DebtStrategyRepository>(),
+      sl<LoanRepository>(),
+    ),
+  );
+
+  _registerLazySingletonIfNot<SimulationController>(
+    () =>
+        SimulationController(sl<SimulationRepository>(), sl<LoanRepository>()),
+  );
+
+  _registerLazySingletonIfNot<CreditProfileController>(
+    () => CreditProfileController(
+      sl<CreditProfileRepository>(),
+      sl<LoanRepository>(),
+    ),
+  );
+
+  _registerLazySingletonIfNot<CreditReportController>(
+    () => CreditReportController(sl<CreditReportRepository>()),
+  );
+
+  _registerLazySingletonIfNot<PaymentScheduleController>(
+    () => PaymentScheduleController(sl<PaymentScheduleRepository>()),
+  );
 }
 
 /// Chuyển đổi linh hoạt giữa chế độ Mock Data và API thật ngay khi ứng dụng đang chạy
@@ -79,17 +176,62 @@ Future<void> switchServiceLocatorMode({required bool isMock}) async {
   if (sl.isRegistered<LoanRepository>()) {
     await sl.unregister<LoanRepository>();
   }
+  if (sl.isRegistered<DebtStrategyRepository>()) {
+    await sl.unregister<DebtStrategyRepository>();
+  }
+  if (sl.isRegistered<SimulationRepository>()) {
+    await sl.unregister<SimulationRepository>();
+  }
+  if (sl.isRegistered<CreditProfileRepository>()) {
+    await sl.unregister<CreditProfileRepository>();
+  }
+  if (sl.isRegistered<CreditReportRepository>()) {
+    await sl.unregister<CreditReportRepository>();
+  }
+  if (sl.isRegistered<PaymentScheduleRepository>()) {
+    await sl.unregister<PaymentScheduleRepository>();
+  }
 
   // Đăng ký lại theo chế độ mới
   if (isMock) {
     sl.registerLazySingleton<AuthRepository>(() => MockAuthRepository());
     sl.registerLazySingleton<LoanRepository>(() => MockLoanRepository());
+    sl.registerLazySingleton<DebtStrategyRepository>(
+      () => MockDebtStrategyRepository(),
+    );
+    sl.registerLazySingleton<SimulationRepository>(
+      () => MockSimulationRepository(),
+    );
+    sl.registerLazySingleton<CreditProfileRepository>(
+      () => MockCreditProfileRepository(),
+    );
+    sl.registerLazySingleton<CreditReportRepository>(
+      () => MockCreditReportRepository(),
+    );
+    sl.registerLazySingleton<PaymentScheduleRepository>(
+      () => MockPaymentScheduleRepository(),
+    );
   } else {
     sl.registerLazySingleton<AuthRepository>(
       () => ApiAuthRepository(client: sl<ApiClient>()),
     );
     sl.registerLazySingleton<LoanRepository>(
       () => ApiLoanRepository(client: sl<ApiClient>()),
+    );
+    sl.registerLazySingleton<DebtStrategyRepository>(
+      () => ApiDebtStrategyRepository(client: sl<ApiClient>()),
+    );
+    sl.registerLazySingleton<SimulationRepository>(
+      () => ApiSimulationRepository(client: sl<ApiClient>()),
+    );
+    sl.registerLazySingleton<CreditProfileRepository>(
+      () => ApiCreditProfileRepository(client: sl<ApiClient>()),
+    );
+    sl.registerLazySingleton<CreditReportRepository>(
+      () => ApiCreditReportRepository(client: sl<ApiClient>()),
+    );
+    sl.registerLazySingleton<PaymentScheduleRepository>(
+      () => ApiPaymentScheduleRepository(client: sl<ApiClient>()),
     );
   }
 
@@ -105,6 +247,50 @@ Future<void> switchServiceLocatorMode({required bool isMock}) async {
     await sl.unregister<LoanController>();
     sl.registerLazySingleton<LoanController>(
       () => LoanController(sl<LoanRepository>()),
+    );
+  }
+
+  if (sl.isRegistered<DebtStrategyController>()) {
+    await sl.unregister<DebtStrategyController>();
+    sl.registerLazySingleton<DebtStrategyController>(
+      () => DebtStrategyController(
+        sl<DebtStrategyRepository>(),
+        sl<LoanRepository>(),
+      ),
+    );
+  }
+
+  if (sl.isRegistered<SimulationController>()) {
+    await sl.unregister<SimulationController>();
+    sl.registerLazySingleton<SimulationController>(
+      () => SimulationController(
+        sl<SimulationRepository>(),
+        sl<LoanRepository>(),
+      ),
+    );
+  }
+
+  if (sl.isRegistered<CreditProfileController>()) {
+    await sl.unregister<CreditProfileController>();
+    sl.registerLazySingleton<CreditProfileController>(
+      () => CreditProfileController(
+        sl<CreditProfileRepository>(),
+        sl<LoanRepository>(),
+      ),
+    );
+  }
+
+  if (sl.isRegistered<CreditReportController>()) {
+    await sl.unregister<CreditReportController>();
+    sl.registerLazySingleton<CreditReportController>(
+      () => CreditReportController(sl<CreditReportRepository>()),
+    );
+  }
+
+  if (sl.isRegistered<PaymentScheduleController>()) {
+    await sl.unregister<PaymentScheduleController>();
+    sl.registerLazySingleton<PaymentScheduleController>(
+      () => PaymentScheduleController(sl<PaymentScheduleRepository>()),
     );
   }
 }

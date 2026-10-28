@@ -4,16 +4,16 @@ class LoanDocumentMockData {
   static final List<LoanDocumentModel> loanDocumentsDatabase = [
     LoanDocumentModel(
       id: 1,
-      loanId: 1,
+      loanId: 101,
       documentType: 'CONTRACT',
       fileUrl: 'https://example.com/mock/loan-contract-001.pdf',
       ocrStatus: 'COMPLETED',
       ocrResult: {
-        'loan_name': 'Vay tiêu dùng cá nhân',
-        'principal_amount': 50000000.0,
+        'loan_name': 'Vay mua xe VinFast VF8',
+        'principal_amount': 500000000.0,
       },
-      createdAt: DateTime(2026, 1, 10, 10),
-      updatedAt: DateTime(2026, 1, 10, 10, 5),
+      createdAt: DateTime(2025, 6, 10, 8, 30),
+      updatedAt: DateTime(2025, 6, 10, 8, 35),
     ),
   ];
 }

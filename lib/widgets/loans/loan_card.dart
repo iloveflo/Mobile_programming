@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../models/loan_model.dart';
-import 'app_colors.dart';
+import '../../models/loan_model.dart';
+import '../common/app_colors.dart';
 
 /// Thẻ hiển thị một khoản vay trong danh sách (LoanCard)
 /// Tự động nhận diện Khoản vay thông thường và Thẻ tín dụng để hiển thị layout tối ưu

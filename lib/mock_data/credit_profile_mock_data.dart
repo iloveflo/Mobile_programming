@@ -5,7 +5,7 @@ class CreditProfileMockData {
     CreditProfileModel(
       id: 1,
       userId: 1,
-      creditScore: 735,
+      creditScore: 745,
       dtiRatio: 0.2850,
       ltvRatio: 0.0,
       creditUtilization: 0.32,

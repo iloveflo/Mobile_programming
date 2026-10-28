@@ -2,13 +2,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 
-import '../mock_data/user_mock_data.dart';
 import '../models/bank_account_model.dart';
 import '../models/register_request_model.dart';
 import '../models/session_model.dart';
 import '../models/user_model.dart';
 import '../repositories/interfaces/auth_repository.dart';
-import '../widgets/dev_state_panel.dart';
+import '../widgets/dev/dev_state_panel.dart';
 import 'loan_controller.dart';
 
 /// Kết quả của thao tác đăng nhập
@@ -389,27 +388,18 @@ class AuthController extends ChangeNotifier {
       _cancelOtpTimer();
 
       if (flow == OtpFlow.register) {
-        UserModel? matchedUser;
-        try {
-          matchedUser = UserMockData.usersDatabase.firstWhere(
-            (u) => u.email.toLowerCase() == (_pendingEmail ?? '').toLowerCase(),
-          );
-        } catch (_) {}
-
-        String registeredName =
-            _pendingFullName?.trim() ??
-            matchedUser?.fullName ??
-            'Khách hàng FinCredit';
-        if (registeredName.isEmpty) registeredName = 'Khách hàng FinCredit';
-        final uid =
-            matchedUser?.userId ?? DateTime.now().millisecondsSinceEpoch;
+        final registeredName =
+            (_pendingFullName != null && _pendingFullName!.trim().isNotEmpty)
+            ? _pendingFullName!.trim()
+            : 'Khách hàng FinCredit';
+        final uid = DateTime.now().millisecondsSinceEpoch;
 
         _currentUser = UserModel(
           userId: uid,
           fullName: registeredName,
-          email: _pendingEmail ?? matchedUser?.email ?? 'user@fincredit.vn',
-          phone: _pendingPhone ?? matchedUser?.phone ?? '0912345678',
-          passwordHash: matchedUser?.passwordHash ?? 'secured_hash',
+          email: _pendingEmail ?? 'user@fincredit.vn',
+          phone: _pendingPhone ?? '0912345678',
+          passwordHash: 'secured_hash',
           token: 'jwt_verified_token_$uid',
           createdAt: DateTime.now(),
         );

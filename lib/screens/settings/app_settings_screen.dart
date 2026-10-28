@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../controllers/auth_controller.dart';
+import '../../controllers/payment_schedule_controller.dart';
+import '../../models/notification_preference_model.dart';
 import '../../models/session_model.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
@@ -17,8 +19,9 @@ class AppSettingsScreen extends StatefulWidget {
 
 class _AppSettingsScreenState extends State<AppSettingsScreen> {
   final AuthController _authController = sl<AuthController>();
+  final PaymentScheduleController _scheduleController =
+      sl<PaymentScheduleController>();
 
-  bool _reminder3Days = true;
   bool _balanceNotice = true;
   bool _monthlyStatementEmail = true;
   bool _autoLock5Min = true;
@@ -29,6 +32,60 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     super.initState();
     // Luôn tải danh sách phiên thiết bị đăng nhập thực tế của tài khoản
     _authController.loadSessions();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scheduleController.loadNotificationPreference(
+        userId: _authController.currentUser?.userId,
+      );
+    });
+  }
+
+  String _getReminderSubtitle() {
+    final pref = _scheduleController.preference;
+    if (pref == null) return 'Nhắc trước 3 ngày • Kênh: Push, Email';
+    final channels = <String>[];
+    if (pref.pushEnabled) channels.add('Push');
+    if (pref.emailEnabled) channels.add('Email');
+    if (pref.smsEnabled) channels.add('SMS');
+    final channelStr = channels.isEmpty
+        ? 'Tất cả kênh tắt'
+        : channels.join(', ');
+    return 'Nhắc trước ${pref.reminderDays} ngày • Kênh: $channelStr';
+  }
+
+  void _openNotificationPreferences() {
+    final pref =
+        _scheduleController.preference ??
+        const NotificationPreferenceModel(
+          id: 1,
+          userId: 1,
+          pushEnabled: true,
+          emailEnabled: true,
+          smsEnabled: false,
+          reminderDays: 3,
+        );
+
+    NotificationPreferenceSheet.show(
+      context,
+      currentPreference: pref,
+      userEmail: _authController.currentUser?.email,
+      userPhone: _authController.currentUser?.phone,
+      onSave: (newPref) async {
+        final success = await _scheduleController.updatePreference(
+          newPref,
+          userEmail: _authController.currentUser?.email,
+          userPhone: _authController.currentUser?.phone,
+        );
+        if (success && mounted) {
+          AppSnackBar.showSuccess(
+            context,
+            'Đã cập nhật cấu hình nhắc nợ thành công!',
+          );
+        } else if (_scheduleController.errorMessage != null && mounted) {
+          AppSnackBar.showError(context, _scheduleController.errorMessage!);
+        }
+        return success;
+      },
+    );
   }
 
   void _clearCache() {
@@ -166,7 +223,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         ),
       ),
       body: ListenableBuilder(
-        listenable: _authController,
+        listenable: Listenable.merge([_authController, _scheduleController]),
         builder: (context, _) {
           final sessions = _authController.activeSessions;
 
@@ -379,29 +436,44 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               // 4. Nhóm: Thông báo & Nhắc nợ
               _buildSectionHeader('Thông báo & Nhắc nợ'),
               _buildCard([
-                SwitchListTile(
-                  value: _reminder3Days,
-                  activeThumbColor: AppColors.primary,
-                  activeTrackColor: AppColors.primarySoft,
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 4.0,
+                  ),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    child: const Icon(
+                      Icons.alarm_on_rounded,
+                      color: AppColors.primary,
+                      size: 22.0,
+                    ),
+                  ),
                   title: const Text(
-                    'Nhắc hạn trả nợ trước 3 ngày',
+                    'Cấu hình nhắc nợ định kỳ',
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                  subtitle: const Text(
-                    'Nhận thông báo đẩy trước ngày đến hạn thanh toán',
-                    style: TextStyle(
+                  subtitle: Text(
+                    _getReminderSubtitle(),
+                    style: const TextStyle(
                       fontSize: 11.5,
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  onChanged: (val) {
-                    setState(() {
-                      _reminder3Days = val;
-                    });
-                  },
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14.0,
+                    color: AppColors.textSecondary,
+                  ),
+                  onTap: _openNotificationPreferences,
                 ),
                 const Divider(height: 1.0),
                 SwitchListTile(

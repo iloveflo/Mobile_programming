@@ -76,9 +76,11 @@ class _LoanListScreenState extends State<LoanListScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
-        automaticallyImplyLeading: !widget.isTab,
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+        leadingWidth: 48.0,
         leading: widget.isTab
-            ? null
+            ? const SizedBox(width: 48.0)
             : IconButton(
                 icon: const Icon(
                   Icons.arrow_back_ios_new_rounded,
@@ -96,16 +98,88 @@ class _LoanListScreenState extends State<LoanListScreen> {
           ),
         ),
         actions: [
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(
-              Icons.document_scanner_outlined,
+              Icons.auto_awesome_rounded,
               color: AppColors.primary,
             ),
-            tooltip: 'Tài sản & Quét OCR',
-            onPressed: () {
-              Navigator.pushNamed(context, AppRouter.loanCollateralOcr);
+            tooltip: 'Tiện ích tài chính',
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            onSelected: (value) {
+              if (value == 'simulation') {
+                Navigator.pushNamed(context, AppRouter.simulation);
+              } else if (value == 'debt_strategy') {
+                Navigator.pushNamed(context, AppRouter.debtStrategy);
+              } else if (value == 'ocr') {
+                Navigator.pushNamed(context, AppRouter.loanCollateralOcr);
+              }
             },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'debt_strategy',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.auto_graph_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      'Tối ưu trả nợ',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'simulation',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.calculate_outlined,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      'Mô phỏng trả nợ',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'ocr',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.document_scanner_outlined,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      'Quét hợp đồng OCR',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
+          const SizedBox(width: 4),
         ],
       ),
       floatingActionButton: AnimatedSlide(

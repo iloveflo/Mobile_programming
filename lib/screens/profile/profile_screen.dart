@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../controllers/auth_controller.dart';
+import '../../controllers/credit_profile_controller.dart';
 import '../../controllers/loan_controller.dart';
 import '../../models/bank_account_model.dart';
 import '../../models/user_model.dart';
@@ -994,6 +995,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final authController = sl<AuthController>();
     final loanController = sl<LoanController>();
+    final creditProfileController = sl<CreditProfileController>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -1011,7 +1013,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       body: ListenableBuilder(
-        listenable: Listenable.merge([authController, loanController]),
+        listenable: Listenable.merge([
+          authController,
+          loanController,
+          creditProfileController,
+        ]),
         builder: (context, _) {
           final user = authController.currentUser;
           final String initialLetter = (user?.fullName.isNotEmpty == true)
@@ -1333,25 +1339,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     UserModel? user,
     LoanController loanController,
   ) {
-    // 1. Điểm tín dụng thực tế
-    final int? score = user?.cicScore;
+    final creditProfileController = sl<CreditProfileController>();
+    // 1. Điểm tín dụng thực tế đồng bộ từ CreditProfile hoặc UserModel
+    final int? score =
+        creditProfileController.creditProfile?.creditScore ?? user?.cicScore;
     String scoreVal = 'Chưa có';
     String scoreSub = 'Bấm để tra cứu';
     Color scoreColor = AppColors.textSecondary;
 
     if (score != null) {
       scoreVal = '$score / 850';
-      if (score >= 740) {
+      if (score >= 750) {
+        scoreSub = 'Hạng 1 • Xuất sắc';
+        scoreColor = const Color(0xFF16A34A);
+      } else if (score >= 680) {
         scoreSub = 'Hạng 2 • Rất tốt';
         scoreColor = const Color(0xFF059669);
-      } else if (score >= 680) {
-        scoreSub = 'Hạng 3 • Tốt';
+      } else if (score >= 580) {
+        scoreSub = 'Hạng 3 • Khá';
         scoreColor = const Color(0xFF059669);
-      } else if (score >= 600) {
+      } else if (score >= 450) {
         scoreSub = 'Hạng 4 • Trung bình';
         scoreColor = const Color(0xFFD97706);
       } else {
-        scoreSub = 'Hạng 5 • Cần chú ý';
+        scoreSub = 'Hạng 5 • Cần cải thiện';
         scoreColor = const Color(0xFFDC2626);
       }
     }

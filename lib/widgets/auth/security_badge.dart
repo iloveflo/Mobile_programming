@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import '../common/app_colors.dart';
 
 /// Huy hiệu bảo mật chuẩn Fintech hiển thị chứng nhận bảo mật (CIC, TLS, mã hóa dữ liệu).
 class SecurityBadge extends StatelessWidget {

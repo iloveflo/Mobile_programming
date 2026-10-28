@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../controllers/loan_controller.dart';
-import '../../mock_data/loan_mock_data.dart';
 import '../../models/collateral_model.dart';
 import '../../models/loan_model.dart';
 import '../../service_locator.dart';
@@ -63,19 +62,19 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
 
     // Phân tích thông tin ngân hàng & loại khoản vay
     if (loan != null) {
-      _selectedBank = LoanMockData.standardBanks.contains(loan.lenderName)
+      _selectedBank = LoanModel.standardBanks.contains(loan.lenderName)
           ? loan.lenderName
-          : LoanMockData.standardBanks.first;
+          : LoanModel.standardBanks.first;
       _selectedLoanType = loan.loanTypeKey;
       _tenorMonths = loan.tenorMonths;
       _startDate = loan.startDate;
     } else if (prefilled != null) {
       final lender = prefilled['lender_name']?.toString() ?? '';
-      _selectedBank = LoanMockData.standardBanks.contains(lender)
+      _selectedBank = LoanModel.standardBanks.contains(lender)
           ? lender
-          : LoanMockData.standardBanks.first;
+          : LoanModel.standardBanks.first;
       final type = prefilled['loan_type']?.toString();
-      if (type != null && LoanMockData.loanTypeLabels.containsKey(type)) {
+      if (type != null && LoanModel.loanTypeLabels.containsKey(type)) {
         _selectedLoanType = type;
       } else {
         _selectedLoanType = 'MORTGAGE';
@@ -106,7 +105,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
       final r = double.tryParse(prefilled['interest_rate'].toString()) ?? 8.5;
       initialRate = r <= 1.0 ? r * 100.0 : r;
     } else {
-      initialRate = LoanMockData.getBenchmarkRate(
+      initialRate = LoanModel.getBenchmarkRate(
         _selectedBank,
         _selectedLoanType,
       );
@@ -146,9 +145,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
           _loanIdToEdit = loan.id.toString();
           _loanCodeToEdit = loan.loanCode;
           _nameController.text = loan.loanName;
-          _selectedBank = LoanMockData.standardBanks.contains(loan.lenderName)
+          _selectedBank = LoanModel.standardBanks.contains(loan.lenderName)
               ? loan.lenderName
-              : LoanMockData.standardBanks.first;
+              : LoanModel.standardBanks.first;
           _selectedLoanType = loan.loanTypeKey;
           _amountController.text = loan.principalAmount.round().toString();
           final r = loan.interestRatePercent;
@@ -168,11 +167,11 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
         setState(() {
           _nameController.text = prefilled['loan_name']?.toString() ?? '';
           final lender = prefilled['lender_name']?.toString() ?? '';
-          if (LoanMockData.standardBanks.contains(lender)) {
+          if (LoanModel.standardBanks.contains(lender)) {
             _selectedBank = lender;
           }
           final type = prefilled['loan_type']?.toString();
-          if (type != null && LoanMockData.loanTypeLabels.containsKey(type)) {
+          if (type != null && LoanModel.loanTypeLabels.containsKey(type)) {
             _selectedLoanType = type;
           }
           _amountController.text =
@@ -244,10 +243,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
 
   void _updateBenchmarkRate() {
     if (_isEdit) return; // Không tự đè khi đang sửa hợp đồng cũ
-    final rate = LoanMockData.getBenchmarkRate(
-      _selectedBank,
-      _selectedLoanType,
-    );
+    final rate = LoanModel.getBenchmarkRate(_selectedBank, _selectedLoanType);
     _rateController.text = rate
         .toStringAsFixed(1)
         .replaceAll(RegExp(r'\.0$'), '');
@@ -445,7 +441,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final benchmarkRate = LoanMockData.getBenchmarkRate(
+    final benchmarkRate = LoanModel.getBenchmarkRate(
       _selectedBank,
       _selectedLoanType,
     );
@@ -557,9 +553,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                     const SizedBox(height: 6.0),
                     DropdownButtonFormField<String>(
                       initialValue:
-                          LoanMockData.standardBanks.contains(_selectedBank)
+                          LoanModel.standardBanks.contains(_selectedBank)
                           ? _selectedBank
-                          : LoanMockData.standardBanks.first,
+                          : LoanModel.standardBanks.first,
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: _isEdit
@@ -583,7 +579,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                           size: 20.0,
                         ),
                       ),
-                      items: LoanMockData.standardBanks.map((bank) {
+                      items: LoanModel.standardBanks.map((bank) {
                         return DropdownMenuItem<String>(
                           value: bank,
                           child: Text(
@@ -662,7 +658,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                           size: 20.0,
                         ),
                       ),
-                      items: LoanMockData.loanTypeLabels.entries.map((entry) {
+                      items: LoanModel.loanTypeLabels.entries.map((entry) {
                         return DropdownMenuItem<String>(
                           value: entry.key,
                           child: Text(
@@ -804,7 +800,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                             child: Text(
                               _isEdit
                                   ? 'Lãi suất cố định theo hợp đồng đã ký. Không cho phép sửa đổi.'
-                                  : 'Lãi suất được áp dụng tự động theo biểu niêm yết của $_selectedBank (${LoanMockData.loanTypeLabels[_selectedLoanType] ?? 'khoản vay'}: $benchmarkRate%/năm). Cố định theo quy định.',
+                                  : 'Lãi suất được áp dụng tự động theo biểu niêm yết của $_selectedBank (${LoanModel.loanTypeLabels[_selectedLoanType] ?? 'khoản vay'}: $benchmarkRate%/năm). Cố định theo quy định.',
                               style: const TextStyle(
                                 fontSize: 12.0,
                                 color: AppColors.textSecondary,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import '../common/app_colors.dart';
 import 'interest_method_card.dart';
 
 /// Thẻ hiển thị ước tính chi phí trả nợ hàng tháng theo thời gian thực (MonthlyEstimateCard)

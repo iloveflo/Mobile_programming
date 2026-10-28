@@ -657,6 +657,12 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                     );
                   } else if (value == 'close') {
                     _showEarlyPayoffModal(loan);
+                  } else if (value == 'simulate') {
+                    Navigator.pushNamed(
+                      context,
+                      AppRouter.simulation,
+                      arguments: {'loanId': loan.id},
+                    );
                   } else if (value == 'delete') {
                     _confirmDelete(loan);
                   }
@@ -676,6 +682,21 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                       ],
                     ),
                   ),
+                  if (loan.isActive)
+                    const PopupMenuItem(
+                      value: 'simulate',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calculate_outlined,
+                            size: 18.0,
+                            color: AppColors.primary,
+                          ),
+                          SizedBox(width: 8.0),
+                          Text('Mô phỏng trả nợ'),
+                        ],
+                      ),
+                    ),
                   if (loan.isActive)
                     const PopupMenuItem(
                       value: 'close',

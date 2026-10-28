@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../controllers/auth_controller.dart';
 import '../../controllers/loan_controller.dart';
+import '../../controllers/payment_schedule_controller.dart';
 import '../../models/loan_model.dart';
+import '../../models/payment_schedule_model.dart';
+import '../../routes/app_router.dart';
 import '../../service_locator.dart';
 import '../../widgets/widget.dart';
 
-/// Màn hình Lịch trả nợ & Kế hoạch thanh toán định kỳ (PaymentScheduleScreen)
+/// Màn hình Lịch thanh toán định kỳ & Nhắc nợ (Mục 5: Xem lịch thanh toán)
 class PaymentScheduleScreen extends StatefulWidget {
   const PaymentScheduleScreen({super.key});
 
@@ -14,90 +18,123 @@ class PaymentScheduleScreen extends StatefulWidget {
 }
 
 class _PaymentScheduleScreenState extends State<PaymentScheduleScreen> {
-  final LoanController _loanController = sl<LoanController>();
-  String _selectedFilter = 'ALL'; // ALL, PENDING, PAID
+  late final PaymentScheduleController _scheduleController;
+  late final LoanController _loanController;
+  late final AuthController _authController;
 
-  String _formatCurrency(num amount) {
-    final str = amount.round().toString();
-    final buffer = StringBuffer();
-    for (int i = 0; i < str.length; i++) {
-      if (i > 0 && (str.length - i) % 3 == 0) {
-        buffer.write('.');
+  @override
+  void initState() {
+    super.initState();
+    _scheduleController = sl<PaymentScheduleController>();
+    _loanController = sl<LoanController>();
+    _authController = sl<AuthController>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final userId = _authController.currentUser?.userId;
+      _scheduleController.loadSchedules(userId: userId);
+      _scheduleController.loadNotifications(userId: userId);
+      if (_loanController.loans.isEmpty) {
+        _loanController.fetchLoans();
       }
-      buffer.write(str[i]);
-    }
-    return '${buffer.toString()} đ';
+    });
   }
 
-  void _showPaymentConfirmModal(BuildContext context, LoanModel loan) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-      ),
-      builder: (bottomSheetCtx) {
-        return Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.check_circle_outline_rounded,
-                    color: AppColors.success,
-                    size: 24.0,
-                  ),
-                  const SizedBox(width: 8.0),
-                  const Text(
-                    'Xác nhận thanh toán kỳ',
-                    style: TextStyle(
-                      fontSize: 18.0,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(bottomSheetCtx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12.0),
-              Text(
-                'Khoản vay: ${loan.loanName} (${loan.lenderName})',
-                style: const TextStyle(
-                  fontSize: 14.0,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8.0),
-              Text(
-                'Số tiền thanh toán dự kiến: ${_formatCurrency(loan.estimatedMonthlyPayment)}',
-                style: const TextStyle(
-                  fontSize: 14.0,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 20.0),
-              AppPrimaryButton(
-                label: 'Ghi nhận đã thanh toán',
-                onPressed: () {
-                  Navigator.pop(bottomSheetCtx);
-                  AppSnackBar.showSuccess(
-                    context,
-                    'Đã ghi nhận thanh toán cho hợp đồng ${loan.loanCode}!',
-                  );
-                },
-              ),
-              const SizedBox(height: 10.0),
-            ],
-          ),
+  void _handlePaySchedule(PaymentScheduleModel schedule) async {
+    final success = await _scheduleController.markAsPaid(
+      schedule.id,
+      userId: _authController.currentUser?.userId,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      AppSnackBar.showSuccess(
+        context,
+        'Đã ghi nhận thanh toán hoàn tất cho Kỳ ${schedule.installmentNumber}!',
+      );
+    } else {
+      AppSnackBar.showError(
+        context,
+        _scheduleController.errorMessage ??
+            'Không thể ghi nhận thanh toán kỳ này.',
+      );
+    }
+  }
+
+  void _showScheduleDetail(PaymentScheduleModel schedule) {
+    final loan = _findLoan(schedule.loanId);
+    ScheduleDetailSheet.show(
+      context,
+      schedule: schedule,
+      loanName: loan?.name,
+      onPay: () => _handlePaySchedule(schedule),
+    );
+  }
+
+  LoanModel? _findLoan(int loanId) {
+    return _loanController.loans.cast<LoanModel?>().firstWhere(
+      (l) => l?.id == loanId,
+      orElse: () => null,
+    );
+  }
+
+  void _openPreferences() {
+    final pref = _scheduleController.preference;
+    if (pref == null) return;
+
+    final user = _authController.currentUser;
+    NotificationPreferenceSheet.show(
+      context,
+      currentPreference: pref,
+      userEmail: user?.email,
+      userPhone: user?.phone,
+      onSave: (newPref) async {
+        final success = await _scheduleController.updatePreference(
+          newPref,
+          userEmail: user?.email,
+          userPhone: user?.phone,
         );
+        if (!mounted) return false;
+
+        if (success) {
+          AppSnackBar.showSuccess(
+            context,
+            'Đã cập nhật cấu hình nhắc nợ thành công!',
+          );
+          return true;
+        } else {
+          AppSnackBar.showError(
+            context,
+            _scheduleController.errorMessage ??
+                'Không thể lưu cài đặt nhắc nợ.',
+          );
+          return false;
+        }
+      },
+    );
+  }
+
+  void _openNotifications() {
+    NotificationListSheet.show(
+      context,
+      notifications: _scheduleController.notifications,
+      onSelectSchedule: (scheduleId) async {
+        final success = await _scheduleController.selectSchedule(
+          scheduleId,
+          userId: _authController.currentUser?.userId,
+        );
+        if (!mounted) return;
+
+        if (success && _scheduleController.selectedSchedule != null) {
+          _showScheduleDetail(_scheduleController.selectedSchedule!);
+        } else {
+          AppSnackBar.showError(
+            context,
+            _scheduleController.errorMessage ??
+                'Không tìm thấy kỳ thanh toán liên kết.',
+          );
+        }
       },
     );
   }
@@ -111,305 +148,175 @@ class _PaymentScheduleScreenState extends State<PaymentScheduleScreen> {
         elevation: 0,
         automaticallyImplyLeading: false,
         title: const Text(
-          'Lịch trả nợ định kỳ',
+          'Lịch thanh toán định kỳ',
           style: TextStyle(
             fontSize: 18.0,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.sync_rounded, color: AppColors.primary),
+            tooltip: 'Đồng bộ lịch & nhắc nợ',
+            onPressed: () async {
+              final count = await _scheduleController.syncSchedules(
+                userId: _authController.currentUser?.userId,
+              );
+              if (!mounted) return;
+              AppSnackBar.showSuccess(
+                this.context,
+                'Đã đồng bộ lịch và làm mới $count thông báo nhắc nợ!',
+              );
+            },
+          ),
+        ],
       ),
       body: ListenableBuilder(
-        listenable: _loanController,
+        listenable: _scheduleController,
         builder: (context, _) {
-          final loans = _loanController.loans.where((l) => l.isActive).toList();
-          final totalMonthly = loans.fold(
-            0.0,
-            (sum, l) => sum + l.estimatedMonthlyPayment,
-          );
+          if (_scheduleController.isLoading &&
+              _scheduleController.schedules.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            );
+          }
+
+          // EX-02: Lỗi phân quyền truy cập
+          if (_scheduleController.exceptionCode == 'EX-02') {
+            return _buildErrorState(
+              icon: Icons.gpp_bad_rounded,
+              iconColor: AppColors.error,
+              title: 'Không có quyền truy cập',
+              message:
+                  _scheduleController.errorMessage ??
+                  'Bạn không có quyền truy xuất lịch thanh toán của tài khoản khác.',
+              actionLabel: 'Thử lại',
+              onAction: () => _scheduleController.loadSchedules(
+                userId: _authController.currentUser?.userId,
+              ),
+            );
+          }
+
+          // EX-06: Lỗi kết nối hoặc cơ sở dữ liệu
+          if (_scheduleController.exceptionCode == 'EX-06' &&
+              _scheduleController.schedules.isEmpty) {
+            return _buildErrorState(
+              icon: Icons.cloud_off_rounded,
+              iconColor: AppColors.error,
+              title: 'Sự cố kết nối hệ thống',
+              message:
+                  _scheduleController.errorMessage ??
+                  'Không thể tải dữ liệu lịch thanh toán. Vui lòng thử lại sau.',
+              actionLabel: 'Thử lại ngay',
+              onAction: () => _scheduleController.loadSchedules(
+                userId: _authController.currentUser?.userId,
+              ),
+            );
+          }
+
+          // EX-01: Chưa có lịch phân kỳ nào
+          if (_scheduleController.isEmptyState) {
+            return RefreshIndicator(
+              onRefresh: () => _scheduleController.loadSchedules(
+                userId: _authController.currentUser?.userId,
+              ),
+              color: AppColors.primary,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  child: ScheduleEmptyState(
+                    onAddLoan: () =>
+                        Navigator.pushNamed(context, AppRouter.loanForm),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          final schedules = _scheduleController.filteredSchedules;
 
           return RefreshIndicator(
-            onRefresh: () => _loanController.fetchLoans(),
+            onRefresh: () => _scheduleController.loadSchedules(
+              userId: _authController.currentUser?.userId,
+            ),
             color: AppColors.primary,
             child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(
                 horizontal: 16.0,
                 vertical: 14.0,
               ),
               children: [
-                // 1. Thẻ tổng quan kỳ thanh toán tháng này
-                Container(
-                  padding: const EdgeInsets.all(18.0),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.25),
-                        blurRadius: 12.0,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Tổng phải trả trong tháng',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13.0,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          Icon(
-                            Icons.calendar_today_rounded,
-                            color: Colors.white70,
-                            size: 18.0,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8.0),
-                      Text(
-                        _formatCurrency(totalMonthly),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 14.0),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10.0,
-                          vertical: 6.0,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        child: Text(
-                          '${loans.length} khoản vay đang cần thanh toán kỳ này',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12.0,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                // 1. Thẻ tổng quan nghĩa vụ tài chính tháng này & phím tắt
+                ScheduleSummaryCard(
+                  currentMonthDueAmount:
+                      _scheduleController.currentMonthDueAmount,
+                  upcomingCount: _scheduleController.upcomingCount,
+                  overdueCount: _scheduleController.overdueCount,
+                  paidCount: _scheduleController.paidCount,
+                  onOpenPreferences: _openPreferences,
+                  onOpenNotifications: _openNotifications,
                 ),
-                const SizedBox(height: 16.0),
+                const SizedBox(height: 18.0),
 
-                // 2. Bộ lọc trạng thái
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildFilterChip('Tất cả', 'ALL'),
-                      _buildFilterChip('Đang chờ trả', 'PENDING'),
-                      _buildFilterChip('Đã hoàn thành', 'PAID'),
-                    ],
-                  ),
-                ),
+                // 2. Bộ lọc trạng thái kỳ thanh toán (ALL, UPCOMING, OVERDUE, PAID)
+                _buildFilterChips(),
                 const SizedBox(height: 14.0),
 
-                // 3. Danh sách các kỳ thanh toán
-                if (loans.isEmpty)
+                // 3. Tiêu đề danh sách
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'KẾ HOẠCH TRẢ NỢ CHI TIẾT',
+                      style: TextStyle(
+                        fontSize: 12.0,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Text(
+                      '${schedules.length} kỳ',
+                      style: const TextStyle(
+                        fontSize: 12.0,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10.0),
+
+                // 4. Danh sách các thẻ kỳ thanh toán
+                if (schedules.isEmpty) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 40.0),
                     alignment: Alignment.center,
-                    child: Column(
-                      children: [
-                        const Icon(
-                          Icons.event_available_rounded,
-                          size: 48.0,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(height: 10.0),
-                        const Text(
-                          'Không có lịch trả nợ nào',
-                          style: TextStyle(
-                            fontSize: 15.0,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 4.0),
-                        const Text(
-                          'Các khoản vay đang hoạt động sẽ hiển thị lịch tại đây.',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
+                    child: const Text(
+                      'Không có kỳ thanh toán nào phù hợp với bộ lọc.',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13.0,
+                      ),
                     ),
-                  )
-                else
-                  ...List.generate(loans.length, (idx) {
-                    final loan = loans[idx];
-                    final monthlyPrincipal =
-                        loan.principalAmount / loan.tenorMonths;
-                    final monthlyInterest =
-                        loan.estimatedMonthlyPayment - monthlyPrincipal;
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12.0),
-                      padding: const EdgeInsets.all(16.0),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(14.0),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8.0),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primarySoft,
-                                  borderRadius: BorderRadius.circular(10.0),
-                                ),
-                                child: const Icon(
-                                  Icons.account_balance_rounded,
-                                  color: AppColors.primary,
-                                  size: 20.0,
-                                ),
-                              ),
-                              const SizedBox(width: 10.0),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      loan.loanName,
-                                      style: const TextStyle(
-                                        fontSize: 14.0,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${loan.lenderName} • ${loan.loanCode}',
-                                      style: const TextStyle(
-                                        fontSize: 12.0,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8.0,
-                                  vertical: 4.0,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.warning.withValues(
-                                    alpha: 0.12,
-                                  ),
-                                  borderRadius: BorderRadius.circular(6.0),
-                                ),
-                                child: const Text(
-                                  'Chờ thanh toán',
-                                  style: TextStyle(
-                                    fontSize: 11.0,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.warning,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 20.0),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Gốc + Lãi kỳ này',
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                  Text(
-                                    _formatCurrency(
-                                      loan.estimatedMonthlyPayment,
-                                    ),
-                                    style: const TextStyle(
-                                      fontSize: 15.0,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  const Text(
-                                    'Chi tiết phân bổ',
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Gốc: ${_formatCurrency(monthlyPrincipal)} | Lãi: ${_formatCurrency(monthlyInterest)}',
-                                    style: const TextStyle(
-                                      fontSize: 11.0,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12.0),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: () =>
-                                  _showPaymentConfirmModal(context, loan),
-                              icon: const Icon(
-                                Icons.payment_rounded,
-                                size: 16.0,
-                              ),
-                              label: const Text(
-                                'Xác nhận thanh toán',
-                                style: TextStyle(fontSize: 13.0),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.primary,
-                                side: const BorderSide(
-                                  color: AppColors.primaryLight,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.0),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                  ),
+                ] else ...[
+                  ...schedules.map((schedule) {
+                    final loan = _findLoan(schedule.loanId);
+                    return PaymentScheduleCard(
+                      schedule: schedule,
+                      loanName: loan?.name,
+                      onTap: () => _showScheduleDetail(schedule),
+                      onPay: () => _handlePaySchedule(schedule),
                     );
                   }),
-
-                const SizedBox(height: 80.0), // Đệm đáy cho Bottom Nav Bar
+                ],
+                const SizedBox(
+                  height: 80.0,
+                ), // Đệm đáy cho Bottom Navigation Bar
               ],
             ),
           );
@@ -418,30 +325,90 @@ class _PaymentScheduleScreenState extends State<PaymentScheduleScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, String value) {
-    final isSelected = _selectedFilter == value;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (_) {
-          setState(() {
-            _selectedFilter = value;
-          });
-        },
-        backgroundColor: AppColors.surface,
-        selectedColor: AppColors.primarySoft,
-        labelStyle: TextStyle(
-          fontSize: 12.0,
-          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-          color: isSelected ? AppColors.primary : AppColors.textSecondary,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.0),
-          side: BorderSide(
-            color: isSelected ? AppColors.primaryLight : AppColors.border,
-          ),
+  Widget _buildFilterChips() {
+    final filters = [
+      {'key': 'ALL', 'label': 'Tất cả'},
+      {'key': 'UPCOMING', 'label': 'Sắp đến hạn'},
+      {'key': 'OVERDUE', 'label': 'Quá hạn'},
+      {'key': 'PAID', 'label': 'Đã hoàn tất'},
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: filters.map((f) {
+          final isSelected = _scheduleController.currentFilter == f['key'];
+          return Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ChoiceChip(
+              label: Text(f['label']!),
+              selected: isSelected,
+              selectedColor: AppColors.primary,
+              backgroundColor: AppColors.surface,
+              labelStyle: TextStyle(
+                fontSize: 12.5,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? Colors.white : AppColors.textPrimary,
+              ),
+              side: BorderSide(
+                color: isSelected ? AppColors.primary : AppColors.border,
+              ),
+              onSelected: (_) => _scheduleController.setFilter(f['key']!),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildErrorState({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String message,
+    required String actionLabel,
+    required VoidCallback onAction,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 54.0, color: iconColor),
+            const SizedBox(height: 16.0),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 17.0,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8.0),
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 13.0,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20.0),
+            ElevatedButton(
+              onPressed: onAction,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+              ),
+              child: Text(actionLabel),
+            ),
+          ],
         ),
       ),
     );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import '../common/app_colors.dart';
 
 /// Phương thức tính lãi vay
 enum InterestMethod {

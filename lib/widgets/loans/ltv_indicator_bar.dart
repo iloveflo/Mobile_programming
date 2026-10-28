@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import '../common/app_colors.dart';
 
 /// Thanh chỉ số LTV (Loan-to-Value) - Tỷ lệ dư nợ trên giá trị tài sản bảo đảm
 /// Đổi màu linh hoạt theo mức độ an toàn:

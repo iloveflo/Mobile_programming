@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import '../common/app_colors.dart';
 
 /// Thẻ tổng quan danh mục tín dụng & dư nợ (PortfolioSummaryCard)
 /// Nền gradient hoàng gia Deep Blue, hiển thị tiến độ trả nợ tổng thể

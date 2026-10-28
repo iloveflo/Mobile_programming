@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import '../common/app_colors.dart';
 
 /// Các trạng thái xác thực giả lập phục vụ Dev/QA kiểm thử nhanh giao diện
 enum DevAuthState {

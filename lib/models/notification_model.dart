@@ -57,4 +57,32 @@ class NotificationModel {
     'status': status,
     'created_at': createdAt?.toIso8601String(),
   };
+
+  NotificationModel copyWith({
+    int? id,
+    int? userId,
+    int? scheduleId,
+    String? type,
+    String? channel,
+    String? title,
+    String? message,
+    DateTime? scheduledAt,
+    DateTime? sentAt,
+    String? status,
+    DateTime? createdAt,
+  }) {
+    return NotificationModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      scheduleId: scheduleId ?? this.scheduleId,
+      type: type ?? this.type,
+      channel: channel ?? this.channel,
+      title: title ?? this.title,
+      message: message ?? this.message,
+      scheduledAt: scheduledAt ?? this.scheduledAt,
+      sentAt: sentAt ?? this.sentAt,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

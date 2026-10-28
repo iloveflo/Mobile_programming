@@ -7,7 +7,11 @@ import '../screens/auth/otp_verification_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/auth/reset_password_screen.dart';
 import '../screens/auth/splash_screen.dart';
+import '../screens/credit_report/credit_report_detail_screen.dart';
+import '../screens/credit_report/credit_report_list_screen.dart';
+import '../screens/debt/debt_strategy_screen.dart';
 import '../screens/settings/app_settings_screen.dart';
+import '../screens/simulation/simulation_screen.dart';
 import '../screens/loans/loan_collateral_ocr_screen.dart';
 import '../screens/loans/loan_detail_screen.dart';
 import '../screens/loans/loan_form_screen.dart';
@@ -52,6 +56,18 @@ abstract final class AppRouter {
   /// L02-04: Tài sản bảo đảm & Bóc tách OCR
   static const String loanCollateralOcr = '/loans/collateral-ocr';
 
+  /// L03-01: Tối ưu trả nợ (Snowball & Avalanche)
+  static const String debtStrategy = '/debt-strategy';
+
+  /// L03-02: Mô phỏng trả nợ (Simulation)
+  static const String simulation = '/simulation';
+
+  /// L04-02: Báo cáo tín dụng định kỳ
+  static const String creditReports = '/credit-reports';
+
+  /// L04-03: Chi tiết ảnh chụp báo cáo tín dụng
+  static const String creditReportDetail = '/credit-reports/detail';
+
   /// Bảng ánh xạ route của ứng dụng
   static Map<String, WidgetBuilder> get routes => {
     splash: (context) => const SplashScreen(),
@@ -89,6 +105,18 @@ abstract final class AppRouter {
       final args =
           ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       return LoanCollateralOcrScreen(loanId: args?['loanId'] as String?);
+    },
+    debtStrategy: (context) => const DebtStrategyScreen(),
+    simulation: (context) {
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      return SimulationScreen(initialLoanId: args?['loanId'] as int?);
+    },
+    creditReports: (context) => const CreditReportListScreen(),
+    creditReportDetail: (context) {
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      return CreditReportDetailScreen(reportId: args?['reportId'] as int?);
     },
   };
 }

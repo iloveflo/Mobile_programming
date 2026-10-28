@@ -56,4 +56,32 @@ class PaymentScheduleModel {
     'status': status,
     'created_at': createdAt?.toIso8601String(),
   };
+
+  PaymentScheduleModel copyWith({
+    int? id,
+    int? loanId,
+    int? installmentNumber,
+    DateTime? dueDate,
+    double? principalAmount,
+    double? interestAmount,
+    double? feeAmount,
+    double? totalAmount,
+    double? remainingBalance,
+    String? status,
+    DateTime? createdAt,
+  }) {
+    return PaymentScheduleModel(
+      id: id ?? this.id,
+      loanId: loanId ?? this.loanId,
+      installmentNumber: installmentNumber ?? this.installmentNumber,
+      dueDate: dueDate ?? this.dueDate,
+      principalAmount: principalAmount ?? this.principalAmount,
+      interestAmount: interestAmount ?? this.interestAmount,
+      feeAmount: feeAmount ?? this.feeAmount,
+      totalAmount: totalAmount ?? this.totalAmount,
+      remainingBalance: remainingBalance ?? this.remainingBalance,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

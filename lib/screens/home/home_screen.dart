@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../controllers/auth_controller.dart';
 import '../../controllers/loan_controller.dart';
+import '../../controllers/payment_schedule_controller.dart';
 import '../../models/loan_model.dart';
 import '../../models/user_model.dart';
 import '../../routes/app_router.dart';
@@ -24,6 +25,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final AuthController _authController = sl<AuthController>();
   final LoanController _loanController = sl<LoanController>();
+  final PaymentScheduleController _scheduleController =
+      sl<PaymentScheduleController>();
 
   /// Sử dụng ValueNotifier cho trạng thái ẩn/hiện số dư để tránh setState toàn bộ màn hình
   final ValueNotifier<bool> _isBalanceHidden = ValueNotifier<bool>(false);
@@ -41,6 +44,9 @@ class _HomeScreenState extends State<HomeScreen> {
       if (_authController.activeSessions.isEmpty) {
         _authController.loadSessions();
       }
+      final userId = _authController.currentUser?.userId;
+      _scheduleController.loadNotifications(userId: userId);
+      _scheduleController.loadSchedules(userId: userId);
     });
   }
 
@@ -74,126 +80,48 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showNotificationSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36.0,
-                height: 4.0,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2.0),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16.0),
-            Row(
-              children: [
-                const Icon(
-                  Icons.notifications_active_rounded,
-                  color: AppColors.primary,
-                  size: 24.0,
-                ),
-                const SizedBox(width: 8.0),
-                const Text(
-                  'Thông báo tài chính mới (2)',
-                  style: TextStyle(
-                    fontSize: 17.0,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 20.0),
-                  onPressed: () => Navigator.pop(ctx),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12.0),
-            _buildNotificationItem(
-              title: 'Kỳ trả nợ đến gần: Techcombank',
-              content:
-                  'Khoản vay HD-0001 cần thanh toán 12.500.000 đ trước ngày 05/10/2026.',
-              time: '15 phút trước',
-              icon: Icons.calendar_month_rounded,
-              iconColor: const Color(0xFFD97706),
-            ),
-            const Divider(height: 16.0),
-            _buildNotificationItem(
-              title: 'Cập nhật điểm tín dụng CIC tháng 09',
-              content:
-                  'Hồ sơ tín dụng đạt 745 điểm (Hạng 1 - Rất tốt), đủ điều kiện ưu đãi -0.5% lãi suất.',
-              time: 'Hôm qua',
-              icon: Icons.shield_rounded,
-              iconColor: AppColors.success,
-            ),
-            const SizedBox(height: 20.0),
-          ],
-        ),
-      ),
-    );
-  }
+    NotificationListSheet.show(
+      context,
+      notifications: _scheduleController.notifications,
+      onSelectSchedule: (scheduleId) async {
+        final success = await _scheduleController.selectSchedule(
+          scheduleId,
+          userId: _authController.currentUser?.userId,
+        );
+        if (!mounted) return;
 
-  Widget _buildNotificationItem({
-    required String title,
-    required String content,
-    required String time,
-    required IconData icon,
-    required Color iconColor,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CircleAvatar(
-          radius: 18.0,
-          backgroundColor: iconColor.withValues(alpha: 0.12),
-          child: Icon(icon, size: 18.0, color: iconColor),
-        ),
-        const SizedBox(width: 12.0),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 2.0),
-              Text(
-                content,
-                style: const TextStyle(
-                  fontSize: 12.0,
-                  color: AppColors.textSecondary,
-                  height: 1.3,
-                ),
-              ),
-              const SizedBox(height: 4.0),
-              Text(
-                time,
-                style: const TextStyle(
-                  fontSize: 11.0,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+        if (success && _scheduleController.selectedSchedule != null) {
+          final schedule = _scheduleController.selectedSchedule!;
+          final loan = _loanController.loans.cast<LoanModel?>().firstWhere(
+            (l) => l?.id == schedule.loanId,
+            orElse: () => null,
+          );
+
+          ScheduleDetailSheet.show(
+            this.context,
+            schedule: schedule,
+            loanName: loan?.name,
+            onPay: () async {
+              Navigator.pop(this.context);
+              await _scheduleController.markAsPaid(
+                schedule.id,
+                userId: _authController.currentUser?.userId,
+              );
+              if (mounted) {
+                AppSnackBar.showSuccess(
+                  this.context,
+                  'Đã ghi nhận thanh toán thành công!',
+                );
+              }
+            },
+          );
+        } else if (_scheduleController.errorMessage != null && mounted) {
+          AppSnackBar.showError(
+            this.context,
+            _scheduleController.errorMessage!,
+          );
+        }
+      },
     );
   }
 
@@ -438,65 +366,6 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       },
-    );
-  }
-
-  void _showEarlyRepaymentSimulationDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.0),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.trending_up_rounded, color: Color(0xFFE11D48)),
-            SizedBox(width: 8.0),
-            Text(
-              'Mô phỏng trả nợ sớm',
-              style: TextStyle(fontSize: 17.0, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Nếu bạn tất toán trước hạn 50.000.000 đ vào kỳ tới:',
-              style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12.0),
-            _buildSimulationRow(
-              'Tiết kiệm tiền lãi:',
-              '8.450.000 đ',
-              AppColors.success,
-            ),
-            _buildSimulationRow(
-              'Rút ngắn kỳ hạn:',
-              '6 tháng',
-              AppColors.primary,
-            ),
-            _buildSimulationRow(
-              'Phí trả trước hạn (2%):',
-              '1.000.000 đ',
-              AppColors.textSecondary,
-            ),
-            const Divider(height: 16.0),
-            _buildSimulationRow(
-              'Lợi ích ròng:',
-              '+7.450.000 đ',
-              AppColors.success,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Đã hiểu'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -854,44 +723,56 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       actions: [
-        // Chuông thông báo kèm chấm đỏ số lượng
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            IconButton(
-              icon: const Icon(
-                Icons.notifications_outlined,
-                color: AppColors.textPrimary,
-                size: 24.0,
-              ),
-              tooltip: 'Thông báo',
-              onPressed: () => _showNotificationSheet(context),
-            ),
-            Positioned(
-              right: 10.0,
-              top: 14.0,
-              child: Container(
-                padding: const EdgeInsets.all(3.0),
-                decoration: const BoxDecoration(
-                  color: AppColors.error,
-                  shape: BoxShape.circle,
-                ),
-                constraints: const BoxConstraints(
-                  minWidth: 15.0,
-                  minHeight: 15.0,
-                ),
-                child: const Text(
-                  '2',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 9.0,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+        // Chuông thông báo kèm chấm đỏ số lượng đồng bộ từ PaymentScheduleController
+        ListenableBuilder(
+          listenable: _scheduleController,
+          builder: (context, _) {
+            final notifCount = _scheduleController.notifications.length;
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.notifications_outlined,
+                    color: AppColors.textPrimary,
+                    size: 24.0,
                   ),
+                  tooltip: 'Thông báo',
+                  onPressed: () => _showNotificationSheet(context),
                 ),
-              ),
-            ),
-          ],
+                if (notifCount > 0)
+                  Positioned(
+                    right: 8.0,
+                    top: 12.0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4.0,
+                        vertical: 2.0,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: AppColors.error,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16.0,
+                        minHeight: 16.0,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        notifCount > 99 ? '99+' : '$notifCount',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 9.0,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          height: 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
         // Trợ giúp / CSKH (TUYỆT ĐỐI KHÔNG CÓ LOGOUT Ở ĐÂY)
         IconButton(
@@ -1186,15 +1067,15 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       _QuickActionItem(
         icon: Icons.trending_up_rounded,
-        label: 'Mô phỏng\ntrả sớm',
+        label: 'Mô phỏng\ntrả nợ',
         color: const Color(0xFFE11D48),
-        onTap: () => _showEarlyRepaymentSimulationDialog(context),
+        onTap: () => Navigator.pushNamed(context, AppRouter.simulation),
       ),
       _QuickActionItem(
-        icon: Icons.apartment_rounded,
-        label: 'Tài sản\nthế chấp',
+        icon: Icons.auto_graph_rounded,
+        label: 'Tối ưu\ntrả nợ',
         color: const Color(0xFF2563EB),
-        onTap: () => Navigator.pushNamed(context, AppRouter.loanCollateralOcr),
+        onTap: () => Navigator.pushNamed(context, AppRouter.debtStrategy),
       ),
       _QuickActionItem(
         icon: Icons.pie_chart_outline_rounded,
@@ -1338,16 +1219,28 @@ class _HomeScreenState extends State<HomeScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 3.0),
-                  const Text(
-                    'Kỳ tới: 12.500.000 đ • Hạn đóng 05/10 (Còn 3 ngày)',
-                    style: TextStyle(
-                      fontSize: 11.0,
-                      color: Color(0xFFB45309),
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  () {
+                    final dueDate = activeLoan.nextDueDate;
+                    final daysLeft = dueDate
+                        .difference(DateTime.now())
+                        .inDays
+                        .clamp(0, 365);
+                    final installmentStr = _formatCurrency(
+                      activeLoan.monthlyInstallmentEstimate,
+                    );
+                    final dueDayStr =
+                        '${dueDate.day.toString().padLeft(2, '0')}/${dueDate.month.toString().padLeft(2, '0')}';
+                    return Text(
+                      'Kỳ tới: $installmentStr • Hạn đóng $dueDayStr (Còn $daysLeft ngày)',
+                      style: const TextStyle(
+                        fontSize: 11.0,
+                        color: Color(0xFFB45309),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    );
+                  }(),
                 ],
               ),
             ),

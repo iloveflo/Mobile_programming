@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'app_colors.dart';
+import '../common/app_colors.dart';
 
 /// Ô nhập mã xác thực OTP 6 số chuẩn Fintech.
 /// Tự động chuyển focus, hỗ trợ dán cụm số, xóa lùi (backspace),

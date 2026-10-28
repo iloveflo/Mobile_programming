@@ -52,4 +52,38 @@ class CreditProfileModel {
     'risk_level': riskLevel,
     'updated_at': updatedAt?.toIso8601String(),
   };
+
+  CreditProfileModel copyWith({
+    int? id,
+    int? userId,
+    int? creditScore,
+    double? dtiRatio,
+    bool clearDti = false,
+    double? ltvRatio,
+    bool clearLtv = false,
+    double? creditUtilization,
+    bool clearUtilization = false,
+    double? onTimePaymentRate,
+    bool clearPaymentRate = false,
+    int? activeLoanCount,
+    String? riskLevel,
+    DateTime? updatedAt,
+  }) {
+    return CreditProfileModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      creditScore: creditScore ?? this.creditScore,
+      dtiRatio: clearDti ? null : (dtiRatio ?? this.dtiRatio),
+      ltvRatio: clearLtv ? null : (ltvRatio ?? this.ltvRatio),
+      creditUtilization: clearUtilization
+          ? null
+          : (creditUtilization ?? this.creditUtilization),
+      onTimePaymentRate: clearPaymentRate
+          ? null
+          : (onTimePaymentRate ?? this.onTimePaymentRate),
+      activeLoanCount: activeLoanCount ?? this.activeLoanCount,
+      riskLevel: riskLevel ?? this.riskLevel,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }

@@ -40,4 +40,24 @@ class NotificationPreferenceModel {
     'reminder_days': reminderDays,
     'updated_at': updatedAt?.toIso8601String(),
   };
+
+  NotificationPreferenceModel copyWith({
+    int? id,
+    int? userId,
+    bool? pushEnabled,
+    bool? emailEnabled,
+    bool? smsEnabled,
+    int? reminderDays,
+    DateTime? updatedAt,
+  }) {
+    return NotificationPreferenceModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      pushEnabled: pushEnabled ?? this.pushEnabled,
+      emailEnabled: emailEnabled ?? this.emailEnabled,
+      smsEnabled: smsEnabled ?? this.smsEnabled,
+      reminderDays: reminderDays ?? this.reminderDays,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }

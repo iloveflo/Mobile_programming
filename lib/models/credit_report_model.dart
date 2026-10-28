@@ -60,4 +60,43 @@ class CreditReportModel {
     'report_period': reportPeriod,
     'generated_at': generatedAt?.toIso8601String(),
   };
+
+  CreditReportModel copyWith({
+    int? id,
+    int? userId,
+    int? creditScore,
+    double? dtiRatio,
+    double? ltvRatio,
+    double? creditUtilization,
+    double? onTimePaymentRate,
+    double? totalDebt,
+    double? overdueAmount,
+    String? riskLevel,
+    String? reportPeriod,
+    DateTime? generatedAt,
+    bool clearScore = false,
+    bool clearDti = false,
+    bool clearLtv = false,
+    bool clearUtilization = false,
+    bool clearOnTime = false,
+  }) {
+    return CreditReportModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      creditScore: clearScore ? null : (creditScore ?? this.creditScore),
+      dtiRatio: clearDti ? null : (dtiRatio ?? this.dtiRatio),
+      ltvRatio: clearLtv ? null : (ltvRatio ?? this.ltvRatio),
+      creditUtilization: clearUtilization
+          ? null
+          : (creditUtilization ?? this.creditUtilization),
+      onTimePaymentRate: clearOnTime
+          ? null
+          : (onTimePaymentRate ?? this.onTimePaymentRate),
+      totalDebt: totalDebt ?? this.totalDebt,
+      overdueAmount: overdueAmount ?? this.overdueAmount,
+      riskLevel: riskLevel ?? this.riskLevel,
+      reportPeriod: reportPeriod ?? this.reportPeriod,
+      generatedAt: generatedAt ?? this.generatedAt,
+    );
+  }
 }
