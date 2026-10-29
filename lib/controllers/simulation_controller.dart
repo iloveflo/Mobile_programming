@@ -512,7 +512,7 @@ class SimulationController extends ChangeNotifier {
       // EX-05: Sự cố Backend / Database khi lưu kịch bản
       _exceptionCode = 'EX-05';
       _errorMessage =
-          'Sự cố lưu trữ kịch bản tham khảo (EX-05): ${e.toString().replaceAll('Exception: ', '')}';
+          '[EX-05] Sự cố lưu trữ kịch bản tham khảo: ${e.toString().replaceAll('Exception: ', '')}';
       _isSaving = false;
       notifyListeners();
       return false;

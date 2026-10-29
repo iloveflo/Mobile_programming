@@ -3,7 +3,6 @@ class NotificationPreferenceModel {
   final int userId;
   final bool pushEnabled;
   final bool emailEnabled;
-  final bool smsEnabled;
   final bool balanceFluctuationEnabled;
   final bool monthlyStatementEnabled;
   final int reminderDays;
@@ -14,7 +13,6 @@ class NotificationPreferenceModel {
     required this.userId,
     required this.pushEnabled,
     required this.emailEnabled,
-    required this.smsEnabled,
     required this.reminderDays,
     this.balanceFluctuationEnabled = true,
     this.monthlyStatementEnabled = true,
@@ -27,7 +25,6 @@ class NotificationPreferenceModel {
       userId: json['user_id'] as int,
       pushEnabled: json['push_enabled'] as bool? ?? true,
       emailEnabled: json['email_enabled'] as bool? ?? true,
-      smsEnabled: json['sms_enabled'] as bool? ?? false,
       balanceFluctuationEnabled:
           json['balance_fluctuation_enabled'] as bool? ?? true,
       monthlyStatementEnabled:
@@ -44,7 +41,6 @@ class NotificationPreferenceModel {
     'user_id': userId,
     'push_enabled': pushEnabled,
     'email_enabled': emailEnabled,
-    'sms_enabled': smsEnabled,
     'balance_fluctuation_enabled': balanceFluctuationEnabled,
     'monthly_statement_enabled': monthlyStatementEnabled,
     'reminder_days': reminderDays,
@@ -56,7 +52,6 @@ class NotificationPreferenceModel {
     int? userId,
     bool? pushEnabled,
     bool? emailEnabled,
-    bool? smsEnabled,
     bool? balanceFluctuationEnabled,
     bool? monthlyStatementEnabled,
     int? reminderDays,
@@ -67,7 +62,6 @@ class NotificationPreferenceModel {
       userId: userId ?? this.userId,
       pushEnabled: pushEnabled ?? this.pushEnabled,
       emailEnabled: emailEnabled ?? this.emailEnabled,
-      smsEnabled: smsEnabled ?? this.smsEnabled,
       balanceFluctuationEnabled:
           balanceFluctuationEnabled ?? this.balanceFluctuationEnabled,
       monthlyStatementEnabled:

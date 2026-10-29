@@ -87,7 +87,7 @@ class DebtComparisonView extends StatelessWidget {
 
         // 9.3: Bảng đối sánh dữ liệu tổng hợp
         const Text(
-          'BẢNG ĐỐI CHIẾU CHỈ SỐ TÀI CHÍNH (MỤC 9.3)',
+          'BẢNG ĐỐI CHIẾU CHỈ SỐ TÀI CHÍNH',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,

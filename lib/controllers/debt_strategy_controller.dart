@@ -328,7 +328,7 @@ class DebtStrategyController extends ChangeNotifier {
       // EX-05: Lỗi Database hoặc Network khi ghi nhận dữ liệu
       _exceptionCode = 'EX-05';
       _errorMessage =
-          'Sự cố lưu trữ dữ liệu kế hoạch (EX-05): ${e.toString().replaceAll('Exception: ', '')}';
+          '[EX-05] Sự cố lưu trữ dữ liệu kế hoạch: ${e.toString().replaceAll('Exception: ', '')}';
       _isApplying = false;
       notifyListeners();
       return false;

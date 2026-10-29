@@ -43,9 +43,7 @@ class ApiLoanRepository implements LoanRepository {
         'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối mạng Wifi/4G.',
       );
     } on TimeoutException catch (_) {
-      throw Exception(
-        'Yêu cầu đã quá thời gian phản hồi (Timeout). Vui lòng thử lại.',
-      );
+      throw Exception('Yêu cầu đã quá thời gian phản hồi. Vui lòng thử lại.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }

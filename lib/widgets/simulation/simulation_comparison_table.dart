@@ -122,7 +122,7 @@ class SimulationComparisonTable extends StatelessWidget {
 
         // Tiêu đề bảng đối chiếu Mục 11
         const Text(
-          'BẢNG ĐỐI CHIẾU CHỈ TIÊU TÀI CHÍNH (MỤC 11)',
+          'BẢNG ĐỐI CHIẾU CHỈ TIÊU TÀI CHÍNH',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,

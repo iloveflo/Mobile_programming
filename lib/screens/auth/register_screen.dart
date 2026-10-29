@@ -231,7 +231,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     // Số điện thoại liên kết CIC
                     AppTextField(
-                      label: 'Số điện thoại liên kết CIC',
+                      label: 'Số điện thoại',
                       hint: '0912 345 678',
                       controller: _phoneController,
                       prefixIcon: const Icon(

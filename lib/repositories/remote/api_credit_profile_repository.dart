@@ -38,7 +38,7 @@ class ApiCreditProfileRepository implements CreditProfileRepository {
       throw Exception('Lỗi kết nối mạng. Vui lòng kiểm tra kết nối Internet.');
     } on TimeoutException catch (_) {
       throw Exception(
-        'Yêu cầu xử lý hồ sơ quá thời gian chờ (Timeout). Vui lòng thử lại.',
+        'Yêu cầu xử lý hồ sơ quá thời gian chờ. Vui lòng thử lại.',
       );
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));

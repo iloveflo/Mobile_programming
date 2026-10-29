@@ -468,7 +468,6 @@ CREATE TABLE notification_preferences (
 
     push_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     email_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    sms_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     balance_fluctuation_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     monthly_statement_enabled BOOLEAN NOT NULL DEFAULT TRUE,
 

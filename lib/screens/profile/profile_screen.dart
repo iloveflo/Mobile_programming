@@ -1560,7 +1560,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _buildCard([
       _buildInfoRow(
         icon: Icons.badge_outlined,
-        label: 'Số CCCD gắn chip (C06)',
+        label: 'Số CCCD gắn chip',
         value: (idCard != null && idCard.isNotEmpty)
             ? _maskIdCard(idCard)
             : 'Chưa cập nhật CCCD',
@@ -1582,7 +1582,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       const Divider(height: 1.0, indent: 44.0),
       _buildInfoRow(
         icon: Icons.phone_android_rounded,
-        label: 'Số điện thoại nhận OTP',
+        label: 'Số điện thoại liên hệ',
         value: (phone != null && phone.isNotEmpty) ? phone : 'Chưa cập nhật',
       ),
       const Divider(height: 1.0, indent: 44.0),

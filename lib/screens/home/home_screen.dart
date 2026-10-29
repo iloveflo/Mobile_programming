@@ -1126,7 +1126,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // Lựa chọn 1: Chiến lược tối ưu trả nợ (Snowball / Avalanche)
             _buildPlanningOptionCard(
               context: ctx,
-              title: 'Chiến lược tối ưu trả nợ (Debt Strategy)',
+              title: 'Chiến lược tối ưu trả nợ',
               subtitle:
                   'Áp dụng thuật toán Snowball (dư nợ nhỏ trước) hoặc Avalanche (lãi suất cao trước) để tiết kiệm tối đa tiền lãi và rút ngắn thời gian trả nợ.',
               badge: 'Khuyên dùng • Tiết kiệm lãi',
@@ -1143,7 +1143,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // Lựa chọn 2: Mô phỏng kịch bản trả nợ (Simulation)
             _buildPlanningOptionCard(
               context: ctx,
-              title: 'Mô phỏng kịch bản trả nợ (Simulation)',
+              title: 'Mô phỏng kịch bản trả nợ',
               subtitle:
                   'Dự toán chính xác số tiền lãi tiết kiệm được khi trả thêm định kỳ, tất toán trước hạn hoặc kiểm tra tác động khi lãi suất thị trường thay đổi.',
               badge: 'Dự toán tài chính',

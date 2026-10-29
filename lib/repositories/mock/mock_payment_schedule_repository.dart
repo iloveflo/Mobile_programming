@@ -159,13 +159,12 @@ class MockPaymentScheduleRepository implements PaymentScheduleRepository {
 
     if (match != null) return match;
 
-    // Thiết lập mặc định theo đặc tả: push=true, email=true, sms=false, reminder_days=3
+    // Thiết lập mặc định theo đặc tả: push=true, email=true, reminder_days=3
     return NotificationPreferenceModel(
       id: 1,
       userId: targetUserId,
       pushEnabled: true,
       emailEnabled: true,
-      smsEnabled: false,
       balanceFluctuationEnabled: true,
       monthlyStatementEnabled: true,
       reminderDays: 3,
@@ -183,18 +182,11 @@ class MockPaymentScheduleRepository implements PaymentScheduleRepository {
       throw Exception('Sự cố cơ sở dữ liệu khi cập nhật thiết lập thông báo.');
     }
 
-    // EX-04: Thiếu thông tin gửi Email hoặc SMS khi kênh đó được bật
+    // EX-04: Thiếu thông tin gửi Email khi kênh đó được bật
     if (preference.emailEnabled &&
         (userEmail == null || userEmail.trim().isEmpty)) {
       throw Exception(
         'Thiếu thông tin địa chỉ email trong hồ sơ cá nhân khi bật kênh thông báo qua Email.',
-      );
-    }
-
-    if (preference.smsEnabled &&
-        (userPhone == null || userPhone.trim().isEmpty)) {
-      throw Exception(
-        'Thiếu thông tin số điện thoại trong hồ sơ cá nhân khi bật kênh thông báo qua tin nhắn SMS.',
       );
     }
 

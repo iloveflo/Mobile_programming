@@ -383,7 +383,7 @@ class _CreditHealthScreenState extends State<CreditHealthScreen> {
                       ? AppColors.success
                       : AppColors.warning,
                   description:
-                      'Tổng số khoản vay đang trong trạng thái ACTIVE được ghi nhận trong hệ thống.',
+                      'Tổng số khoản vay đang trong trạng thái hoạt động được ghi nhận trong hệ thống.',
                   icon: Icons.format_list_numbered_rounded,
                   onTap: () => CreditFactorSheet.show(
                     context,

@@ -60,7 +60,7 @@ class SimulationHistorySheet extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Kịch bản tham khảo đã lưu (Mục 12)',
+                'Kịch bản tham khảo đã lưu',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -163,7 +163,7 @@ class SimulationHistorySheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Ngày lưu: ${_formatDate(sim.createdAt)} • [SIMULATION_REFERENCE]',
+                  'Ngày lưu: ${_formatDate(sim.createdAt)}',
                   style: const TextStyle(
                     fontSize: 10.5,
                     color: AppColors.textSecondary,

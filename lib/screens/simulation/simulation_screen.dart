@@ -79,7 +79,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Kịch bản sẽ được lưu vào danh mục tham khảo cá nhân [SIMULATION_REFERENCE] và không ảnh hưởng đến khoản vay thực tế.',
+              'Kịch bản sẽ được lưu vào danh mục tham khảo cá nhân và không ảnh hưởng đến khoản vay thực tế.',
               style: TextStyle(
                 fontSize: 12.5,
                 color: AppColors.textSecondary,
@@ -140,7 +140,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
             // EX-05: Sự cố Backend / Database
             AppSnackBar.showError(
               context,
-              _controller.errorMessage ?? 'Sự cố lưu trữ kịch bản (EX-05).',
+              _controller.errorMessage ?? 'Sự cố lưu trữ kịch bản.',
             );
           }
         }
@@ -348,7 +348,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                   Text(
                     comp.totalCostDifference > 0
                         ? 'Tiết kiệm ~${(comp.totalCostDifference / 1000000).toStringAsFixed(1)} triệu đ'
-                        : 'Mô phỏng tham khảo (Mục 12)',
+                        : 'Mô phỏng tham khảo',
                     style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.success,
@@ -411,7 +411,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
             ),
             const SizedBox(height: 20),
             const Text(
-              'Chưa có khoản vay để mô phỏng (EX-01)',
+              'Chưa có khoản vay để mô phỏng',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,

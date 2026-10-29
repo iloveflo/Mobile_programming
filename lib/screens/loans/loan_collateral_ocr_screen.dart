@@ -755,7 +755,7 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                           ),
                           SizedBox(width: 6.0),
                           Text(
-                            'Kết quả bóc tách (Review)',
+                            'Kết quả bóc tách',
                             style: TextStyle(
                               fontSize: 14.0,
                               fontWeight: FontWeight.bold,

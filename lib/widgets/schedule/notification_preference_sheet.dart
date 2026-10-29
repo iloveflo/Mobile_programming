@@ -47,7 +47,6 @@ class _NotificationPreferenceSheetState
     extends State<NotificationPreferenceSheet> {
   late bool _pushEnabled;
   late bool _emailEnabled;
-  late bool _smsEnabled;
   late int _reminderDays;
   bool _isSaving = false;
 
@@ -56,7 +55,6 @@ class _NotificationPreferenceSheetState
     super.initState();
     _pushEnabled = widget.currentPreference.pushEnabled;
     _emailEnabled = widget.currentPreference.emailEnabled;
-    _smsEnabled = widget.currentPreference.smsEnabled;
     _reminderDays = widget.currentPreference.reminderDays;
   }
 
@@ -66,7 +64,6 @@ class _NotificationPreferenceSheetState
     final updated = widget.currentPreference.copyWith(
       pushEnabled: _pushEnabled,
       emailEnabled: _emailEnabled,
-      smsEnabled: _smsEnabled,
       reminderDays: _reminderDays,
     );
 
@@ -83,8 +80,6 @@ class _NotificationPreferenceSheetState
   Widget build(BuildContext context) {
     final hasNoEmail =
         widget.userEmail == null || widget.userEmail!.trim().isEmpty;
-    final hasNoPhone =
-        widget.userPhone == null || widget.userPhone!.trim().isEmpty;
 
     return Container(
       decoration: const BoxDecoration(
@@ -213,18 +208,6 @@ class _NotificationPreferenceSheetState
                 ? 'Chưa có email trong hồ sơ cá nhân'
                 : null,
             onChanged: (val) => setState(() => _emailEnabled = val),
-          ),
-
-          // SMS
-          _buildChannelTile(
-            icon: Icons.sms_rounded,
-            title: 'Tin nhắn di động (SMS)',
-            subtitle: widget.userPhone ?? 'Chưa cập nhật số điện thoại',
-            value: _smsEnabled,
-            warning: (_smsEnabled && hasNoPhone)
-                ? 'Chưa có số điện thoại trong hồ sơ cá nhân'
-                : null,
-            onChanged: (val) => setState(() => _smsEnabled = val),
           ),
           const SizedBox(height: 20.0),
 

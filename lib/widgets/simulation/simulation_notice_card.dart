@@ -38,7 +38,7 @@ class SimulationNoticeCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Nguyên tắc độc lập & Bảo toàn dữ liệu (Mục 13)',
+                  'Nguyên tắc độc lập & Bảo toàn dữ liệu',
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,

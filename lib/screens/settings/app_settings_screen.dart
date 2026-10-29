@@ -84,7 +84,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           userId: 1,
           pushEnabled: true,
           emailEnabled: true,
-          smsEnabled: false,
           reminderDays: 3,
           balanceFluctuationEnabled: true,
           monthlyStatementEnabled: true,
@@ -118,7 +117,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     final channels = <String>[];
     if (pref.pushEnabled) channels.add('Push');
     if (pref.emailEnabled) channels.add('Email');
-    if (pref.smsEnabled) channels.add('SMS');
     final channelStr = channels.isEmpty
         ? 'Tất cả kênh tắt'
         : channels.join(', ');
@@ -133,7 +131,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           userId: 1,
           pushEnabled: true,
           emailEnabled: true,
-          smsEnabled: false,
           reminderDays: 3,
         );
 

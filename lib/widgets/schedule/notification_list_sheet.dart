@@ -46,8 +46,6 @@ class NotificationListSheet extends StatelessWidget {
         return 'Push App';
       case 'EMAIL':
         return 'Email';
-      case 'SMS':
-        return 'SMS';
       default:
         return channel;
     }

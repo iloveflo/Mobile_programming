@@ -81,7 +81,6 @@ void main() {
         userId: 1,
         pushEnabled: true,
         emailEnabled: true,
-        smsEnabled: false,
         reminderDays: 3,
       ),
     ]);
@@ -187,12 +186,8 @@ void main() {
       () async {
         await controller.loadNotificationPreference(userId: 1);
         expect(controller.preference?.pushEnabled, isTrue);
-        expect(controller.preference?.smsEnabled, isFalse);
 
-        final newPref = controller.preference!.copyWith(
-          reminderDays: 5,
-          smsEnabled: true,
-        );
+        final newPref = controller.preference!.copyWith(reminderDays: 5);
 
         final success = await controller.updatePreference(
           newPref,
@@ -201,7 +196,6 @@ void main() {
         );
         expect(success, isTrue);
         expect(controller.preference?.reminderDays, 5);
-        expect(controller.preference?.smsEnabled, isTrue);
       },
     );
 
@@ -213,7 +207,6 @@ void main() {
           userId: 99,
           pushEnabled: false,
           emailEnabled: true,
-          smsEnabled: true,
           reminderDays: 3,
         );
 
@@ -430,7 +423,6 @@ void main() {
         userId: 1,
         pushEnabled: true,
         emailEnabled: false,
-        smsEnabled: false,
         reminderDays: 3,
       );
 
@@ -455,7 +447,6 @@ void main() {
       expect(find.text('Cài đặt nhắc nợ định kỳ'), findsOneWidget);
       expect(find.text('Thông báo ứng dụng (Push)'), findsOneWidget);
       expect(find.text('Hộp thư điện tử (Email)'), findsOneWidget);
-      expect(find.text('Tin nhắn di động (SMS)'), findsOneWidget);
 
       // Bấm Lưu thiết lập nhắc nợ
       await tester.tap(find.text('Lưu thiết lập nhắc nợ'));

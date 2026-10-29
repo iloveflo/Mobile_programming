@@ -100,7 +100,7 @@ class _DebtStrategyScreenState extends State<DebtStrategyScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Nguyên tắc bảo toàn dữ liệu (Mục 12):',
+                    'Nguyên tắc bảo toàn dữ liệu:',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -158,8 +158,7 @@ class _DebtStrategyScreenState extends State<DebtStrategyScreen> {
             // EX-05: Sự cố Database / Lưu trữ
             AppSnackBar.showError(
               context,
-              _controller.errorMessage ??
-                  'Không thể lưu kế hoạch tối ưu (EX-05).',
+              _controller.errorMessage ?? 'Không thể lưu kế hoạch tối ưu.',
             );
           }
         }
@@ -259,7 +258,7 @@ class _DebtStrategyScreenState extends State<DebtStrategyScreen> {
           if (_controller.exceptionCode == 'EX-02' &&
               _controller.invalidLoans.isNotEmpty)
             _buildWarningBanner(
-              'Cảnh báo EX-02: Có ${_controller.invalidLoans.length} khoản nợ thiếu dữ liệu đã được loại khỏi mô phỏng.',
+              'Cảnh báo: Có ${_controller.invalidLoans.length} khoản nợ thiếu dữ liệu đã được loại khỏi mô phỏng.',
             ),
 
           // Cảnh báo lỗi EX-04 nếu thuật toán gặp sự cố
@@ -446,7 +445,7 @@ class _DebtStrategyScreenState extends State<DebtStrategyScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Tất cả các khoản vay của bạn đã được tất toán (EX-03) hoặc chưa có dữ liệu nợ trong hệ thống.',
+              'Tất cả các khoản vay của bạn đã được tất toán hoặc chưa có dữ liệu nợ trong hệ thống.',
               style: TextStyle(
                 fontSize: 13,
                 color: AppColors.textSecondary,

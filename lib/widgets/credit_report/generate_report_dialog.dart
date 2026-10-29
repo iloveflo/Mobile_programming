@@ -193,7 +193,7 @@ class _GenerateReportDialogState extends State<GenerateReportDialog> {
             ),
             const SizedBox(height: 8.0),
             const Text(
-              'Báo cáo tín dụng là ảnh chụp (Snapshot) dữ liệu lịch sử hoặc hiện tại. Hệ thống chỉ cho phép lập báo cáo cho kỳ hiện tại hoặc quá khứ, không lập cho tương lai.',
+              'Báo cáo tín dụng là ảnh chụp dữ liệu lịch sử hoặc hiện tại. Hệ thống chỉ cho phép lập báo cáo cho kỳ hiện tại hoặc quá khứ, không lập cho tương lai.',
               style: TextStyle(
                 fontSize: 13.0,
                 color: AppColors.textSecondary,

@@ -33,7 +33,7 @@ class SimulationScenarioSelector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'LỰA CHỌN KỊCH BẢN GIẢ ĐỊNH (MỤC 6)',
+          'LỰA CHỌN KỊCH BẢN GIẢ ĐỊNH',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,

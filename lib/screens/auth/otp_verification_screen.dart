@@ -187,7 +187,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     child: Column(
                       children: [
                         const Text(
-                          'Mã bảo mật gồm 6 số đã được gửi qua SMS & Email',
+                          'Mã bảo mật gồm 6 số đã được gửi qua Email',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 13.0,
@@ -332,7 +332,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   const Center(
                     child: SecurityBadge(
                       title: 'XÁC THỰC HAI LỚP 2FA',
-                      protocol: 'SMS & EMAIL',
+                      protocol: 'EMAIL',
                     ),
                   ),
                 ],

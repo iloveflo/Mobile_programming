@@ -31,9 +31,7 @@ class ApiSimulationRepository implements SimulationRepository {
     } on SocketException catch (_) {
       throw Exception('Lỗi kết nối mạng. Vui lòng kiểm tra Wifi/4G của bạn.');
     } on TimeoutException catch (_) {
-      throw Exception(
-        'Yêu cầu mô phỏng quá thời gian chờ (Timeout). Vui lòng thử lại.',
-      );
+      throw Exception('Yêu cầu mô phỏng quá thời gian chờ. Vui lòng thử lại.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }

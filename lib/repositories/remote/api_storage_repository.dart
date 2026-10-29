@@ -127,7 +127,7 @@ class ApiStorageRepository implements StorageRepository {
 
       if (!isUploaded) {
         return UploadResultModel.failure(
-          'Không thể đẩy dữ liệu lên máy chủ lưu trữ Cloudflare R2.',
+          'Không thể đẩy dữ liệu lên máy chủ lưu trữ.',
         );
       }
 

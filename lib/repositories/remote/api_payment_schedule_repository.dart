@@ -41,9 +41,7 @@ class ApiPaymentScheduleRepository implements PaymentScheduleRepository {
     } on SocketException catch (_) {
       throw Exception('Lỗi kết nối mạng. Vui lòng kiểm tra kết nối Internet.');
     } on TimeoutException catch (_) {
-      throw Exception(
-        'Yêu cầu xử lý quá thời gian chờ (Timeout). Vui lòng thử lại.',
-      );
+      throw Exception('Yêu cầu xử lý quá thời gian chờ. Vui lòng thử lại.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
@@ -156,7 +154,6 @@ class ApiPaymentScheduleRepository implements PaymentScheduleRepository {
         userId: userId ?? 1,
         pushEnabled: true,
         emailEnabled: true,
-        smsEnabled: false,
         balanceFluctuationEnabled: true,
         monthlyStatementEnabled: true,
         reminderDays: 3,
@@ -177,12 +174,6 @@ class ApiPaymentScheduleRepository implements PaymentScheduleRepository {
           (userEmail == null || userEmail.trim().isEmpty)) {
         throw Exception(
           'Kênh Email đang bật nhưng hồ sơ của bạn chưa có địa chỉ email. Vui lòng cập nhật email trong hồ sơ cá nhân.',
-        );
-      }
-      if (preference.smsEnabled &&
-          (userPhone == null || userPhone.trim().isEmpty)) {
-        throw Exception(
-          'Kênh SMS đang bật nhưng hồ sơ của bạn chưa có số điện thoại. Vui lòng cập nhật số điện thoại trong hồ sơ cá nhân.',
         );
       }
 

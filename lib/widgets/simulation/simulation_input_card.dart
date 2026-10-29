@@ -92,7 +92,7 @@ class SimulationInputCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'KHOẢN VAY CƠ SỞ (MỤC 5.1)',
+                'KHOẢN VAY CƠ SỞ',
                 style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w700,

@@ -136,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
           content: const Text(
-            'Tính năng xác thực sinh trắc học đã bị tắt trong Cài đặt bảo mật.\n\nVui lòng đăng nhập bằng Mật khẩu và kích hoạt lại tại màn hình Cài đặt Bảo mật (M06).',
+            'Tính năng xác thực sinh trắc học đã bị tắt trong Cài đặt bảo mật.\n\nVui lòng đăng nhập bằng Mật khẩu và kích hoạt lại tại màn hình Cài đặt Bảo mật.',
             style: TextStyle(
               fontSize: 14.0,
               color: AppColors.textSecondary,
