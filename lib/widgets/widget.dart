@@ -18,6 +18,7 @@ library;
 // Common & Design Tokens
 export 'common/app_button.dart';
 export 'common/app_colors.dart';
+export 'common/app_document_viewer_modal.dart';
 export 'common/app_snack_bar.dart';
 export 'common/app_text_field.dart';
 export 'common/custom_bottom_nav_bar.dart';

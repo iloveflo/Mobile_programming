@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/collateral_model.dart';
+import '../models/loan_document_model.dart';
 import '../models/loan_model.dart';
 import '../repositories/interfaces/loan_repository.dart';
 
@@ -17,6 +18,7 @@ class LoanController extends ChangeNotifier {
   List<LoanModel> _loans = [];
   LoanModel? _selectedLoan;
   List<CollateralModel> _collaterals = [];
+  List<LoanDocumentModel> _loanDocuments = [];
 
   LoanStatus _currentFilterStatus = LoanStatus.all;
   String _searchKeyword = '';
@@ -29,6 +31,8 @@ class LoanController extends ChangeNotifier {
   List<LoanModel> get loans => List.unmodifiable(_loans);
   LoanModel? get selectedLoan => _selectedLoan;
   List<CollateralModel> get collaterals => List.unmodifiable(_collaterals);
+  List<LoanDocumentModel> get loanDocuments =>
+      List.unmodifiable(_loanDocuments);
 
   LoanStatus get currentFilterStatus => _currentFilterStatus;
   String get searchKeyword => _searchKeyword;
@@ -337,10 +341,23 @@ class LoanController extends ChangeNotifier {
         try {
           _collaterals = await _loanRepository.getCollateralsByLoan(loanId);
         } catch (_) {}
+        try {
+          _loanDocuments = await _loanRepository.getLoanDocuments(loanId);
+        } catch (_) {}
       }
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Lấy danh sách hồ sơ tài liệu lưu trữ của hợp đồng vay trên Cloudflare R2
+  Future<void> fetchLoanDocuments(String loanId) async {
+    try {
+      _loanDocuments = await _loanRepository.getLoanDocuments(loanId);
+      notifyListeners();
+    } catch (_) {
+      _loanDocuments = [];
     }
   }
 
@@ -399,6 +416,7 @@ class LoanController extends ChangeNotifier {
     _loans = [];
     _selectedLoan = null;
     _collaterals = [];
+    _loanDocuments = [];
     _isLoading = false;
     _errorMessage = null;
     notifyListeners();

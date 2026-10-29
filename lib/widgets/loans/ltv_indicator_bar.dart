@@ -72,7 +72,7 @@ class LtvIndicatorBar extends StatelessWidget {
                   ),
                   SizedBox(width: 6.0),
                   Text(
-                    'Tỷ lệ LTV (Loan-to-Value)',
+                    'Tỷ lệ bảo đảm nợ (LTV)',
                     style: TextStyle(
                       fontSize: 13.0,
                       fontWeight: FontWeight.w700,

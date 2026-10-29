@@ -157,6 +157,8 @@ class ApiPaymentScheduleRepository implements PaymentScheduleRepository {
         pushEnabled: true,
         emailEnabled: true,
         smsEnabled: false,
+        balanceFluctuationEnabled: true,
+        monthlyStatementEnabled: true,
         reminderDays: 3,
         updatedAt: DateTime.now(),
       );

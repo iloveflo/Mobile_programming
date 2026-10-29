@@ -469,6 +469,8 @@ CREATE TABLE notification_preferences (
     push_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     email_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     sms_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    balance_fluctuation_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    monthly_statement_enabled BOOLEAN NOT NULL DEFAULT TRUE,
 
     reminder_days INT NOT NULL DEFAULT 3,
 
@@ -545,8 +547,8 @@ INSERT INTO credit_profiles (user_id, credit_score, dti_ratio, ltv_ratio, credit
 ON DUPLICATE KEY UPDATE credit_score=VALUES(credit_score);
 
 -- H. NOTIFICATION PREFERENCES
-INSERT INTO notification_preferences (user_id, push_enabled, email_enabled, sms_enabled, reminder_days) VALUES
-(1, TRUE, TRUE, FALSE, 3)
+INSERT INTO notification_preferences (user_id, push_enabled, email_enabled, sms_enabled, reminder_days, balance_fluctuation_enabled, monthly_statement_enabled) VALUES
+(1, TRUE, TRUE, FALSE, 3, TRUE, TRUE)
 ON DUPLICATE KEY UPDATE push_enabled=VALUES(push_enabled);
 
 -- I. PAYMENT SCHEDULES (Lịch phân kỳ trả nợ mẫu khớp PaymentScheduleMockData)

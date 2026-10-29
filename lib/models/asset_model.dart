@@ -6,6 +6,7 @@ class AssetModel {
   final String type;
   final double value;
   final DateTime? valuationDate;
+  final String? legalDocumentUrl;
   final String? description;
   final DateTime? createdAt;
 
@@ -17,9 +18,13 @@ class AssetModel {
     required this.type,
     required this.value,
     this.valuationDate,
+    this.legalDocumentUrl,
     this.description,
     this.createdAt,
   });
+
+  bool get hasLegalDocument =>
+      legalDocumentUrl != null && legalDocumentUrl!.trim().isNotEmpty;
 
   factory AssetModel.fromJson(Map<String, dynamic> json) {
     return AssetModel(
@@ -32,6 +37,8 @@ class AssetModel {
       valuationDate: json['valuation_date'] == null
           ? null
           : DateTime.parse(json['valuation_date'] as String),
+      legalDocumentUrl:
+          (json['legal_document_url'] ?? json['legalDocumentUrl']) as String?,
       description: json['description'] as String?,
       createdAt: json['created_at'] == null
           ? null
@@ -47,6 +54,7 @@ class AssetModel {
     'asset_type': type,
     'asset_value': value,
     'valuation_date': valuationDate?.toIso8601String(),
+    'legal_document_url': legalDocumentUrl,
     'description': description,
     'created_at': createdAt?.toIso8601String(),
   };

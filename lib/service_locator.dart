@@ -16,6 +16,7 @@ import 'repositories/interfaces/debt_strategy_repository.dart';
 import 'repositories/interfaces/loan_repository.dart';
 import 'repositories/interfaces/payment_schedule_repository.dart';
 import 'repositories/interfaces/simulation_repository.dart';
+import 'repositories/interfaces/storage_repository.dart';
 import 'repositories/mock/mock_auth_repository.dart';
 import 'repositories/mock/mock_credit_profile_repository.dart';
 import 'repositories/mock/mock_credit_report_repository.dart';
@@ -23,6 +24,7 @@ import 'repositories/mock/mock_debt_strategy_repository.dart';
 import 'repositories/mock/mock_loan_repository.dart';
 import 'repositories/mock/mock_payment_schedule_repository.dart';
 import 'repositories/mock/mock_simulation_repository.dart';
+import 'repositories/mock/mock_storage_repository.dart';
 import 'repositories/remote/api_auth_repository.dart';
 import 'repositories/remote/api_credit_profile_repository.dart';
 import 'repositories/remote/api_credit_report_repository.dart';
@@ -30,6 +32,9 @@ import 'repositories/remote/api_debt_strategy_repository.dart';
 import 'repositories/remote/api_loan_repository.dart';
 import 'repositories/remote/api_payment_schedule_repository.dart';
 import 'repositories/remote/api_simulation_repository.dart';
+import 'repositories/remote/api_storage_repository.dart';
+import 'services/cache_service.dart';
+import 'services/image_upload_service.dart';
 
 /// Service Locator trung tâm quản lý Dependency Injection cho toàn ứng dụng FinCredit
 final GetIt sl = GetIt.instance;
@@ -91,6 +96,11 @@ void setupServiceLocator({bool? isMock}) {
     _registerLazySingletonIfNot<PaymentScheduleRepository>(
       () => MockPaymentScheduleRepository(),
     );
+
+    // H. Lưu trữ Cloudflare R2 (Mock)
+    _registerLazySingletonIfNot<StorageRepository>(
+      () => MockStorageRepository(),
+    );
   } else {
     // A. Xác thực & Bảo mật (API Thật)
     _registerLazySingletonIfNot<AuthRepository>(
@@ -126,10 +136,23 @@ void setupServiceLocator({bool? isMock}) {
     _registerLazySingletonIfNot<PaymentScheduleRepository>(
       () => ApiPaymentScheduleRepository(client: sl<ApiClient>()),
     );
+
+    // H. Lưu trữ Cloudflare R2 (API Thật)
+    _registerLazySingletonIfNot<StorageRepository>(
+      () => ApiStorageRepository(client: sl<ApiClient>()),
+    );
   }
 
   // =========================================================================
-  // 3. TẦNG CONTROLLERS / STATE MANAGEMENT
+  // 3. TẦNG SERVICES TIỆN ÍCH
+  // =========================================================================
+  _registerLazySingletonIfNot<ImageUploadService>(
+    () => ImageUploadService(storageRepository: sl<StorageRepository>()),
+  );
+  _registerLazySingletonIfNot<CacheService>(() => CacheService());
+
+  // =========================================================================
+  // 4. TẦNG CONTROLLERS / STATE MANAGEMENT
   // =========================================================================
   _registerLazySingletonIfNot<AuthController>(
     () => AuthController(sl<AuthRepository>()),
@@ -191,6 +214,12 @@ Future<void> switchServiceLocatorMode({required bool isMock}) async {
   if (sl.isRegistered<PaymentScheduleRepository>()) {
     await sl.unregister<PaymentScheduleRepository>();
   }
+  if (sl.isRegistered<StorageRepository>()) {
+    await sl.unregister<StorageRepository>();
+  }
+  if (sl.isRegistered<ImageUploadService>()) {
+    await sl.unregister<ImageUploadService>();
+  }
 
   // Đăng ký lại theo chế độ mới
   if (isMock) {
@@ -211,6 +240,7 @@ Future<void> switchServiceLocatorMode({required bool isMock}) async {
     sl.registerLazySingleton<PaymentScheduleRepository>(
       () => MockPaymentScheduleRepository(),
     );
+    sl.registerLazySingleton<StorageRepository>(() => MockStorageRepository());
   } else {
     sl.registerLazySingleton<AuthRepository>(
       () => ApiAuthRepository(client: sl<ApiClient>()),
@@ -233,7 +263,14 @@ Future<void> switchServiceLocatorMode({required bool isMock}) async {
     sl.registerLazySingleton<PaymentScheduleRepository>(
       () => ApiPaymentScheduleRepository(client: sl<ApiClient>()),
     );
+    sl.registerLazySingleton<StorageRepository>(
+      () => ApiStorageRepository(client: sl<ApiClient>()),
+    );
   }
+
+  sl.registerLazySingleton<ImageUploadService>(
+    () => ImageUploadService(storageRepository: sl<StorageRepository>()),
+  );
 
   // Đăng ký lại Controllers để nhận Repository mới
   if (sl.isRegistered<AuthController>()) {

@@ -28,6 +28,7 @@ class CollateralModel {
   final String type; // REAL_ESTATE, VEHICLE, SAVINGS, OTHER
   final double value; // Giá trị định giá
   final DateTime? valuationDate;
+  final String? legalDocumentUrl;
   final String? description;
   final DateTime? createdAt;
 
@@ -39,9 +40,13 @@ class CollateralModel {
     required this.type,
     required this.value,
     this.valuationDate,
+    this.legalDocumentUrl,
     this.description,
     this.createdAt,
   });
+
+  bool get hasLegalDocument =>
+      legalDocumentUrl != null && legalDocumentUrl!.trim().isNotEmpty;
 
   /// Bảng cấu hình hạn mức định giá theo từng loại tài sản
   static const Map<String, CollateralTypeConfig> typeConfigs = {
@@ -118,6 +123,8 @@ class CollateralModel {
       type: (json['asset_type'] ?? json['type'] ?? 'OTHER') as String,
       value: (json['asset_value'] ?? json['value'] as num?)?.toDouble() ?? 0.0,
       valuationDate: parseDate(json['valuation_date'] ?? json['valuationDate']),
+      legalDocumentUrl:
+          (json['legal_document_url'] ?? json['legalDocumentUrl']) as String?,
       description: json['description'] as String?,
       createdAt: parseDate(json['created_at'] ?? json['createdAt']),
     );
@@ -131,6 +138,7 @@ class CollateralModel {
     'asset_type': type,
     'asset_value': value,
     'valuation_date': valuationDate?.toIso8601String(),
+    'legal_document_url': legalDocumentUrl,
     'description': description,
     'created_at': createdAt?.toIso8601String(),
   };

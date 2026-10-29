@@ -3,6 +3,7 @@ import 'dart:io';
 
 import '../../core/network/api_client.dart';
 import '../../models/collateral_model.dart';
+import '../../models/loan_document_model.dart';
 import '../../models/loan_model.dart';
 import '../interfaces/loan_repository.dart';
 
@@ -183,5 +184,20 @@ class ApiLoanRepository implements LoanRepository {
       return response;
     }
     return <String, dynamic>{};
+  }
+
+  @override
+  Future<List<LoanDocumentModel>> getLoanDocuments(String loanId) async {
+    final response = await _handleApiCall<dynamic>(
+      () => client.get('/api/loans/$loanId/documents'),
+    );
+
+    if (response is List) {
+      return response
+          .whereType<Map<String, dynamic>>()
+          .map((item) => LoanDocumentModel.fromJson(item))
+          .toList();
+    }
+    return [];
   }
 }

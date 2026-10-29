@@ -46,4 +46,38 @@ class LoanDocumentModel {
     'created_at': createdAt?.toIso8601String(),
     'updated_at': updatedAt?.toIso8601String(),
   };
+
+  String get documentTypeDisplay {
+    switch (documentType.toUpperCase()) {
+      case 'CONTRACT':
+        return 'Hợp đồng vay vốn tín dụng';
+      case 'COLLATERAL_CERTIFICATE':
+        return 'Giấy tờ tài sản bảo đảm';
+      case 'INCOME_PROOF':
+        return 'Xác nhận thu nhập';
+      case 'IDENTITY_CARD':
+        return 'Căn cước công dân (eKYC)';
+      case 'BANK_STATEMENT':
+        return 'Sao kê tài khoản';
+      default:
+        final formatted = documentType.replaceAll('_', ' ');
+        return formatted.isNotEmpty
+            ? formatted[0].toUpperCase() + formatted.substring(1)
+            : documentType;
+    }
+  }
+
+  String get ocrStatusDisplay {
+    switch (ocrStatus.toUpperCase()) {
+      case 'COMPLETED':
+        return 'Đã bóc tách AI';
+      case 'PROCESSING':
+        return 'Đang quét AI';
+      case 'FAILED':
+        return 'Chưa nhận diện';
+      case 'PENDING':
+      default:
+        return 'Đang chờ xử lý';
+    }
+  }
 }

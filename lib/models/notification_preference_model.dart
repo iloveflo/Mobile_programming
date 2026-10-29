@@ -4,6 +4,8 @@ class NotificationPreferenceModel {
   final bool pushEnabled;
   final bool emailEnabled;
   final bool smsEnabled;
+  final bool balanceFluctuationEnabled;
+  final bool monthlyStatementEnabled;
   final int reminderDays;
   final DateTime? updatedAt;
 
@@ -14,6 +16,8 @@ class NotificationPreferenceModel {
     required this.emailEnabled,
     required this.smsEnabled,
     required this.reminderDays,
+    this.balanceFluctuationEnabled = true,
+    this.monthlyStatementEnabled = true,
     this.updatedAt,
   });
 
@@ -24,6 +28,10 @@ class NotificationPreferenceModel {
       pushEnabled: json['push_enabled'] as bool? ?? true,
       emailEnabled: json['email_enabled'] as bool? ?? true,
       smsEnabled: json['sms_enabled'] as bool? ?? false,
+      balanceFluctuationEnabled:
+          json['balance_fluctuation_enabled'] as bool? ?? true,
+      monthlyStatementEnabled:
+          json['monthly_statement_enabled'] as bool? ?? true,
       reminderDays: json['reminder_days'] as int? ?? 3,
       updatedAt: json['updated_at'] == null
           ? null
@@ -37,6 +45,8 @@ class NotificationPreferenceModel {
     'push_enabled': pushEnabled,
     'email_enabled': emailEnabled,
     'sms_enabled': smsEnabled,
+    'balance_fluctuation_enabled': balanceFluctuationEnabled,
+    'monthly_statement_enabled': monthlyStatementEnabled,
     'reminder_days': reminderDays,
     'updated_at': updatedAt?.toIso8601String(),
   };
@@ -47,6 +57,8 @@ class NotificationPreferenceModel {
     bool? pushEnabled,
     bool? emailEnabled,
     bool? smsEnabled,
+    bool? balanceFluctuationEnabled,
+    bool? monthlyStatementEnabled,
     int? reminderDays,
     DateTime? updatedAt,
   }) {
@@ -56,6 +68,10 @@ class NotificationPreferenceModel {
       pushEnabled: pushEnabled ?? this.pushEnabled,
       emailEnabled: emailEnabled ?? this.emailEnabled,
       smsEnabled: smsEnabled ?? this.smsEnabled,
+      balanceFluctuationEnabled:
+          balanceFluctuationEnabled ?? this.balanceFluctuationEnabled,
+      monthlyStatementEnabled:
+          monthlyStatementEnabled ?? this.monthlyStatementEnabled,
       reminderDays: reminderDays ?? this.reminderDays,
       updatedAt: updatedAt ?? this.updatedAt,
     );

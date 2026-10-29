@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../controllers/loan_controller.dart';
 import '../../models/collateral_model.dart';
 import '../../models/loan_model.dart';
+import '../../routes/app_router.dart';
 import '../../service_locator.dart';
 import '../../widgets/widget.dart';
 
@@ -31,7 +32,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
 
   String _selectedBank = 'Techcombank';
   String _selectedLoanType = 'MORTGAGE';
-  String _selectedCollateralType = 'REAL_ESTATE';
+  CollateralModel? _selectedExistingCollateral;
   InterestMethod _selectedMethod = InterestMethod.reducingBalance;
   DateTime _startDate = DateTime.now();
   int _tenorMonths = 24;
@@ -39,6 +40,27 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
   bool _isEdit = false;
   String? _loanIdToEdit;
   String? _loanCodeToEdit;
+
+  List<CollateralModel> get _availableCollaterals =>
+      _loanController.collaterals;
+
+  String _formatCurrency(num amount) {
+    final str = amount.round().toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      if (i > 0 && (str.length - i) % 3 == 0) {
+        buffer.write('.');
+      }
+      buffer.write(str[i]);
+    }
+    return '${buffer.toString()} đ';
+  }
+
+  String _formatRate(double rate) {
+    return rate == rate.roundToDouble()
+        ? rate.round().toString()
+        : rate.toStringAsFixed(1);
+  }
 
   final List<double> _quickAmounts = [
     50000000,
@@ -110,9 +132,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
         _selectedLoanType,
       );
     }
-    _rateController = TextEditingController(
-      text: initialRate.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), ''),
-    );
+    _rateController = TextEditingController(text: _formatRate(initialRate));
 
     _tenorController = TextEditingController(text: _tenorMonths.toString());
     _startDateController = TextEditingController(
@@ -128,6 +148,35 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
             loan.interestMethod == 'FLAT')) {
       _selectedMethod = InterestMethod.flatRate;
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loanController.fetchCollaterals().then((_) {
+        if (!mounted) return;
+        final collaterals = _availableCollaterals;
+        if (_selectedExistingCollateral == null && collaterals.isNotEmpty) {
+          final initialName = _collateralNameController.text.trim();
+          CollateralModel? matched;
+          if (initialName.isNotEmpty) {
+            for (final c in collaterals) {
+              if (c.name.toLowerCase() == initialName.toLowerCase()) {
+                matched = c;
+                break;
+              }
+            }
+          }
+          if (matched != null) {
+            final selectedMatched = matched;
+            setState(() {
+              _selectedExistingCollateral = selectedMatched;
+              _collateralNameController.text = selectedMatched.name;
+              _collateralValController.text = selectedMatched.value
+                  .round()
+                  .toString();
+            });
+          }
+        }
+      });
+    });
   }
 
   @override
@@ -151,9 +200,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
           _selectedLoanType = loan.loanTypeKey;
           _amountController.text = loan.principalAmount.round().toString();
           final r = loan.interestRatePercent;
-          _rateController.text = r
-              .toStringAsFixed(1)
-              .replaceAll(RegExp(r'\.0$'), '');
+          _rateController.text = _formatRate(r);
           _tenorMonths = loan.tenorMonths;
           _tenorController.text = _tenorMonths.toString();
           _startDate = loan.startDate;
@@ -181,9 +228,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                 prefilled['interest_rate']?.toString() ?? '8.5',
               ) ??
               8.5;
-          _rateController.text = (r <= 1.0 ? r * 100.0 : r)
-              .toStringAsFixed(1)
-              .replaceAll(RegExp(r'\.0$'), '');
+          _rateController.text = _formatRate(r <= 1.0 ? r * 100.0 : r);
           _tenorMonths =
               int.tryParse(prefilled['tenor_months']?.toString() ?? '24') ?? 24;
           _tenorController.text = _tenorMonths.toString();
@@ -244,9 +289,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
   void _updateBenchmarkRate() {
     if (_isEdit) return; // Không tự đè khi đang sửa hợp đồng cũ
     final rate = LoanModel.getBenchmarkRate(_selectedBank, _selectedLoanType);
-    _rateController.text = rate
-        .toStringAsFixed(1)
-        .replaceAll(RegExp(r'\.0$'), '');
+    _rateController.text = _formatRate(rate);
   }
 
   void _onTenorChanged(int newTenor) {
@@ -295,30 +338,289 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
     }
   }
 
+  void _showQuickAddCollateralSheet() {
+    final formKey = GlobalKey<FormState>();
+    final nameCtrl = TextEditingController();
+    final valCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    String selectedType = 'REAL_ESTATE';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final config =
+              CollateralModel.typeConfigs[selectedType] ??
+              CollateralModel.typeConfigs['REAL_ESTATE']!;
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20.0,
+              right: 20.0,
+              top: 16.0,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20.0,
+            ),
+            child: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40.0,
+                        height: 4.0,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2.0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16.0),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Đăng ký tài sản thế chấp mới',
+                          style: TextStyle(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(sheetCtx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12.0),
+
+                    // Loại tài sản
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedType,
+                      decoration: InputDecoration(
+                        labelText: 'Loại tài sản bảo đảm *',
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14.0,
+                          vertical: 12.0,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.category_outlined,
+                          size: 20.0,
+                        ),
+                      ),
+                      items: CollateralModel.typeConfigs.entries.map((e) {
+                        return DropdownMenuItem<String>(
+                          value: e.key,
+                          child: Text(e.value.displayName),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setSheetState(() => selectedType = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 14.0),
+
+                    // Tên tài sản
+                    TextFormField(
+                      controller: nameCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Tên tài sản (Sổ đỏ, Xe ô tô...) *',
+                        hintText: 'Ví dụ: Căn hộ Vinhomes Grand Park (72m2)',
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14.0,
+                          vertical: 12.0,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.badge_outlined,
+                          size: 20.0,
+                        ),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Vui lòng nhập tên tài sản bảo đảm';
+                        }
+                        if (val.trim().length < 3) {
+                          return 'Tên tài sản tối thiểu 3 ký tự';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14.0),
+
+                    // Giá trị định giá
+                    TextFormField(
+                      controller: valCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText:
+                            'Giá trị định giá ban đầu của ngân hàng (VNĐ) *',
+                        hintText: 'Ví dụ: 800000000',
+                        helperText:
+                            'Hạn mức ${config.displayName}: ${config.limitRangeText}',
+                        helperMaxLines: 2,
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14.0,
+                          vertical: 12.0,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.monetization_on_outlined,
+                          size: 20.0,
+                        ),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Vui lòng nhập giá trị định giá';
+                        }
+                        final numVal = double.tryParse(
+                          val.replaceAll('.', '').replaceAll(',', ''),
+                        );
+                        if (numVal == null) {
+                          return 'Giá trị định giá không hợp lệ';
+                        }
+                        if (numVal < config.minValue) {
+                          return 'Định giá tối thiểu là ${config.minFormatted}';
+                        }
+                        if (numVal > config.maxValue) {
+                          return 'Định giá tối đa là ${config.maxFormatted}';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14.0),
+
+                    // Mô tả
+                    TextFormField(
+                      controller: descCtrl,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: 'Mô tả chi tiết tài sản (tùy chọn)',
+                        hintText:
+                            'Ví dụ: Cavet xe chính chủ, thế chấp giải ngân khoản vay...',
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14.0,
+                          vertical: 12.0,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        prefixIcon: const Icon(Icons.notes_rounded, size: 20.0),
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+
+                    // Nút xác nhận lưu
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 13.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                          elevation: 0,
+                        ),
+                        onPressed: () async {
+                          if (!formKey.currentState!.validate()) return;
+                          final rawVal = valCtrl.text
+                              .replaceAll('.', '')
+                              .replaceAll(',', '');
+                          final val = double.tryParse(rawVal) ?? 0.0;
+                          final name = nameCtrl.text.trim();
+                          final desc = descCtrl.text.trim();
+
+                          Navigator.pop(sheetCtx);
+
+                          final success = await _loanController.addCollateral(
+                            name: name,
+                            type: selectedType,
+                            value: val,
+                            description: desc.isNotEmpty ? desc : null,
+                          );
+
+                          if (!mounted) return;
+                          if (success &&
+                              _loanController.collaterals.isNotEmpty) {
+                            final created = _loanController.collaterals.first;
+                            setState(() {
+                              _selectedExistingCollateral = created;
+                              _collateralNameController.text = created.name;
+                              _collateralValController.text = created.value
+                                  .round()
+                                  .toString();
+                            });
+                            AppSnackBar.showSuccess(
+                              context,
+                              'Đã đăng ký tài sản "$name" (${_formatCurrency(val)}) thành công!',
+                            );
+                          } else {
+                            AppSnackBar.showError(
+                              context,
+                              _loanController.errorMessage ??
+                                  'Không thể thêm tài sản.',
+                            );
+                          }
+                        },
+                        child: const Text(
+                          'Lưu & Sử dụng tài sản này',
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Quy tắc thế chấp: Nếu là MORTGAGE bắt buộc phải có tài sản định giá
+    // Quy tắc thế chấp: Bắt buộc chọn tài sản bảo đảm từ danh mục tài sản hiện có của người dùng
     if (_selectedLoanType == 'MORTGAGE') {
-      final config = CollateralModel.getConfig(_selectedCollateralType);
-      if (_collateralNameController.text.trim().isEmpty) {
+      if (_selectedExistingCollateral == null) {
         AppSnackBar.showError(
           context,
-          'Vay thế chấp yêu cầu phải có thông tin tài sản đảm bảo.',
-        );
-        return;
-      }
-      if (_currentCollateralVal < config.minValue) {
-        AppSnackBar.showError(
-          context,
-          'Giá trị định giá cho ${config.displayName} tối thiểu là ${config.minFormatted}.',
-        );
-        return;
-      }
-      if (_currentCollateralVal > config.maxValue) {
-        AppSnackBar.showError(
-          context,
-          'Giá trị định giá cho ${config.displayName} tối đa là ${config.maxFormatted}.',
+          'Vui lòng chọn một tài sản thế chấp từ danh mục tài sản hiện có của bạn.',
         );
         return;
       }
@@ -415,10 +717,12 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
       'status': 'ACTIVE',
     };
 
-    if (_selectedLoanType == 'MORTGAGE') {
-      payload['collateral_name'] = _collateralNameController.text.trim();
-      payload['collateral_type'] = _selectedCollateralType;
-      payload['collateral_value'] = _currentCollateralVal;
+    if (_selectedLoanType == 'MORTGAGE' &&
+        _selectedExistingCollateral != null) {
+      payload['collateral_id'] = _selectedExistingCollateral!.id;
+      payload['collateral_name'] = _selectedExistingCollateral!.name;
+      payload['collateral_type'] = _selectedExistingCollateral!.type;
+      payload['collateral_value'] = _selectedExistingCollateral!.value;
     }
 
     bool success = false;
@@ -776,7 +1080,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                               ),
                             ),
                             child: Text(
-                              '${_currentRate.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}% / năm',
+                              '${_formatRate(_currentRate)}% / năm',
                               style: const TextStyle(
                                 fontSize: 15.0,
                                 fontWeight: FontWeight.w800,
@@ -965,212 +1269,570 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
 
                 // 8. KHỐI THẨM ĐỊNH TÀI SẢN & KIỂM SOÁT LTV (BẮT BUỘC NẾU VAY THẾ CHẤP)
                 if (_selectedLoanType == 'MORTGAGE') ...[
-                  Container(
-                    padding: const EdgeInsets.all(14.0),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14.0),
-                      border: Border.all(
-                        color: ltv > 85
-                            ? AppColors.error
-                            : (ltv > 70 ? AppColors.warning : AppColors.border),
-                        width: ltv > 70 ? 1.5 : 1.0,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
+                  ListenableBuilder(
+                    listenable: _loanController,
+                    builder: (context, _) {
+                      final collaterals = _availableCollaterals;
+                      final isCollateralEmpty = collaterals.isEmpty;
+
+                      // Đảm bảo id đang chọn còn tồn tại trong danh mục thực tế
+                      final int? selectedId =
+                          collaterals.any(
+                            (c) => c.id == _selectedExistingCollateral?.id,
+                          )
+                          ? _selectedExistingCollateral?.id
+                          : null;
+
+                      return Container(
+                        padding: const EdgeInsets.all(14.0),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(14.0),
+                          border: Border.all(
+                            color: ltv > 85
+                                ? AppColors.error
+                                : (ltv > 70
+                                      ? AppColors.warning
+                                      : AppColors.border),
+                            width: ltv > 70 ? 1.5 : 1.0,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              Icons.shield_rounded,
-                              color: AppColors.primary,
-                              size: 18.0,
-                            ),
-                            SizedBox(width: 6.0),
-                            Text(
-                              'THẨM ĐỊNH TÀI SẢN BẢO ĐẢM (BẮT BUỘC)',
-                              style: TextStyle(
-                                fontSize: 12.0,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12.0),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedCollateralType,
-                          decoration: InputDecoration(
-                            labelText: 'Loại tài sản bảo đảm *',
-                            filled: true,
-                            fillColor: AppColors.surface,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14.0,
-                              vertical: 14.0,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                              borderSide: const BorderSide(
-                                color: AppColors.border,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                              borderSide: const BorderSide(
-                                color: AppColors.border,
-                              ),
-                            ),
-                            prefixIcon: const Icon(
-                              Icons.shield_outlined,
-                              color: AppColors.primary,
-                              size: 20.0,
-                            ),
-                          ),
-                          items: CollateralModel.typeConfigs.entries.map((e) {
-                            return DropdownMenuItem<String>(
-                              value: e.key,
-                              child: Text(
-                                e.value.displayName,
-                                style: const TextStyle(fontSize: 13.5),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() {
-                                _selectedCollateralType = val;
-                              });
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 12.0),
-                        AppTextField(
-                          label: 'Tên tài sản bảo đảm (Sổ đỏ, Xe ô tô...) *',
-                          hint: 'Ví dụ: Sổ hồng Căn hộ Masteri Thảo Điền',
-                          controller: _collateralNameController,
-                          prefixIcon: const Icon(
-                            Icons.apartment_rounded,
-                            color: AppColors.primary,
-                            size: 20.0,
-                          ),
-                          validator: (val) =>
-                              AppValidators.validateCollateralName(
-                                val,
-                                required: _selectedLoanType == 'MORTGAGE',
-                              ),
-                        ),
-                        const SizedBox(height: 12.0),
-                        Builder(
-                          builder: (context) {
-                            final collateralConfig = CollateralModel.getConfig(
-                              _selectedCollateralType,
-                            );
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                AppTextField(
-                                  label:
-                                      'Giá trị định giá ban đầu của ngân hàng (VNĐ) *',
-                                  hint:
-                                      'Theo Chứng thư định giá / Hợp đồng thế chấp',
-                                  controller: _collateralValController,
-                                  keyboardType: TextInputType.number,
+                                const Expanded(
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.shield_rounded,
+                                        color: AppColors.primary,
+                                        size: 18.0,
+                                      ),
+                                      SizedBox(width: 6.0),
+                                      Expanded(
+                                        child: Text(
+                                          'THẨM ĐỊNH TÀI SẢN THẾ CHẤP',
+                                          style: TextStyle(
+                                            fontSize: 12.0,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.primary,
+                                            letterSpacing: 0.5,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (!isCollateralEmpty) ...[
+                                  const SizedBox(width: 8.0),
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4.0,
+                                      ),
+                                    ),
+                                    onPressed: _showQuickAddCollateralSheet,
+                                    icon: const Icon(
+                                      Icons.add_circle_outline,
+                                      size: 14.0,
+                                    ),
+                                    label: const Text(
+                                      'Thêm mới',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 6.0),
+                            const Text(
+                              'Chọn tài sản bảo đảm đã được ngân hàng định giá trong danh mục tài sản cá nhân của bạn:',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 12.0),
+
+                            if (isCollateralEmpty) ...[
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 20.0,
+                                  horizontal: 16.0,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(12.0),
+                                  border: Border.all(
+                                    color: const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10.0),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primarySoft,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.real_estate_agent_outlined,
+                                        size: 28.0,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10.0),
+                                    const Text(
+                                      'Chưa có tài sản bảo đảm trong danh mục',
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4.0),
+                                    const Text(
+                                      'Khoản vay thế chấp yêu cầu phải có tài sản bảo đảm đã được định giá. Hãy đăng ký tài sản của bạn để tiếp tục.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        color: AppColors.textSecondary,
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14.0),
+                                    ElevatedButton.icon(
+                                      onPressed: _showQuickAddCollateralSheet,
+                                      icon: const Icon(
+                                        Icons.add_rounded,
+                                        size: 16.0,
+                                      ),
+                                      label: const Text(
+                                        'Đăng ký tài sản thế chấp',
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16.0,
+                                          vertical: 10.0,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10.0,
+                                          ),
+                                        ),
+                                        elevation: 0,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ] else ...[
+                              DropdownButtonFormField<int>(
+                                isExpanded: true,
+                                initialValue: selectedId,
+                                decoration: InputDecoration(
+                                  labelText: 'Chọn tài sản thế chấp *',
+                                  hintText: '-- Chọn từ tài sản hiện có --',
+                                  filled: true,
+                                  fillColor: AppColors.surface,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14.0,
+                                    vertical: 12.0,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                    borderSide: const BorderSide(
+                                      color: AppColors.border,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                    borderSide: const BorderSide(
+                                      color: AppColors.border,
+                                    ),
+                                  ),
                                   prefixIcon: const Icon(
-                                    Icons.assessment_outlined,
+                                    Icons.real_estate_agent_outlined,
                                     color: AppColors.primary,
                                     size: 20.0,
                                   ),
-                                  onChanged: (_) => setState(() {}),
-                                  validator: (val) =>
-                                      AppValidators.validateCollateralValue(
-                                        val,
-                                        min: collateralConfig.minValue,
-                                        max: collateralConfig.maxValue,
-                                        displayName:
-                                            collateralConfig.displayName,
-                                        minFormatted:
-                                            collateralConfig.minFormatted,
-                                        maxFormatted:
-                                            collateralConfig.maxFormatted,
-                                        required:
-                                            _selectedLoanType == 'MORTGAGE',
-                                      ),
                                 ),
-                                const SizedBox(height: 4.0),
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 4.0),
-                                  child: Text(
-                                    'Hạn mức định giá cho ${collateralConfig.displayName}: ${collateralConfig.limitRangeText}',
-                                    style: const TextStyle(
-                                      fontSize: 11.0,
+                                selectedItemBuilder: (context) {
+                                  return collaterals.map((c) {
+                                    return Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        c.name,
+                                        style: const TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                    );
+                                  }).toList();
+                                },
+                                items: collaterals.map((c) {
+                                  return DropdownMenuItem<int>(
+                                    value: c.id,
+                                    child: Text(
+                                      '${c.name} (${_formatCurrency(c.value)})',
+                                      style: const TextStyle(
+                                        fontSize: 13.0,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    final matched = collaterals.firstWhere(
+                                      (c) => c.id == val,
+                                    );
+                                    setState(() {
+                                      _selectedExistingCollateral = matched;
+                                      _collateralNameController.text =
+                                          matched.name;
+                                      _collateralValController.text = matched
+                                          .value
+                                          .round()
+                                          .toString();
+                                    });
+                                  }
+                                },
+                                validator: (val) {
+                                  if (_selectedLoanType == 'MORTGAGE' &&
+                                      _selectedExistingCollateral == null) {
+                                    return 'Vui lòng chọn một tài sản từ danh mục hiện có';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 8.0),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Cần thêm tài sản khác?',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
                                       color: AppColors.textSecondary,
                                     ),
                                   ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 10.0),
-
-                        // Cảnh báo chỉ số LTV
-                        if (_currentCollateralVal > 0) ...[
-                          Container(
-                            padding: const EdgeInsets.all(10.0),
-                            decoration: BoxDecoration(
-                              color: ltv > 85
-                                  ? AppColors.error.withValues(alpha: 0.1)
-                                  : (ltv > 70
-                                        ? AppColors.warning.withValues(
-                                            alpha: 0.1,
-                                          )
-                                        : AppColors.success.withValues(
-                                            alpha: 0.1,
-                                          )),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  ltv > 85
-                                      ? Icons.dangerous_rounded
-                                      : (ltv > 70
-                                            ? Icons.warning_rounded
-                                            : Icons.check_circle_rounded),
-                                  size: 18.0,
-                                  color: ltv > 85
-                                      ? AppColors.error
-                                      : (ltv > 70
-                                            ? AppColors.warning
-                                            : AppColors.success),
-                                ),
-                                const SizedBox(width: 8.0),
-                                Expanded(
-                                  child: Text(
-                                    ltv > 85
-                                        ? 'CẢNH BÁO LTV: ${ltv.toStringAsFixed(1)}% vượt trần cho phép của ngân hàng (85%). Nguy cơ bị từ chối giải ngân!'
-                                        : (ltv > 70
-                                              ? 'CẢNH BÁO: Khoản vay vượt quá tỷ lệ giải ngân an toàn trên tài sản đảm bảo (LTV: ${ltv.toStringAsFixed(1)}% > 70%).'
-                                              : 'Tỷ lệ LTV: ${ltv.toStringAsFixed(1)}% (Mức giải ngân an toàn theo chuẩn ngân hàng).'),
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: ltv > 85
-                                          ? AppColors.error
-                                          : (ltv > 70
-                                                ? const Color(0xFFB45309)
-                                                : AppColors.success),
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8.0,
+                                      ),
+                                    ),
+                                    onPressed: _showQuickAddCollateralSheet,
+                                    icon: const Icon(
+                                      Icons.add_circle_outline,
+                                      size: 14.0,
+                                    ),
+                                    label: const Text(
+                                      'Đăng ký tài sản mới',
+                                      style: TextStyle(
+                                        fontSize: 12.0,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            if (_selectedExistingCollateral != null) ...[
+                              const SizedBox(height: 10.0),
+                              Container(
+                                padding: const EdgeInsets.all(12.0),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primarySoft.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  border: Border.all(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.2,
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8.0,
+                                            vertical: 3.0,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary,
+                                            borderRadius: BorderRadius.circular(
+                                              6.0,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _selectedExistingCollateral!
+                                                .typeDisplay,
+                                            style: const TextStyle(
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          'Định giá: ${_selectedExistingCollateral!.valuationDateFormatted}',
+                                          style: const TextStyle(
+                                            fontSize: 11.0,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8.0),
+                                    Text(
+                                      _selectedExistingCollateral!.name,
+                                      style: const TextStyle(
+                                        fontSize: 14.0,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4.0),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text(
+                                          'Giá trị thẩm định ngân hàng:',
+                                          style: TextStyle(
+                                            fontSize: 11.5,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                        Text(
+                                          _formatCurrency(
+                                            _selectedExistingCollateral!.value,
+                                          ),
+                                          style: const TextStyle(
+                                            fontSize: 14.0,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8.0),
+                                    if (_selectedExistingCollateral!
+                                        .hasLegalDocument)
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            side: const BorderSide(
+                                              color: AppColors.primary,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8.0),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 6.0,
+                                            ),
+                                          ),
+                                          onPressed: () {
+                                            AppDocumentViewerModal.show(
+                                              context,
+                                              title:
+                                                  'Hồ sơ pháp lý: ${_selectedExistingCollateral!.name}',
+                                              fileKey:
+                                                  _selectedExistingCollateral!
+                                                      .legalDocumentUrl!,
+                                              documentType:
+                                                  'Giấy chứng nhận tài sản bảo đảm',
+                                              ocrDetails: {
+                                                'asset_name':
+                                                    _selectedExistingCollateral!
+                                                        .name,
+                                                'loai_tai_san':
+                                                    _selectedExistingCollateral!
+                                                        .typeDisplay,
+                                                'valuation_amount':
+                                                    _selectedExistingCollateral!
+                                                        .value,
+                                                'ngay_dinh_gia':
+                                                    _selectedExistingCollateral!
+                                                        .valuationDateFormatted,
+                                              },
+                                            );
+                                          },
+                                          icon: const Icon(
+                                            Icons.visibility_outlined,
+                                            size: 14.0,
+                                          ),
+                                          label: const Text(
+                                            'Xem giấy tờ pháp lý tài sản',
+                                            style: TextStyle(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10.0,
+                                          vertical: 8.0,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFEF3C7),
+                                          borderRadius: BorderRadius.circular(
+                                            8.0,
+                                          ),
+                                          border: Border.all(
+                                            color: const Color(0xFFFDE68A),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.info_outline,
+                                              size: 16.0,
+                                              color: Color(0xFFD97706),
+                                            ),
+                                            const SizedBox(width: 8.0),
+                                            const Expanded(
+                                              child: Text(
+                                                'Chưa có giấy tờ pháp lý số hóa',
+                                                style: TextStyle(
+                                                  fontSize: 11.5,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Color(0xFF92400E),
+                                                ),
+                                              ),
+                                            ),
+                                            TextButton.icon(
+                                              style: TextButton.styleFrom(
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6.0,
+                                                    ),
+                                              ),
+                                              onPressed: () {
+                                                Navigator.pushNamed(
+                                                  context,
+                                                  AppRouter.loanCollateralOcr,
+                                                ).then((_) {
+                                                  _loanController
+                                                      .fetchCollaterals();
+                                                });
+                                              },
+                                              icon: const Icon(
+                                                Icons.upload_file,
+                                                size: 14.0,
+                                              ),
+                                              label: const Text(
+                                                'Tải lên',
+                                                style: TextStyle(
+                                                  fontSize: 11.5,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 10.0),
+
+                            // Cảnh báo chỉ số LTV
+                            if (_currentCollateralVal > 0) ...[
+                              Container(
+                                padding: const EdgeInsets.all(10.0),
+                                decoration: BoxDecoration(
+                                  color: ltv > 85
+                                      ? AppColors.error.withValues(alpha: 0.1)
+                                      : (ltv > 70
+                                            ? AppColors.warning.withValues(
+                                                alpha: 0.1,
+                                              )
+                                            : AppColors.success.withValues(
+                                                alpha: 0.1,
+                                              )),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      ltv > 85
+                                          ? Icons.dangerous_rounded
+                                          : (ltv > 70
+                                                ? Icons.warning_rounded
+                                                : Icons.check_circle_rounded),
+                                      size: 18.0,
+                                      color: ltv > 85
+                                          ? AppColors.error
+                                          : (ltv > 70
+                                                ? AppColors.warning
+                                                : AppColors.success),
+                                    ),
+                                    const SizedBox(width: 8.0),
+                                    Expanded(
+                                      child: Text(
+                                        ltv > 85
+                                            ? 'CẢNH BÁO LTV: ${ltv.toStringAsFixed(1)}% vượt trần cho phép của ngân hàng (85%). Nguy cơ bị từ chối giải ngân!'
+                                            : (ltv > 70
+                                                  ? 'CẢNH BÁO: Khoản vay vượt quá tỷ lệ giải ngân an toàn trên tài sản đảm bảo (LTV: ${ltv.toStringAsFixed(1)}% > 70%).'
+                                                  : 'Tỷ lệ LTV: ${ltv.toStringAsFixed(1)}% (Mức giải ngân an toàn theo chuẩn ngân hàng).'),
+                                        style: TextStyle(
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: ltv > 85
+                                              ? AppColors.error
+                                              : (ltv > 70
+                                                    ? const Color(0xFFB45309)
+                                                    : AppColors.success),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 18.0),
                 ],

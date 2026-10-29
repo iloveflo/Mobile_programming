@@ -9,6 +9,8 @@ class NotificationPreferenceMockData {
       pushEnabled: true,
       emailEnabled: true,
       smsEnabled: false,
+      balanceFluctuationEnabled: true,
+      monthlyStatementEnabled: true,
       reminderDays: 3,
       updatedAt: DateTime(2026, 9, 1, 8, 15),
     ),

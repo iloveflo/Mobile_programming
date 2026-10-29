@@ -6,6 +6,7 @@ import '../../models/notification_preference_model.dart';
 import '../../models/session_model.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
+import '../../services/cache_service.dart';
 import '../../widgets/widget.dart';
 
 /// Màn hình Cài đặt Hệ thống & Bảo mật Ứng dụng (AppSettingsScreen)
@@ -21,11 +22,11 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   final AuthController _authController = sl<AuthController>();
   final PaymentScheduleController _scheduleController =
       sl<PaymentScheduleController>();
+  final CacheService _cacheService = sl<CacheService>();
 
-  bool _balanceNotice = true;
-  bool _monthlyStatementEmail = true;
   bool _autoLock5Min = true;
-  String _cacheSize = '12.4 MB';
+  bool _isClearingCache = false;
+  String _cacheSize = 'Đang tính toán...';
 
   @override
   void initState() {
@@ -36,7 +37,79 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       _scheduleController.loadNotificationPreference(
         userId: _authController.currentUser?.userId,
       );
+      _loadCacheSize();
     });
+  }
+
+  Future<void> _loadCacheSize() async {
+    final size = await _cacheService.getFormattedCacheSize();
+    if (mounted) {
+      setState(() {
+        _cacheSize = size;
+      });
+    }
+  }
+
+  Future<void> _clearCache() async {
+    setState(() {
+      _isClearingCache = true;
+    });
+    final success = await _cacheService.clearCache();
+    await _loadCacheSize();
+    if (!mounted) return;
+    setState(() {
+      _isClearingCache = false;
+    });
+    if (success) {
+      AppSnackBar.showSuccess(
+        context,
+        'Đã dọn dẹp bộ nhớ đệm (cache) thiết bị thành công!',
+      );
+    } else {
+      AppSnackBar.showError(
+        context,
+        'Không thể dọn dẹp một số tệp bộ nhớ đệm đang hoạt động.',
+      );
+    }
+  }
+
+  Future<void> _toggleNotificationSetting({
+    bool? balanceNotice,
+    bool? monthlyStatementEmail,
+  }) async {
+    final currentPref =
+        _scheduleController.preference ??
+        const NotificationPreferenceModel(
+          id: 1,
+          userId: 1,
+          pushEnabled: true,
+          emailEnabled: true,
+          smsEnabled: false,
+          reminderDays: 3,
+          balanceFluctuationEnabled: true,
+          monthlyStatementEnabled: true,
+        );
+
+    final updated = currentPref.copyWith(
+      balanceFluctuationEnabled: balanceNotice,
+      monthlyStatementEnabled: monthlyStatementEmail,
+    );
+
+    final success = await _scheduleController.updatePreference(
+      updated,
+      userEmail: _authController.currentUser?.email,
+      userPhone: _authController.currentUser?.phone,
+    );
+
+    if (!mounted) return;
+    if (success) {
+      AppSnackBar.showSuccess(
+        context,
+        'Đã cập nhật thiết lập thông báo thành công!',
+      );
+    } else if (_scheduleController.errorMessage != null) {
+      AppSnackBar.showError(context, _scheduleController.errorMessage!);
+    }
   }
 
   String _getReminderSubtitle() {
@@ -85,16 +158,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         }
         return success;
       },
-    );
-  }
-
-  void _clearCache() {
-    setState(() {
-      _cacheSize = '0.0 MB';
-    });
-    AppSnackBar.showSuccess(
-      context,
-      'Đã dọn dẹp bộ nhớ đệm (cache) thành công!',
     );
   }
 
@@ -435,97 +498,103 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
               // 4. Nhóm: Thông báo & Nhắc nợ
               _buildSectionHeader('Thông báo & Nhắc nợ'),
-              _buildCard([
-                ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 4.0,
-                  ),
-                  leading: Container(
-                    padding: const EdgeInsets.all(8.0),
-                    decoration: BoxDecoration(
-                      color: AppColors.primarySoft,
-                      borderRadius: BorderRadius.circular(10.0),
+              ListenableBuilder(
+                listenable: _scheduleController,
+                builder: (context, _) {
+                  final pref = _scheduleController.preference;
+                  final isBalanceNotice =
+                      pref?.balanceFluctuationEnabled ?? true;
+                  final isStatementEmail =
+                      pref?.monthlyStatementEnabled ?? true;
+
+                  return _buildCard([
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 4.0,
+                      ),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8.0),
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySoft,
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        child: const Icon(
+                          Icons.alarm_on_rounded,
+                          color: AppColors.primary,
+                          size: 22.0,
+                        ),
+                      ),
+                      title: const Text(
+                        'Cấu hình nhắc nợ định kỳ',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      subtitle: Text(
+                        _getReminderSubtitle(),
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14.0,
+                        color: AppColors.textSecondary,
+                      ),
+                      onTap: _openNotificationPreferences,
                     ),
-                    child: const Icon(
-                      Icons.alarm_on_rounded,
-                      color: AppColors.primary,
-                      size: 22.0,
+                    const Divider(height: 1.0),
+                    SwitchListTile(
+                      value: isBalanceNotice,
+                      activeThumbColor: AppColors.primary,
+                      activeTrackColor: AppColors.primarySoft,
+                      title: const Text(
+                        'Thông báo biến động dư nợ',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Cập nhật sau mỗi lần thanh toán hoặc giải ngân',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      onChanged: (val) =>
+                          _toggleNotificationSetting(balanceNotice: val),
                     ),
-                  ),
-                  title: const Text(
-                    'Cấu hình nhắc nợ định kỳ',
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                    const Divider(height: 1.0),
+                    SwitchListTile(
+                      value: isStatementEmail,
+                      activeThumbColor: AppColors.primary,
+                      activeTrackColor: AppColors.primarySoft,
+                      title: const Text(
+                        'Gửi sao kê qua Email định kỳ',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Báo cáo tổng hợp số dư và lãi suất ngày 01 hàng tháng',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      onChanged: (val) => _toggleNotificationSetting(
+                        monthlyStatementEmail: val,
+                      ),
                     ),
-                  ),
-                  subtitle: Text(
-                    _getReminderSubtitle(),
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  trailing: const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 14.0,
-                    color: AppColors.textSecondary,
-                  ),
-                  onTap: _openNotificationPreferences,
-                ),
-                const Divider(height: 1.0),
-                SwitchListTile(
-                  value: _balanceNotice,
-                  activeThumbColor: AppColors.primary,
-                  activeTrackColor: AppColors.primarySoft,
-                  title: const Text(
-                    'Thông báo biến động dư nợ',
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  subtitle: const Text(
-                    'Cập nhật sau mỗi lần thanh toán hoặc giải ngân',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  onChanged: (val) {
-                    setState(() {
-                      _balanceNotice = val;
-                    });
-                  },
-                ),
-                const Divider(height: 1.0),
-                SwitchListTile(
-                  value: _monthlyStatementEmail,
-                  activeThumbColor: AppColors.primary,
-                  activeTrackColor: AppColors.primarySoft,
-                  title: const Text(
-                    'Gửi sao kê qua Email định kỳ',
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  subtitle: const Text(
-                    'Báo cáo tổng hợp số dư và lãi suất ngày 01 hàng tháng',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  onChanged: (val) {
-                    setState(() {
-                      _monthlyStatementEmail = val;
-                    });
-                  },
-                ),
-              ]),
+                  ]);
+                },
+              ),
 
               const SizedBox(height: 20.0),
 
@@ -548,7 +617,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                     ),
                   ),
                   trailing: OutlinedButton(
-                    onPressed: _clearCache,
+                    onPressed: _isClearingCache ? null : _clearCache,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.error,
                       side: const BorderSide(color: Color(0xFFFECACA)),
@@ -556,10 +625,21 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                         borderRadius: BorderRadius.circular(8.0),
                       ),
                     ),
-                    child: const Text(
-                      'Xóa cache',
-                      style: TextStyle(fontSize: 12.0),
-                    ),
+                    child: _isClearingCache
+                        ? const SizedBox(
+                            width: 14.0,
+                            height: 14.0,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.0,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.error,
+                              ),
+                            ),
+                          )
+                        : const Text(
+                            'Xóa cache',
+                            style: TextStyle(fontSize: 12.0),
+                          ),
                   ),
                 ),
               ]),

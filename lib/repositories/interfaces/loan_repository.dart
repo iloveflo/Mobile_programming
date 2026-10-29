@@ -1,4 +1,5 @@
 import '../../models/collateral_model.dart';
+import '../../models/loan_document_model.dart';
 import '../../models/loan_model.dart';
 
 /// Hợp đồng giao diện cho Kho lưu trữ dữ liệu Khoản vay (LoanRepository)
@@ -33,4 +34,7 @@ abstract class LoanRepository {
 
   /// Quét OCR tài liệu/hợp đồng vay từ ảnh chụp
   Future<Map<String, dynamic>> scanDocumentOcr(String imagePath);
+
+  /// Lấy danh sách hồ sơ tài liệu lưu trữ của hợp đồng vay trên Cloudflare R2
+  Future<List<LoanDocumentModel>> getLoanDocuments(String loanId);
 }

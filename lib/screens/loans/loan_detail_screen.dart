@@ -4,6 +4,7 @@ import '../../controllers/loan_controller.dart';
 import '../../models/loan_model.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
+import '../../services/image_upload_service.dart';
 import '../../widgets/widget.dart';
 
 /// Màn hình L02-02: Chi tiết khoản vay & Quản lý hợp đồng (LoanDetailScreen)
@@ -39,10 +40,12 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         final passedLoan = args?['loan'] as LoanModel?;
         if (passedLoan != null) {
           _loanController.selectLoan(passedLoan);
+          _activeLoanId = passedLoan.id.toString();
         }
       }
       if (_activeLoanId.isNotEmpty) {
         _loanController.getDetail(_activeLoanId);
+        _loanController.fetchLoanDocuments(_activeLoanId);
       }
     }
   }
@@ -1078,7 +1081,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                   const SizedBox(height: 16.0),
                 ],
 
-                // 5. Hubs tác vụ nhanh (Quick Action Grid)
+                // 5. Hồ sơ tài liệu hợp đồng số hóa (Cloudflare R2)
+                _buildContractDocumentsSection(loan),
+                const SizedBox(height: 16.0),
+
+                // 6. Hubs tác vụ nhanh (Quick Action Grid)
                 const Text(
                   'TIỆN ÍCH HỢP ĐỒNG',
                   style: TextStyle(
@@ -1209,5 +1216,194 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         },
       ),
     );
+  }
+
+  Widget _buildContractDocumentsSection(LoanModel loan) {
+    final docs = _loanController.loanDocuments;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'HỒ SƠ HỢP ĐỒNG ĐIỆN TỬ',
+              style: TextStyle(
+                fontSize: 12.0,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary,
+                letterSpacing: 0.8,
+              ),
+            ),
+            InkWell(
+              onTap: () => _handleUploadContractDocument(loan.id.toString()),
+              borderRadius: BorderRadius.circular(6.0),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.add_photo_alternate_outlined,
+                      size: 15.0,
+                      color: AppColors.primary,
+                    ),
+                    SizedBox(width: 4.0),
+                    Text(
+                      'Tải lên',
+                      style: TextStyle(
+                        fontSize: 12.0,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10.0),
+        if (docs.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(14.0),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12.0),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.folder_open_outlined,
+                  color: AppColors.textSecondary,
+                  size: 24.0,
+                ),
+                SizedBox(width: 12.0),
+                Expanded(
+                  child: Text(
+                    'Chưa có hồ sơ scan hợp đồng. Nhấn "Tải lên" để lưu trữ chứng từ bảo mật.',
+                    style: TextStyle(
+                      fontSize: 12.0,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          Column(
+            children: docs.map((doc) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10.0),
+                padding: const EdgeInsets.all(12.0),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12.0),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10.0),
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySoft,
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                      child: const Icon(
+                        Icons.description_outlined,
+                        color: AppColors.primary,
+                        size: 22.0,
+                      ),
+                    ),
+                    const SizedBox(width: 12.0),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            doc.documentTypeDisplay,
+                            style: const TextStyle(
+                              fontSize: 13.0,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2.0),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.verified_user_outlined,
+                                size: 12.0,
+                                color: AppColors.success,
+                              ),
+                              const SizedBox(width: 4.0),
+                              Text(
+                                'Chứng từ mã hóa • ${doc.ocrStatusDisplay}',
+                                style: const TextStyle(
+                                  fontSize: 11.0,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8.0),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        side: const BorderSide(color: AppColors.primary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10.0,
+                          vertical: 6.0,
+                        ),
+                      ),
+                      onPressed: () {
+                        AppDocumentViewerModal.show(
+                          context,
+                          title: doc.documentTypeDisplay,
+                          fileKey: doc.fileUrl,
+                          documentType: doc.documentTypeDisplay,
+                          ocrDetails: doc.ocrResult,
+                        );
+                      },
+                      icon: const Icon(Icons.visibility_outlined, size: 15.0),
+                      label: const Text(
+                        'Xem',
+                        style: TextStyle(
+                          fontSize: 12.0,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _handleUploadContractDocument(String loanId) async {
+    final uploadService = sl<ImageUploadService>();
+    final result = await uploadService.pickAndUploadImage(
+      context,
+      folder: 'contracts',
+      filePrefix: 'contract_loan_$loanId',
+      metadata: {'loan_id': loanId},
+    );
+    if (!mounted) return;
+    if (result != null) {
+      AppSnackBar.showSuccess(context, 'Tải lên tài liệu hợp đồng thành công!');
+      _loanController.fetchLoanDocuments(loanId);
+    }
   }
 }

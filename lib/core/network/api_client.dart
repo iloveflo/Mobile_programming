@@ -225,4 +225,26 @@ class ApiClient {
     final response = await request.close().timeout(timeout);
     return _processResponse(response);
   }
+
+  /// Gửi dữ liệu nhị phân (ảnh / file) trực tiếp qua phương thức PUT lên Cloudflare R2 Presigned URL
+  Future<bool> uploadBinary(
+    Uri presignedUri,
+    List<int> bytes, {
+    String contentType = 'image/jpeg',
+    Map<String, String>? extraHeaders,
+  }) async {
+    final request = await _httpClient
+        .putUrl(presignedUri)
+        .timeout(const Duration(minutes: 2));
+    request.headers.set(HttpHeaders.contentTypeHeader, contentType);
+    request.headers.contentLength = bytes.length;
+    if (extraHeaders != null) {
+      extraHeaders.forEach((key, value) {
+        request.headers.set(key, value);
+      });
+    }
+    request.add(bytes);
+    final response = await request.close().timeout(const Duration(minutes: 2));
+    return response.statusCode >= 200 && response.statusCode < 300;
+  }
 }

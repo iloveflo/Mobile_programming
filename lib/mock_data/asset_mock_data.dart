@@ -10,6 +10,7 @@ class AssetMockData {
       type: 'VEHICLE',
       value: 750000000.0,
       valuationDate: DateTime(2025, 6, 1),
+      legalDocumentUrl: null, // Chưa tải lên cavet xe
       description:
           'Xe thế chấp giải ngân khoản vay Vietcombank. Cavet gốc giữ tại ngân hàng.',
       createdAt: DateTime(2025, 6, 1, 9, 30),
@@ -22,6 +23,7 @@ class AssetMockData {
       type: 'REAL_ESTATE',
       value: 2800000000.0,
       valuationDate: DateTime(2024, 2, 20),
+      legalDocumentUrl: 'collaterals/104/so_hong_can_ho_sunrise_city.jpg',
       description: 'Sổ hồng căn hộ tháp W2, tầng 18. Thế chấp vay Techcombank.',
       createdAt: DateTime(2024, 2, 20, 14, 0),
     ),

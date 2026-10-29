@@ -8,6 +8,7 @@ import '../../models/user_model.dart';
 import '../../routes/app_router.dart';
 import '../../screens/main_shell_screen.dart';
 import '../../service_locator.dart';
+import '../../services/image_upload_service.dart';
 import '../../widgets/widget.dart';
 
 /// Màn hình Quản lý Hồ sơ Cá nhân & Năng lực Tài chính (ProfileScreen)
@@ -1161,6 +1162,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _handleUpdateAvatar(UserModel? user) async {
+    final imageUploadService = sl<ImageUploadService>();
+    final userId = user?.userId ?? 1;
+
+    final result = await imageUploadService.pickAndUploadImage(
+      context,
+      folder: 'avatars/$userId',
+      filePrefix: 'avatar',
+      isPublic: true,
+      title: 'Cập nhật ảnh đại diện',
+    );
+
+    if (!mounted || result == null) return;
+
+    if (result.isSuccess) {
+      AppSnackBar.showSuccess(
+        context,
+        'Cập nhật ảnh đại diện lên Cloudflare R2 thành công!',
+      );
+    } else if (!result.isSuccess && result.errorMessage != null) {
+      AppSnackBar.showError(context, result.errorMessage!);
+    }
+  }
+
   // 1. Header Card: Định danh eKYC C06 & Thông tin Khách hàng
   Widget _buildProfileHeaderCard(UserModel? user, String initialLetter) {
     final isVerified = user?.isEkycVerified ?? false;
@@ -1198,37 +1223,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Row(
             children: [
-              Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 34.0,
-                    backgroundColor: AppColors.primarySoft,
-                    child: Text(
-                      initialLetter,
-                      style: const TextStyle(
-                        fontSize: 28.0,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+              InkWell(
+                onTap: () => _handleUpdateAvatar(user),
+                borderRadius: BorderRadius.circular(34.0),
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 34.0,
+                      backgroundColor: AppColors.primarySoft,
+                      child: Text(
+                        initialLetter,
+                        style: const TextStyle(
+                          fontSize: 28.0,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4.0),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt_rounded,
-                        color: Colors.white,
-                        size: 13.0,
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4.0),
+                        decoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          color: Colors.white,
+                          size: 13.0,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(width: 16.0),
               Expanded(
@@ -1388,7 +1417,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (income > 0 && monthlyRepayment > 0) {
       final dti = (monthlyRepayment / income * 100);
       dtiVal = '${dti.toStringAsFixed(1)}%';
-      dtiSub = dti < 40 ? 'Mức an toàn < 40%' : 'Cần chú ý (>40%)';
+      dtiSub = dti < 40 ? 'An toàn < 40%' : 'Cần chú ý (>40%)';
       dtiColor = dti < 40 ? const Color(0xFF0284C7) : const Color(0xFFDC2626);
     } else if (income > 0 && monthlyRepayment == 0) {
       dtiVal = '0%';
@@ -1396,7 +1425,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       dtiColor = const Color(0xFF059669);
     } else {
       dtiVal = 'Chưa tính';
-      dtiSub = 'Chưa cập nhật thu nhập';
+      dtiSub = 'Chưa cập nhật';
       dtiColor = AppColors.textSecondary;
     }
 
@@ -1414,38 +1443,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? AppColors.primary
         : AppColors.textSecondary;
 
-    return Row(
-      children: [
-        Expanded(
-          child: _buildMetricTile(
-            title: 'Điểm tín dụng',
-            value: scoreVal,
-            subtext: scoreSub,
-            icon: Icons.shield_rounded,
-            color: scoreColor,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _buildMetricTile(
+              title: 'Điểm tín dụng',
+              value: scoreVal,
+              subtext: scoreSub,
+              icon: Icons.shield_rounded,
+              color: scoreColor,
+            ),
           ),
-        ),
-        const SizedBox(width: 8.0),
-        Expanded(
-          child: _buildMetricTile(
-            title: 'Gánh nặng nợ (DTI)',
-            value: dtiVal,
-            subtext: dtiSub,
-            icon: Icons.pie_chart_rounded,
-            color: dtiColor,
+          const SizedBox(width: 8.0),
+          Expanded(
+            child: _buildMetricTile(
+              title: 'Gánh nặng nợ (DTI)',
+              value: dtiVal,
+              subtext: dtiSub,
+              icon: Icons.pie_chart_rounded,
+              color: dtiColor,
+            ),
           ),
-        ),
-        const SizedBox(width: 8.0),
-        Expanded(
-          child: _buildMetricTile(
-            title: 'Thu nhập/tháng',
-            value: incomeVal,
-            subtext: incomeSub,
-            icon: Icons.account_balance_wallet_rounded,
-            color: incomeColor,
+          const SizedBox(width: 8.0),
+          Expanded(
+            child: _buildMetricTile(
+              title: 'Thu nhập/tháng',
+              value: incomeVal,
+              subtext: incomeSub,
+              icon: Icons.account_balance_wallet_rounded,
+              color: incomeColor,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1457,7 +1489,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14.0),
@@ -1465,46 +1497,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              Icon(icon, size: 16.0, color: color),
+              Icon(icon, size: 15.0, color: color),
               const SizedBox(width: 4.0),
               Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 11.0,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 11.0,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 6.0),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14.5,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14.0,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2.0),
-          Text(
-            subtext,
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w600,
-              color: color,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              subtext,
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

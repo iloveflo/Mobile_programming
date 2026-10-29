@@ -2,8 +2,10 @@ import 'package:get_it/get_it.dart';
 
 import '../../controllers/auth_controller.dart';
 import '../../mock_data/asset_mock_data.dart';
+import '../../mock_data/loan_document_mock_data.dart';
 import '../../mock_data/loan_mock_data.dart';
 import '../../models/collateral_model.dart';
+import '../../models/loan_document_model.dart';
 import '../../models/loan_model.dart';
 import '../interfaces/loan_repository.dart';
 
@@ -40,6 +42,7 @@ class MockLoanRepository implements LoanRepository {
           type: a.type,
           value: a.value,
           valuationDate: a.valuationDate,
+          legalDocumentUrl: a.legalDocumentUrl,
           description: a.description,
           createdAt: a.createdAt,
         ),
@@ -424,5 +427,16 @@ class MockLoanRepository implements LoanRepository {
       'raw_extracted_text':
           'HỢP ĐỒNG TÍN DỤNG SỐ VCB/2026/HD-9021. BÊN VAY: NGUYEN VAN A. SỐ TIỀN: 350,000,000 VND. THỜI HẠN: 36 THÁNG. LÃI SUẤT: 8.9%/NĂM.',
     };
+  }
+
+  @override
+  Future<List<LoanDocumentModel>> getLoanDocuments(String loanId) async {
+    await _simulateDelay(150, 300);
+    final parsedId = int.tryParse(loanId);
+    if (parsedId == null) return [];
+
+    return LoanDocumentMockData.loanDocumentsDatabase
+        .where((doc) => doc.loanId == parsedId)
+        .toList();
   }
 }
