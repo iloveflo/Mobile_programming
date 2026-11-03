@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../controllers/auth_controller.dart';
@@ -140,6 +141,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(6.0),
                       child: const LinearProgressIndicator(
+                        value: 0.85,
                         minHeight: 4.0,
                         backgroundColor: Color(0xFF1E3A8A),
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -148,11 +150,12 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ],
               ),
-              // Panel Dev/QA điều hướng nhanh
-              DevStatePanel(
-                currentState: _currentDevState,
-                onStateSelected: _onDevStateSelected,
-              ),
+              // Panel Dev/QA điều hướng nhanh (Chỉ hiển thị khi debug môi trường dev)
+              if (kDebugMode)
+                DevStatePanel(
+                  currentState: _currentDevState,
+                  onStateSelected: _onDevStateSelected,
+                ),
             ],
           ),
         ),

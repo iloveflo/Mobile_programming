@@ -6,7 +6,10 @@ import 'package:my_first_app/screens/auth/splash_screen.dart';
 import 'package:my_first_app/service_locator.dart';
 
 void main() {
-  setUpAll(setupServiceLocator);
+  setUp(() async {
+    await resetServiceLocator(dispose: false);
+    setupServiceLocator();
+  });
 
   testWidgets('Ứng dụng khởi động tại màn hình SplashScreen', (
     WidgetTester tester,
@@ -26,6 +29,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
+    await tester.pump();
 
     expect(find.byType(TextField), findsNWidgets(2));
     expect(find.text('Đăng nhập'), findsWidgets);

@@ -51,6 +51,10 @@ class ApiClient {
     _authToken = null;
   }
 
+  /// Callback tự động làm mới Access Token khi gặp mã lỗi HTTP 401
+  Future<bool> Function()? onRefreshToken;
+  bool _isRefreshing = false;
+
   /// Chuẩn hóa và tạo URI hoàn chỉnh từ baseUrl + endpoint
   Uri _buildUri(String endpoint, [Map<String, dynamic>? queryParams]) {
     String cleanBase = baseUrl.trim();
@@ -62,12 +66,23 @@ class ApiClient {
       cleanEndpoint = '/$cleanEndpoint';
     }
 
-    // Loại bỏ xung đột trùng lặp '/api' nếu baseUrl đã chứa '/api' hoặc '/api/v1'
-    if (cleanBase.endsWith('/api') && cleanEndpoint.startsWith('/api/')) {
-      cleanEndpoint = cleanEndpoint.substring(4);
-    } else if (cleanBase.contains(RegExp(r'/api/v\d+$')) &&
-        cleanEndpoint.startsWith('/api/')) {
-      cleanEndpoint = cleanEndpoint.substring(4);
+    // Chuẩn hóa và triệt tiêu xung đột trùng lặp prefix '/api' hoặc '/api/v1'
+    final hasBaseApi = RegExp(r'/api(/v\d+)?$').hasMatch(cleanBase);
+
+    if (hasBaseApi) {
+      if (cleanEndpoint.startsWith('/api/v')) {
+        final match = RegExp(r'^/api/v\d+').firstMatch(cleanEndpoint);
+        if (match != null) {
+          cleanEndpoint = cleanEndpoint.substring(match.end);
+        }
+      } else if (cleanEndpoint.startsWith('/api/')) {
+        cleanEndpoint = cleanEndpoint.substring(4);
+      }
+    } else {
+      if (!cleanEndpoint.startsWith('/api/') &&
+          !cleanEndpoint.startsWith('/api')) {
+        cleanEndpoint = '/api$cleanEndpoint';
+      }
     }
 
     final fullUrl = '$cleanBase$cleanEndpoint';
@@ -144,86 +159,127 @@ class ApiClient {
     );
   }
 
+  /// Thực thi HTTP request với cơ chế Auto Token Refresh Interceptor khi gặp 401
+  Future<dynamic> _executeWithRetry(
+    String endpoint,
+    Future<dynamic> Function() action,
+  ) async {
+    try {
+      return await action();
+    } on ApiException catch (e) {
+      final isAuthEndpoint =
+          endpoint.contains('login') ||
+          endpoint.contains('register') ||
+          endpoint.contains('refresh') ||
+          endpoint.contains('session');
+      if (e.statusCode == 401 &&
+          !isAuthEndpoint &&
+          !_isRefreshing &&
+          onRefreshToken != null) {
+        _isRefreshing = true;
+        try {
+          final success = await onRefreshToken!();
+          if (success) {
+            return await action();
+          }
+        } finally {
+          _isRefreshing = false;
+        }
+      }
+      rethrow;
+    }
+  }
+
   // ================= CÁC PHƯƠNG THỨC HTTP CHUẨN =================
 
   Future<dynamic> get(
     String endpoint, {
     Map<String, String>? headers,
     Map<String, dynamic>? queryParams,
-  }) async {
-    final uri = _buildUri(endpoint, queryParams);
-    final request = await _httpClient.getUrl(uri).timeout(timeout);
-    _applyHeaders(request, headers);
-    final response = await request.close().timeout(timeout);
-    return _processResponse(response);
+  }) {
+    return _executeWithRetry(endpoint, () async {
+      final uri = _buildUri(endpoint, queryParams);
+      final request = await _httpClient.getUrl(uri).timeout(timeout);
+      _applyHeaders(request, headers);
+      final response = await request.close().timeout(timeout);
+      return _processResponse(response);
+    });
   }
 
   Future<dynamic> post(
     String endpoint, {
     dynamic body,
     Map<String, String>? headers,
-  }) async {
-    final uri = _buildUri(endpoint);
-    final request = await _httpClient.postUrl(uri).timeout(timeout);
-    _applyHeaders(request, headers);
+  }) {
+    return _executeWithRetry(endpoint, () async {
+      final uri = _buildUri(endpoint);
+      final request = await _httpClient.postUrl(uri).timeout(timeout);
+      _applyHeaders(request, headers);
 
-    if (body != null) {
-      request.write(body is String ? body : jsonEncode(body));
-    }
+      if (body != null) {
+        request.write(body is String ? body : jsonEncode(body));
+      }
 
-    final response = await request.close().timeout(timeout);
-    return _processResponse(response);
+      final response = await request.close().timeout(timeout);
+      return _processResponse(response);
+    });
   }
 
   Future<dynamic> put(
     String endpoint, {
     dynamic body,
     Map<String, String>? headers,
-  }) async {
-    final uri = _buildUri(endpoint);
-    final request = await _httpClient.putUrl(uri).timeout(timeout);
-    _applyHeaders(request, headers);
+  }) {
+    return _executeWithRetry(endpoint, () async {
+      final uri = _buildUri(endpoint);
+      final request = await _httpClient.putUrl(uri).timeout(timeout);
+      _applyHeaders(request, headers);
 
-    if (body != null) {
-      request.write(body is String ? body : jsonEncode(body));
-    }
+      if (body != null) {
+        request.write(body is String ? body : jsonEncode(body));
+      }
 
-    final response = await request.close().timeout(timeout);
-    return _processResponse(response);
+      final response = await request.close().timeout(timeout);
+      return _processResponse(response);
+    });
   }
 
   Future<dynamic> patch(
     String endpoint, {
     dynamic body,
     Map<String, String>? headers,
-  }) async {
-    final uri = _buildUri(endpoint);
-    final request = await _httpClient.patchUrl(uri).timeout(timeout);
-    _applyHeaders(request, headers);
+  }) {
+    return _executeWithRetry(endpoint, () async {
+      final uri = _buildUri(endpoint);
+      final request = await _httpClient.patchUrl(uri).timeout(timeout);
+      _applyHeaders(request, headers);
 
-    if (body != null) {
-      request.write(body is String ? body : jsonEncode(body));
-    }
+      if (body != null) {
+        request.write(body is String ? body : jsonEncode(body));
+      }
 
-    final response = await request.close().timeout(timeout);
-    return _processResponse(response);
+      final response = await request.close().timeout(timeout);
+      return _processResponse(response);
+    });
   }
 
   Future<dynamic> delete(
     String endpoint, {
     dynamic body,
     Map<String, String>? headers,
-  }) async {
-    final uri = _buildUri(endpoint);
-    final request = await _httpClient.deleteUrl(uri).timeout(timeout);
-    _applyHeaders(request, headers);
+  }) {
+    return _executeWithRetry(endpoint, () async {
+      final uri = _buildUri(endpoint);
+      final request = await _httpClient.deleteUrl(uri).timeout(timeout);
+      _applyHeaders(request, headers);
 
-    if (body != null) {
-      request.write(body is String ? body : jsonEncode(body));
-    }
+      if (body != null) {
+        request.write(body is String ? body : jsonEncode(body));
+      }
 
-    final response = await request.close().timeout(timeout);
-    return _processResponse(response);
+      final response = await request.close().timeout(timeout);
+      return _processResponse(response);
+    });
   }
 
   /// Gửi dữ liệu nhị phân (ảnh / file) trực tiếp qua phương thức PUT lên Cloudflare R2 Presigned URL

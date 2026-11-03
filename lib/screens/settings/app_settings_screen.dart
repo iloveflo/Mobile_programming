@@ -24,7 +24,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       sl<PaymentScheduleController>();
   final CacheService _cacheService = sl<CacheService>();
 
-  bool _autoLock5Min = true;
   bool _isClearingCache = false;
   String _cacheSize = 'Đang tính toán...';
 
@@ -108,6 +107,36 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       );
     } else if (_scheduleController.errorMessage != null) {
       AppSnackBar.showError(context, _scheduleController.errorMessage!);
+    }
+  }
+
+  Future<void> _handleToggleBiometric(bool val) async {
+    final success = await _authController.setBiometricEnabled(val);
+    if (!mounted) return;
+    if (success) {
+      AppSnackBar.showSuccess(
+        context,
+        val
+            ? 'Đã bật xác thực sinh trắc học thành công!'
+            : 'Đã tắt xác thực sinh trắc học.',
+      );
+    } else if (_authController.errorMessage != null) {
+      AppSnackBar.showError(context, _authController.errorMessage!);
+    }
+  }
+
+  Future<void> _handleToggleAutoLock(bool val) async {
+    final success = await _authController.setAutoLockEnabled(val);
+    if (!mounted) return;
+    if (success) {
+      AppSnackBar.showSuccess(
+        context,
+        val
+            ? 'Đã kích hoạt tự động khóa sau 5 phút!'
+            : 'Đã tắt tự động khóa ứng dụng.',
+      );
+    } else if (_authController.errorMessage != null) {
+      AppSnackBar.showError(context, _authController.errorMessage!);
     }
   }
 
@@ -409,55 +438,54 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
               // 2. Nhóm: Phương thức xác thực & Bảo mật tài khoản
               _buildSectionHeader('Phương thức xác thực'),
-              _buildCard([
-                SwitchListTile(
-                  value: _authController.isBiometricEnabled,
-                  activeThumbColor: AppColors.primary,
-                  activeTrackColor: AppColors.primarySoft,
-                  title: const Text(
-                    'Sinh trắc học (Vân tay / Face ID)',
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
+              ListenableBuilder(
+                listenable: _authController,
+                builder: (context, child) {
+                  return _buildCard([
+                    SwitchListTile(
+                      value: _authController.isBiometricEnabled,
+                      activeThumbColor: AppColors.primary,
+                      activeTrackColor: AppColors.primarySoft,
+                      title: const Text(
+                        'Sinh trắc học (Vân tay / Face ID)',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Đăng nhập nhanh an toàn trên thiết bị này',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      onChanged: _handleToggleBiometric,
                     ),
-                  ),
-                  subtitle: const Text(
-                    'Đăng nhập nhanh an toàn trên thiết bị này',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: AppColors.textSecondary,
+                    const Divider(height: 1.0),
+                    SwitchListTile(
+                      value: _authController.isAutoLockEnabled,
+                      activeThumbColor: AppColors.primary,
+                      activeTrackColor: AppColors.primarySoft,
+                      title: const Text(
+                        'Tự động khóa sau 5 phút',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Yêu cầu xác thực khi mở lại app ở chế độ nền',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      onChanged: _handleToggleAutoLock,
                     ),
-                  ),
-                  onChanged: (val) {
-                    _authController.setBiometricEnabled(val);
-                  },
-                ),
-                const Divider(height: 1.0),
-                SwitchListTile(
-                  value: _autoLock5Min,
-                  activeThumbColor: AppColors.primary,
-                  activeTrackColor: AppColors.primarySoft,
-                  title: const Text(
-                    'Tự động khóa sau 5 phút',
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  subtitle: const Text(
-                    'Yêu cầu xác thực khi mở lại app ở chế độ nền',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  onChanged: (val) {
-                    setState(() {
-                      _autoLock5Min = val;
-                    });
-                  },
-                ),
-              ]),
+                  ]);
+                },
+              ),
 
               const SizedBox(height: 20.0),
 

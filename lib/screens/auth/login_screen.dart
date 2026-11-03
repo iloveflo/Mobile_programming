@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../controllers/auth_controller.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
+import '../../services/session_storage_service.dart';
 import '../../widgets/widget.dart';
 
 /// Màn hình đăng nhập tài khoản FinCredit (M02)
@@ -20,6 +22,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final AuthController _authController = sl<AuthController>();
   DevAuthState _currentDevState = DevAuthState.normal;
+
+  @override
+  void initState() {
+    super.initState();
+    final savedId = sl<SessionStorageService>().getLastIdentifierSync();
+    if (savedId != null && savedId.isNotEmpty) {
+      _identifierController.text = savedId;
+    }
+  }
 
   @override
   void dispose() {
@@ -157,16 +168,137 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 2. Nếu tính năng đang bật -> Tiến hành xác thực và đăng nhập
-    final result = await _authController.login(
-      _identifierController.text.trim().isNotEmpty
-          ? _identifierController.text.trim()
-          : 'dev@test.com',
-      '123456',
-    );
+    // 2. Kiểm tra dữ liệu phiên đã lưu trên thiết bị
+    final sessionStorage = sl<SessionStorageService>();
+    final savedToken = await sessionStorage.getSavedToken();
+    final savedUser = await sessionStorage.getSavedUser();
+
     if (!mounted) return;
-    if (result == AuthResultState.success) {
-      Navigator.pushReplacementNamed(context, AppRouter.home);
+
+    if (savedToken == null || savedToken.isExpired) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          title: const Row(
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                color: AppColors.primary,
+                size: 24.0,
+              ),
+              SizedBox(width: 8.0),
+              Text(
+                'Kích hoạt Sinh trắc học',
+                style: TextStyle(fontSize: 17.0, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Chưa có dữ liệu sinh trắc học cho thiết bị này.\n\nVui lòng đăng nhập bằng Mật khẩu thành công lần đầu tiên để thiết lập liên kết sinh trắc học an toàn.',
+            style: TextStyle(
+              fontSize: 14.0,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(
+                'Đã hiểu',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // 3. Hiển thị hộp thoại xác thực sinh trắc học chuẩn Fintech
+    final bool? confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40.0,
+              height: 4.0,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2.0),
+              ),
+            ),
+            const SizedBox(height: 20.0),
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.fingerprint_rounded,
+                size: 48.0,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 16.0),
+            const Text(
+              'Xác thực Sinh trắc học',
+              style: TextStyle(
+                fontSize: 18.0,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8.0),
+            Text(
+              'Xác nhận vân tay hoặc FaceID để đăng nhập tài khoản ${savedUser?.fullName ?? savedUser?.email ?? "FinCredit"}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13.0,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 24.0),
+            AppPrimaryButton(
+              label: 'Xác nhận Đăng nhập',
+              onPressed: () => Navigator.pop(ctx, true),
+            ),
+            const SizedBox(height: 8.0),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text(
+                'Hủy bỏ',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+            const SizedBox(height: 8.0),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final success = await _authController.checkSession();
+      if (!mounted) return;
+      if (success) {
+        Navigator.pushReplacementNamed(context, AppRouter.home);
+      } else {
+        AppSnackBar.showError(
+          context,
+          'Phiên làm việc đã hết hạn. Vui lòng nhập lại mật khẩu.',
+        );
+      }
     }
   }
 
@@ -467,11 +599,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 28.0),
 
-                    // Bảng điều khiển giả lập dành cho Dev/QA
-                    DevStatePanel(
-                      currentState: _currentDevState,
-                      onStateSelected: _onDevStateSelected,
-                    ),
+                    // Bảng điều khiển giả lập dành cho Dev/QA (Chỉ hiển thị khi debug môi trường dev)
+                    if (kDebugMode)
+                      DevStatePanel(
+                        currentState: _currentDevState,
+                        onStateSelected: _onDevStateSelected,
+                      ),
                   ],
                 ),
               ),

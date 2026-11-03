@@ -31,6 +31,7 @@ class AuthController extends ChangeNotifier {
   // ================= Cài đặt & Tùy chọn =================
   bool _rememberMe = true;
   bool _biometricEnabled = true;
+  bool _autoLockEnabled = true;
 
   // ================= Trạng thái OTP & Khóa tài khoản =================
   int _otpCountdown = 105; // 105 giây ~ 01:45
@@ -52,8 +53,14 @@ class AuthController extends ChangeNotifier {
   List<SessionModel> get activeSessions => List.unmodifiable(_activeSessions);
 
   bool get rememberMe => _rememberMe;
-  bool get biometricEnabled => _biometricEnabled;
-  bool get isBiometricEnabled => _biometricEnabled;
+  bool get biometricEnabled =>
+      _currentUser?.isBiometricEnabled ?? _biometricEnabled;
+  bool get isBiometricEnabled =>
+      _currentUser?.isBiometricEnabled ?? _biometricEnabled;
+  bool get autoLockEnabled =>
+      _currentUser?.isAutoLockEnabled ?? _autoLockEnabled;
+  bool get isAutoLockEnabled =>
+      _currentUser?.isAutoLockEnabled ?? _autoLockEnabled;
 
   int get otpCountdown => _otpCountdown;
   int get remainingResendAttempts => _remainingResendAttempts;
@@ -90,9 +97,52 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setBiometricEnabled(bool value) {
+  Future<bool> setBiometricEnabled(bool value) async {
     _biometricEnabled = value;
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(isBiometricEnabled: value);
+      notifyListeners();
+      try {
+        final updated = await _authRepository.updateSecuritySettings(
+          isBiometricEnabled: value,
+        );
+        if (_currentUser != null) {
+          _currentUser = updated;
+          notifyListeners();
+        }
+        return true;
+      } catch (e) {
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        notifyListeners();
+        return false;
+      }
+    }
     notifyListeners();
+    return true;
+  }
+
+  Future<bool> setAutoLockEnabled(bool value) async {
+    _autoLockEnabled = value;
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(isAutoLockEnabled: value);
+      notifyListeners();
+      try {
+        final updated = await _authRepository.updateSecuritySettings(
+          isAutoLockEnabled: value,
+        );
+        if (_currentUser != null) {
+          _currentUser = updated;
+          notifyListeners();
+        }
+        return true;
+      } catch (e) {
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        notifyListeners();
+        return false;
+      }
+    }
+    notifyListeners();
+    return true;
   }
 
   void clearError() {
@@ -105,6 +155,10 @@ class AuthController extends ChangeNotifier {
   /// Thiết lập đối tượng UserModel hiện tại (dùng khi fetch profile từ backend hoặc login)
   void setCurrentUser(UserModel? user) {
     _currentUser = user;
+    if (user != null) {
+      _biometricEnabled = user.isBiometricEnabled;
+      _autoLockEnabled = user.isAutoLockEnabled;
+    }
     notifyListeners();
   }
 
@@ -293,6 +347,8 @@ class AuthController extends ChangeNotifier {
         password: password,
       );
       _currentUser = user;
+      _biometricEnabled = user.isBiometricEnabled;
+      _autoLockEnabled = user.isAutoLockEnabled;
       _failedOtpAttempts = 0;
       await loadSessions();
 

@@ -194,6 +194,34 @@ void main() {
       expect(updated.occupation, 'Senior Tech Lead');
     });
 
+    test(
+      'Cập nhật cài đặt bảo mật updateSecuritySettings với PUT request',
+      () async {
+        fakeClient.putResponse = {
+          'data': {
+            'user_id': 102,
+            'full_name': 'Trần Văn Profile',
+            'email': 'profile@fincredit.vn',
+            'is_biometric_enabled': true,
+            'auto_lock_enabled': false,
+          },
+        };
+
+        final updated = await authRepo.updateSecuritySettings(
+          isBiometricEnabled: true,
+          isAutoLockEnabled: false,
+        );
+
+        expect(fakeClient.lastEndpoint, '/api/user/security-settings');
+        expect(fakeClient.lastBody, {
+          'is_biometric_enabled': true,
+          'auto_lock_enabled': false,
+        });
+        expect(updated.isBiometricEnabled, isTrue);
+        expect(updated.isAutoLockEnabled, isFalse);
+      },
+    );
+
     test('Lấy danh sách tài khoản ngân hàng getBankAccounts', () async {
       fakeClient.getResponse = {
         'data': [

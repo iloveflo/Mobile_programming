@@ -17,6 +17,8 @@ class UserModel {
   final String? ekycTier;
   final String membershipTier;
   final int? cicScore;
+  final bool isBiometricEnabled;
+  final bool isAutoLockEnabled;
   final List<BankAccountModel> bankAccounts;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -39,6 +41,8 @@ class UserModel {
     this.ekycTier,
     this.membershipTier = 'STANDARD',
     this.cicScore,
+    this.isBiometricEnabled = false,
+    this.isAutoLockEnabled = true,
     this.bankAccounts = const [],
     this.createdAt,
     this.updatedAt,
@@ -66,6 +70,8 @@ class UserModel {
     String? ekycTier,
     String? membershipTier,
     int? cicScore,
+    bool? isBiometricEnabled,
+    bool? isAutoLockEnabled,
     List<BankAccountModel>? bankAccounts,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -88,6 +94,8 @@ class UserModel {
       ekycTier: ekycTier ?? this.ekycTier,
       membershipTier: membershipTier ?? this.membershipTier,
       cicScore: cicScore ?? this.cicScore,
+      isBiometricEnabled: isBiometricEnabled ?? this.isBiometricEnabled,
+      isAutoLockEnabled: isAutoLockEnabled ?? this.isAutoLockEnabled,
       bankAccounts: bankAccounts ?? this.bankAccounts,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -138,6 +146,17 @@ class UserModel {
           json['membershipTier'] as String? ??
           'STANDARD',
       cicScore: (json['cic_score'] ?? json['cicScore']) as int?,
+      isBiometricEnabled:
+          (json['is_biometric_enabled'] ?? json['isBiometricEnabled'])
+              as bool? ??
+          false,
+      isAutoLockEnabled:
+          (json['auto_lock_enabled'] ??
+                  json['autoLockEnabled'] ??
+                  json['is_auto_lock_enabled'] ??
+                  json['isAutoLockEnabled'])
+              as bool? ??
+          true,
       bankAccounts: parseBankAccounts(
         json['bank_accounts'] ?? json['bankAccounts'],
       ),
@@ -164,6 +183,8 @@ class UserModel {
     'ekyc_tier': ekycTier,
     'membership_tier': membershipTier,
     'cic_score': cicScore,
+    'is_biometric_enabled': isBiometricEnabled,
+    'auto_lock_enabled': isAutoLockEnabled,
     'bank_accounts': bankAccounts.map((a) => a.toJson()).toList(),
     'created_at': createdAt?.toIso8601String(),
     'updated_at': updatedAt?.toIso8601String(),

@@ -7,12 +7,14 @@ import '../../models/auth_token_model.dart';
 import '../../models/bank_account_model.dart';
 import '../../models/session_model.dart';
 import '../../models/user_model.dart';
+import '../../services/session_storage_service.dart';
 import '../interfaces/auth_repository.dart';
 
 /// Triển khai giả lập của AuthRepository phục vụ phát triển Frontend và kiểm thử nghiệp vụ
 class MockAuthRepository implements AuthRepository {
   /// Cờ giả lập lỗi mạng phục vụ Dev/QA kiểm thử
   bool simulateNetworkError;
+  final SessionStorageService sessionStorage;
 
   // Trạng thái bộ nhớ nội bộ (In-Memory State)
   int _failedPasswordAttempts = 0;
@@ -23,7 +25,10 @@ class MockAuthRepository implements AuthRepository {
   AuthTokenModel? _currentToken;
   final Map<int, List<SessionModel>> _userSessions = {};
 
-  MockAuthRepository({this.simulateNetworkError = false}) {
+  MockAuthRepository({
+    this.simulateNetworkError = false,
+    SessionStorageService? sessionStorage,
+  }) : sessionStorage = sessionStorage ?? SessionStorageService() {
     _initMockSessions();
   }
 
@@ -95,13 +100,29 @@ class MockAuthRepository implements AuthRepository {
 
   @override
   Future<AuthTokenModel?> checkSession() async {
-    await _simulateDelay(400, 700);
+    await _simulateDelay();
 
     if (_currentToken != null && !_currentToken!.isExpired) {
       return _currentToken;
     }
 
-    // Kiểm tra token mẫu từ RefreshTokenMockData
+    // 1. Kiểm tra session đã lưu bền vững
+    final savedToken = sessionStorage.getSavedTokenSync();
+    if (savedToken != null && !savedToken.isExpired) {
+      _currentToken = savedToken;
+      final savedUser = sessionStorage.getSavedUserSync();
+      if (savedUser != null) {
+        _currentUser = savedUser;
+      } else {
+        _currentUser = UserMockData.usersDatabase.firstWhere(
+          (u) => u.userId == savedToken.userId,
+          orElse: () => UserMockData.usersDatabase.first,
+        );
+      }
+      return _currentToken;
+    }
+
+    // 2. Fallback token mẫu từ RefreshTokenMockData
     if (RefreshTokenMockData.refreshTokensDatabase.isNotEmpty) {
       final sample = RefreshTokenMockData.refreshTokensDatabase.first;
       if (sample.revokedAt == null &&
@@ -192,6 +213,11 @@ class MockAuthRepository implements AuthRepository {
         refreshToken: 'mock_jwt_refresh_token_${user.userId}',
         userId: user.userId,
         expiresAt: DateTime.now().add(const Duration(days: 7)),
+      );
+      await sessionStorage.saveSession(
+        token: _currentToken!,
+        user: user,
+        identifier: identifier,
       );
       return user;
     }
@@ -432,6 +458,41 @@ class MockAuthRepository implements AuthRepository {
           (profileData['cic_score'] ?? profileData['cicScore'] as num?)
               ?.toInt() ??
           base.cicScore,
+      isBiometricEnabled:
+          (profileData['is_biometric_enabled'] ??
+                  profileData['isBiometricEnabled'])
+              as bool? ??
+          base.isBiometricEnabled,
+      isAutoLockEnabled:
+          (profileData['auto_lock_enabled'] ??
+                  profileData['autoLockEnabled'] ??
+                  profileData['is_auto_lock_enabled'] ??
+                  profileData['isAutoLockEnabled'])
+              as bool? ??
+          base.isAutoLockEnabled,
+      updatedAt: DateTime.now(),
+    );
+
+    _currentUser = updated;
+    final index = UserMockData.usersDatabase.indexWhere(
+      (u) => u.userId == updated.userId,
+    );
+    if (index != -1) {
+      UserMockData.usersDatabase[index] = updated;
+    }
+    return updated;
+  }
+
+  @override
+  Future<UserModel> updateSecuritySettings({
+    bool? isBiometricEnabled,
+    bool? isAutoLockEnabled,
+  }) async {
+    await _simulateDelay();
+    final base = _currentUser ?? UserMockData.usersDatabase.first;
+    final updated = base.copyWith(
+      isBiometricEnabled: isBiometricEnabled ?? base.isBiometricEnabled,
+      isAutoLockEnabled: isAutoLockEnabled ?? base.isAutoLockEnabled,
       updatedAt: DateTime.now(),
     );
 
@@ -491,10 +552,11 @@ class MockAuthRepository implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    await _simulateDelay(300, 500);
+    await _simulateDelay(200, 400);
     _currentUser = null;
     _currentToken = null;
     _failedPasswordAttempts = 0;
     _failedOtpAttempts = 0;
+    await sessionStorage.clearSession();
   }
 }

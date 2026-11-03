@@ -66,5 +66,14 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>FinCredit cần quyền truy cập camera để chụp ảnh hợp đồng và tài sản bảo đảm.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>FinCredit cần quyền truy cập thư viện để tải lên chứng từ tài chính.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

@@ -119,6 +119,12 @@ abstract class AuthRepository {
   /// Cập nhật thông tin hồ sơ người dùng hiện tại
   Future<UserModel> updateProfile(Map<String, dynamic> profileData);
 
+  /// Cập nhật cài đặt phương thức xác thực & bảo mật (Sinh trắc học, Tự động khóa)
+  Future<UserModel> updateSecuritySettings({
+    bool? isBiometricEnabled,
+    bool? isAutoLockEnabled,
+  });
+
   /// Lấy danh sách tài khoản ngân hàng liên kết của người dùng
   Future<List<BankAccountModel>> getBankAccounts();
 

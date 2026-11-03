@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../controllers/auth_controller.dart';
 import '../routes/app_router.dart';
+import '../service_locator.dart';
 import '../widgets/widget.dart';
 import 'credit/credit_health_screen.dart';
 import 'home/home_screen.dart';
@@ -44,10 +46,13 @@ class MainShellScreen extends StatefulWidget {
   State<MainShellScreen> createState() => _MainShellScreenState();
 }
 
-class _MainShellScreenState extends State<MainShellScreen> {
+class _MainShellScreenState extends State<MainShellScreen>
+    with WidgetsBindingObserver {
   late int _currentIndex;
   bool _isBottomBarVisible = true;
   bool _argumentsInitialized = false;
+  DateTime? _pausedTime;
+  bool _isLocked = false;
 
   void showBottomBar() {
     if (!_isBottomBarVisible) {
@@ -79,6 +84,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _currentIndex = widget.initialIndex;
 
     // 6 Tabs điều hướng gốc tương ứng với các phân hệ chính
@@ -90,6 +96,126 @@ class _MainShellScreenState extends State<MainShellScreen> {
       ProfileScreen(),
       AppSettingsScreen(),
     ];
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _pausedTime = DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
+      if (_pausedTime != null) {
+        final elapsed = DateTime.now().difference(_pausedTime!);
+        _pausedTime = null;
+        if (sl.isRegistered<AuthController>()) {
+          final authController = sl<AuthController>();
+          if (elapsed.inMinutes >= 5 &&
+              authController.isAutoLockEnabled &&
+              !_isLocked &&
+              mounted) {
+            _showAutoLockModal();
+          }
+        }
+      }
+    }
+  }
+
+  void _showAutoLockModal() {
+    _isLocked = true;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) {
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.0),
+            ),
+            title: const Row(
+              children: [
+                Icon(
+                  Icons.lock_clock_rounded,
+                  color: AppColors.primary,
+                  size: 26.0,
+                ),
+                SizedBox(width: 8.0),
+                Text(
+                  'Ứng dụng đã khóa',
+                  style: TextStyle(fontSize: 17.0, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            content: const Text(
+              'Ứng dụng đã tự động khóa sau hơn 5 phút ở chế độ nền để bảo vệ thông tin tài chính của bạn.\n\nVui lòng xác thực lại để tiếp tục.',
+              style: TextStyle(
+                fontSize: 13.5,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogCtx);
+                  _isLocked = false;
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    AppRouter.login,
+                    (route) => false,
+                  );
+                },
+                child: const Text(
+                  'Đăng xuất',
+                  style: TextStyle(color: AppColors.error),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  if (sl.isRegistered<AuthController>()) {
+                    final authCtrl = sl<AuthController>();
+                    final ok = await authCtrl.checkSession();
+                    if (ok) {
+                      if (dialogCtx.mounted) {
+                        Navigator.pop(dialogCtx);
+                      }
+                      _isLocked = false;
+                      return;
+                    }
+                  }
+                  if (dialogCtx.mounted) {
+                    Navigator.pop(dialogCtx);
+                    _isLocked = false;
+                    if (mounted) {
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        AppRouter.login,
+                        (route) => false,
+                      );
+                    }
+                  }
+                },
+                icon: const Icon(Icons.fingerprint_rounded, size: 18.0),
+                label: const Text('Mở khóa'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override

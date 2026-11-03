@@ -30,6 +30,7 @@ CREATE TABLE users (
 
     -- Bổ sung trường phục vụ bảo mật & quản trị tài khoản
     is_biometric_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    auto_lock_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     is_locked BOOLEAN NOT NULL DEFAULT FALSE,
     lock_until DATETIME NULL,
@@ -502,12 +503,12 @@ INSERT INTO users (
     user_id, full_name, email, phone, password_hash, monthly_income, date_of_birth,
     id_card_number, address, occupation, workplace, contract_type,
     is_ekyc_verified, ekyc_tier, membership_tier, cic_score,
-    is_biometric_enabled, is_active
+    is_biometric_enabled, auto_lock_enabled, is_active
 ) VALUES (
     1, 'Nguyen Van Dev', 'dev@test.com', '0900000001', '123456', 25000000.00, '1998-05-12',
     '079201008888', 'Tòa nhà Landmark 81, P. 22, Q. Bình Thạnh, TP. Hồ Chí Minh', 'Kỹ sư Phần mềm Senior', 'Tập đoàn Công nghệ FPT', 'Hợp đồng lao động không xác định thời hạn',
     TRUE, 'C06', 'GOLD', 745,
-    TRUE, TRUE
+    TRUE, TRUE, TRUE
 )
 ON DUPLICATE KEY UPDATE full_name=VALUES(full_name);
 
@@ -546,8 +547,8 @@ INSERT INTO credit_profiles (user_id, credit_score, dti_ratio, ltv_ratio, credit
 ON DUPLICATE KEY UPDATE credit_score=VALUES(credit_score);
 
 -- H. NOTIFICATION PREFERENCES
-INSERT INTO notification_preferences (user_id, push_enabled, email_enabled, sms_enabled, reminder_days, balance_fluctuation_enabled, monthly_statement_enabled) VALUES
-(1, TRUE, TRUE, FALSE, 3, TRUE, TRUE)
+INSERT INTO notification_preferences (user_id, push_enabled, email_enabled, reminder_days, balance_fluctuation_enabled, monthly_statement_enabled) VALUES
+(1, TRUE, TRUE, 3, TRUE, TRUE)
 ON DUPLICATE KEY UPDATE push_enabled=VALUES(push_enabled);
 
 -- I. PAYMENT SCHEDULES (Lịch phân kỳ trả nợ mẫu khớp PaymentScheduleMockData)

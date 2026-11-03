@@ -29,7 +29,7 @@ void main() {
       'đăng xuất xóa người dùng hiện tại nhưng giữ nguyên cài đặt sinh trắc học của thiết bị',
       () async {
         await controller.login('dev@test.com', '123456');
-        controller.setBiometricEnabled(true);
+        await controller.setBiometricEnabled(true);
         await controller.logout();
         expect(controller.isAuthenticated, isFalse);
         expect(controller.currentUser, isNull);
@@ -52,6 +52,23 @@ void main() {
         expect(controller.currentUser?.fullName, 'Nguyễn Văn A');
         expect(controller.currentUser?.phone, '0988889999');
         expect(controller.currentUser?.monthlyIncome, 45000000);
+      },
+    );
+
+    test(
+      'cập nhật cấu hình bảo mật sinh trắc học và tự động khóa thành công',
+      () async {
+        await controller.login('dev@test.com', '123456');
+
+        final bioResult = await controller.setBiometricEnabled(false);
+        expect(bioResult, isTrue);
+        expect(controller.isBiometricEnabled, isFalse);
+        expect(controller.currentUser?.isBiometricEnabled, isFalse);
+
+        final lockResult = await controller.setAutoLockEnabled(false);
+        expect(lockResult, isTrue);
+        expect(controller.isAutoLockEnabled, isFalse);
+        expect(controller.currentUser?.isAutoLockEnabled, isFalse);
       },
     );
   });

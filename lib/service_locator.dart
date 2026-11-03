@@ -9,6 +9,7 @@ import 'controllers/payment_schedule_controller.dart';
 import 'controllers/simulation_controller.dart';
 import 'core/config/app_env.dart';
 import 'core/network/api_client.dart';
+import 'models/auth_token_model.dart';
 import 'repositories/interfaces/auth_repository.dart';
 import 'repositories/interfaces/credit_profile_repository.dart';
 import 'repositories/interfaces/credit_report_repository.dart';
@@ -35,6 +36,7 @@ import 'repositories/remote/api_simulation_repository.dart';
 import 'repositories/remote/api_storage_repository.dart';
 import 'services/cache_service.dart';
 import 'services/image_upload_service.dart';
+import 'services/session_storage_service.dart';
 
 /// Service Locator trung tâm quản lý Dependency Injection cho toàn ứng dụng FinCredit
 final GetIt sl = GetIt.instance;
@@ -56,10 +58,42 @@ void setupServiceLocator({bool? isMock}) {
   final bool useMockMode = isMock ?? defaultIsMock;
 
   // =========================================================================
-  // 1. TẦNG CORE & NETWORK
+  // 1. TẦNG CORE, NETWORK & STORAGE
   // =========================================================================
-  _registerLazySingletonIfNot<ApiClient>(
-    () => ApiClient(baseUrl: AppEnv.baseUrl),
+  _registerLazySingletonIfNot<ApiClient>(() {
+    final client = ApiClient(baseUrl: AppEnv.baseUrl);
+    client.onRefreshToken = () async {
+      try {
+        final sessionStorage = sl<SessionStorageService>();
+        final savedToken = await sessionStorage.getSavedToken();
+        if (savedToken?.refreshToken == null ||
+            savedToken!.refreshToken!.isEmpty) {
+          return false;
+        }
+        final response = await client.post(
+          '/api/auth/refresh-token',
+          body: {'refreshToken': savedToken.refreshToken},
+        );
+        if (response != null) {
+          final data = response is Map<String, dynamic>
+              ? (response['data'] ?? response)
+              : response;
+          if (data is Map<String, dynamic>) {
+            final newToken = AuthTokenModel.fromJson(data);
+            if (newToken.accessToken.isNotEmpty) {
+              client.setAuthToken(newToken.accessToken);
+              await sessionStorage.saveSession(token: newToken);
+              return true;
+            }
+          }
+        }
+      } catch (_) {}
+      return false;
+    };
+    return client;
+  });
+  _registerLazySingletonIfNot<SessionStorageService>(
+    () => SessionStorageService(),
   );
 
   // =========================================================================
@@ -67,7 +101,9 @@ void setupServiceLocator({bool? isMock}) {
   // =========================================================================
   if (useMockMode) {
     // A. Xác thực & Bảo mật (Mock)
-    _registerLazySingletonIfNot<AuthRepository>(() => MockAuthRepository());
+    _registerLazySingletonIfNot<AuthRepository>(
+      () => MockAuthRepository(sessionStorage: sl<SessionStorageService>()),
+    );
 
     // B. Quản lý Khoản vay (Mock)
     _registerLazySingletonIfNot<LoanRepository>(() => MockLoanRepository());
@@ -104,7 +140,10 @@ void setupServiceLocator({bool? isMock}) {
   } else {
     // A. Xác thực & Bảo mật (API Thật)
     _registerLazySingletonIfNot<AuthRepository>(
-      () => ApiAuthRepository(client: sl<ApiClient>()),
+      () => ApiAuthRepository(
+        client: sl<ApiClient>(),
+        sessionStorage: sl<SessionStorageService>(),
+      ),
     );
 
     // B. Quản lý Khoản vay (API Thật)
@@ -223,7 +262,9 @@ Future<void> switchServiceLocatorMode({required bool isMock}) async {
 
   // Đăng ký lại theo chế độ mới
   if (isMock) {
-    sl.registerLazySingleton<AuthRepository>(() => MockAuthRepository());
+    sl.registerLazySingleton<AuthRepository>(
+      () => MockAuthRepository(sessionStorage: sl<SessionStorageService>()),
+    );
     sl.registerLazySingleton<LoanRepository>(() => MockLoanRepository());
     sl.registerLazySingleton<DebtStrategyRepository>(
       () => MockDebtStrategyRepository(),
@@ -243,7 +284,10 @@ Future<void> switchServiceLocatorMode({required bool isMock}) async {
     sl.registerLazySingleton<StorageRepository>(() => MockStorageRepository());
   } else {
     sl.registerLazySingleton<AuthRepository>(
-      () => ApiAuthRepository(client: sl<ApiClient>()),
+      () => ApiAuthRepository(
+        client: sl<ApiClient>(),
+        sessionStorage: sl<SessionStorageService>(),
+      ),
     );
     sl.registerLazySingleton<LoanRepository>(
       () => ApiLoanRepository(client: sl<ApiClient>()),

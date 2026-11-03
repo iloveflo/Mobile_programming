@@ -20,6 +20,8 @@ class UserMockData {
       ekycTier: 'C06',
       membershipTier: 'GOLD',
       cicScore: 745,
+      isBiometricEnabled: true,
+      isAutoLockEnabled: true,
       bankAccounts: const [
         BankAccountModel(
           id: 'acc_1',

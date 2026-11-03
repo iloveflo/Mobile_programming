@@ -6,13 +6,18 @@ import '../../models/auth_token_model.dart';
 import '../../models/bank_account_model.dart';
 import '../../models/session_model.dart';
 import '../../models/user_model.dart';
+import '../../services/session_storage_service.dart';
 import '../interfaces/auth_repository.dart';
 
 /// Triển khai thực tế của AuthRepository gọi tới Backend API thông qua ApiClient
 class ApiAuthRepository implements AuthRepository {
   final ApiClient client;
+  final SessionStorageService sessionStorage;
 
-  ApiAuthRepository({required this.client});
+  ApiAuthRepository({
+    required this.client,
+    SessionStorageService? sessionStorage,
+  }) : sessionStorage = sessionStorage ?? SessionStorageService();
 
   /// Phương thức bọc cuộc gọi API để chuẩn hóa và chuyển đổi mã lỗi HTTP sang Custom Exceptions
   Future<T> _handleApiCall<T>(Future<dynamic> Function() request) async {
@@ -103,6 +108,16 @@ class ApiAuthRepository implements AuthRepository {
 
   @override
   Future<AuthTokenModel?> checkSession() async {
+    // 1. Nếu ApiClient chưa có token trong RAM, khôi phục từ SessionStorageService
+    if (client.authToken == null || client.authToken!.isEmpty) {
+      final savedToken = sessionStorage.getSavedTokenSync();
+      if (savedToken != null && !savedToken.isExpired) {
+        client.setAuthToken(savedToken.accessToken);
+      } else {
+        return null;
+      }
+    }
+
     try {
       final response = await _handleApiCall<dynamic>(
         () => client.get('/api/auth/session'),
@@ -116,13 +131,21 @@ class ApiAuthRepository implements AuthRepository {
       );
       if (session.accessToken.isNotEmpty) {
         client.setAuthToken(session.accessToken);
+        await sessionStorage.saveSession(token: session);
       }
       return session;
     } catch (e) {
-      if (e is InvalidCredentialsException || e is NetworkAuthException) {
+      if (e is InvalidCredentialsException) {
+        await sessionStorage.clearSession();
+        client.clearAuthToken();
         return null;
       }
-      rethrow;
+      // Khi mất mạng tạm thời nhưng token còn hạn, duy trì phiên đã lưu
+      final savedToken = await sessionStorage.getSavedToken();
+      if (savedToken != null && !savedToken.isExpired) {
+        return savedToken;
+      }
+      return null;
     }
   }
 
@@ -164,7 +187,25 @@ class ApiAuthRepository implements AuthRepository {
       userMap['token'] = token.toString();
     }
 
-    return UserModel.fromJson(userMap);
+    final user = UserModel.fromJson(userMap);
+
+    // Lưu phiên làm việc bền vững xuống SessionStorageService
+    if (token != null && token.toString().isNotEmpty) {
+      final tokenModel = AuthTokenModel(
+        accessToken: token.toString(),
+        refreshToken: (data['refreshToken'] ?? data['refresh_token'] ?? '')
+            .toString(),
+        expiresAt: DateTime.now().add(const Duration(days: 7)),
+        userId: user.userId,
+      );
+      await sessionStorage.saveSession(
+        token: tokenModel,
+        user: user,
+        identifier: identifier,
+      );
+    }
+
+    return user;
   }
 
   @override
@@ -279,6 +320,30 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<UserModel> updateSecuritySettings({
+    bool? isBiometricEnabled,
+    bool? isAutoLockEnabled,
+  }) async {
+    final body = <String, dynamic>{};
+    if (isBiometricEnabled != null) {
+      body['is_biometric_enabled'] = isBiometricEnabled;
+    }
+    if (isAutoLockEnabled != null) {
+      body['auto_lock_enabled'] = isAutoLockEnabled;
+    }
+    final response = await _handleApiCall<dynamic>(
+      () => client.put('/api/user/security-settings', body: body),
+    );
+    final raw = response is Map<String, dynamic>
+        ? response
+        : <String, dynamic>{};
+    final data = raw['data'] is Map<String, dynamic>
+        ? raw['data'] as Map<String, dynamic>
+        : raw;
+    return UserModel.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
+  @override
   Future<List<BankAccountModel>> getBankAccounts() async {
     final response = await _handleApiCall<dynamic>(
       () => client.get('/api/user/bank-accounts'),
@@ -325,6 +390,7 @@ class ApiAuthRepository implements AuthRepository {
       await _handleApiCall<dynamic>(() => client.post('/api/auth/logout'));
     } finally {
       client.clearAuthToken();
+      await sessionStorage.clearSession();
     }
   }
 }
