@@ -30,11 +30,16 @@ export 'auth/password_strength_meter.dart';
 export 'auth/security_badge.dart';
 
 // Loans & Portfolio
+export 'loans/add_collateral_dialog.dart';
+export 'loans/early_payoff_modal.dart';
 export 'loans/interest_method_card.dart';
 export 'loans/loan_card.dart';
+export 'loans/loan_contract_documents_section.dart';
+export 'loans/loan_repayment_schedule_sheet.dart';
 export 'loans/ltv_indicator_bar.dart';
 export 'loans/monthly_estimate_card.dart';
 export 'loans/portfolio_summary_card.dart';
+export 'loans/quick_add_collateral_sheet.dart';
 
 // Debt Strategy
 export 'debt_strategy/active_plan_banner.dart';
@@ -70,6 +75,30 @@ export 'schedule/payment_schedule_card.dart';
 export 'schedule/schedule_detail_sheet.dart';
 export 'schedule/schedule_empty_state.dart';
 export 'schedule/schedule_summary_card.dart';
+
+// Profile & Account
+export 'profile/bank_accounts_sheet.dart';
+export 'profile/change_password_sheet.dart';
+export 'profile/edit_contact_sheet.dart';
+export 'profile/edit_income_sheet.dart';
+export 'profile/ekyc_verification_sheet.dart';
+export 'profile/financial_profile_pdf_helper.dart';
+
+// Home Components
+export 'home/article_detail_modal.dart';
+export 'home/cashflow_detail_sheet.dart';
+export 'home/customer_support_modal.dart';
+export 'home/debt_planning_sheet.dart';
+export 'home/dti_report_modal.dart';
+export 'home/home_active_loans_slider.dart';
+export 'home/home_cashflow_projection_card.dart';
+export 'home/home_dti_gauge_card.dart';
+export 'home/home_education_carousel.dart';
+export 'home/home_hero_card.dart';
+export 'home/home_quick_action_grid.dart';
+export 'home/home_security_footer.dart';
+export 'home/home_urgent_due_banner.dart';
+export 'home/quick_interest_calculator_dialog.dart';
 
 // Dev Tools
 export 'dev/dev_state_panel.dart';

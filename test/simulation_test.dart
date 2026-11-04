@@ -200,5 +200,45 @@ void main() {
       expect(controller.exceptionCode, equals('EX-05'));
       expect(controller.errorMessage, contains('EX-05'));
     });
+
+    test(
+      '11. Xóa kịch bản mô phỏng đã lưu khỏi lịch sử (deleteSimulation)',
+      () async {
+        mockSimulationRepo.shouldSimulateDatabaseError = false;
+        await controller.loadData();
+
+        // Lưu 1 kịch bản mới
+        final saved = await controller.saveCurrentSimulation(
+          customName: 'Kịch bản test xóa',
+        );
+        expect(saved, isTrue);
+        final initialCount = controller.savedSimulations.length;
+        expect(initialCount, greaterThan(0));
+
+        final idToDelete = controller.savedSimulations.last.id;
+        await controller.deleteSimulation(idToDelete);
+        expect(controller.savedSimulations.length, equals(initialCount - 1));
+      },
+    );
+
+    test(
+      '11. Xóa kịch bản mô phỏng đã lưu khỏi lịch sử (deleteSimulation)',
+      () async {
+        mockSimulationRepo.shouldSimulateDatabaseError = false;
+        await controller.loadData();
+
+        // Lưu 1 kịch bản mới
+        final saved = await controller.saveCurrentSimulation(
+          customName: 'Kịch bản test xóa',
+        );
+        expect(saved, isTrue);
+        final initialCount = controller.savedSimulations.length;
+        expect(initialCount, greaterThan(0));
+
+        final idToDelete = controller.savedSimulations.last.id;
+        await controller.deleteSimulation(idToDelete);
+        expect(controller.savedSimulations.length, equals(initialCount - 1));
+      },
+    );
   });
 }

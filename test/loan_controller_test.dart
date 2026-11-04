@@ -252,5 +252,89 @@ void main() {
       expect(controller.selectedLoan?.id, target.id);
       expect(controller.isLoading, isFalse);
     });
+
+    test('Tải danh sách chứng từ và tài liệu hợp đồng của khoản vay', () async {
+      await controller.fetchLoans();
+      final target = controller.loans.first;
+      await controller.fetchLoanDocuments(target.id.toString());
+
+      expect(controller.loanDocuments, isNotEmpty);
+      expect(controller.loanDocuments.first.loanId, target.id);
+    });
+
+    test(
+      'Lọc danh sách khoản vay theo tổ chức tín dụng (setSelectedLender)',
+      () async {
+        await controller.fetchLoans();
+        expect(controller.loans, isNotEmpty);
+
+        await controller.setSelectedLender('Vietcombank');
+        expect(controller.selectedLender, 'Vietcombank');
+
+        await controller.setSelectedLender(null);
+        expect(controller.selectedLender, isNull);
+      },
+    );
+
+    test(
+      'Xóa khoản vay đã phát sinh thanh toán bị từ chối theo quy định nghiệp vụ',
+      () async {
+        await controller.fetchLoans();
+        final loanWithPayment = controller.loans.firstWhere(
+          (l) => !l.canHardDelete,
+        );
+        final success = await controller.removeLoan(
+          loanWithPayment.id.toString(),
+        );
+
+        expect(success, isFalse);
+        expect(
+          controller.errorMessage,
+          contains('đã phát sinh giao dịch thanh toán'),
+        );
+      },
+    );
+
+    test('Tải danh sách chứng từ và tài liệu hợp đồng của khoản vay', () async {
+      await controller.fetchLoans();
+      final target = controller.loans.first;
+      await controller.fetchLoanDocuments(target.id.toString());
+
+      expect(controller.loanDocuments, isNotEmpty);
+      expect(controller.loanDocuments.first.loanId, target.id);
+    });
+
+    test(
+      'Lọc danh sách khoản vay theo tổ chức tín dụng (setSelectedLender)',
+      () async {
+        await controller.fetchLoans();
+        expect(controller.loans, isNotEmpty);
+
+        await controller.setSelectedLender('Vietcombank');
+        expect(controller.selectedLender, 'Vietcombank');
+
+        await controller.setSelectedLender(null);
+        expect(controller.selectedLender, isNull);
+      },
+    );
+
+    test(
+      'Xóa khoản vay đã phát sinh thanh toán bị từ chối theo quy định nghiệp vụ',
+      () async {
+        await controller.fetchLoans();
+        final loanWithPayment = controller.loans.firstWhere(
+          (l) => !l.canHardDelete,
+        );
+        final success = await controller.removeLoan(
+          loanWithPayment.id.toString(),
+        );
+
+        expect(success, isFalse);
+        expect(
+          controller.errorMessage,
+          contains('đã phát sinh giao dịch thanh toán'),
+        );
+      },
+    );
   });
 }

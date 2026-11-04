@@ -551,6 +551,39 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<String> exportFinancialProfilePdf() async {
+    await _simulateDelay(500, 1000);
+    final user = _currentUser ?? UserMockData.usersDatabase.first;
+    return 'https://pub-your_public_id.r2.dev/reports/fincredit_financial_report_${user.userId}.pdf';
+  }
+
+  @override
+  Future<UserModel> verifyEkyc({
+    required String idCardNumber,
+    required String frontCardUrl,
+    required String backCardUrl,
+  }) async {
+    await _simulateDelay(600, 1200);
+    final base = _currentUser ?? UserMockData.usersDatabase.first;
+    final updated = base.copyWith(
+      isEkycVerified: true,
+      ekycTier: 'C06',
+      idCardNumber: idCardNumber,
+      updatedAt: DateTime.now(),
+    );
+
+    _currentUser = updated;
+    final index = UserMockData.usersDatabase.indexWhere(
+      (u) => u.userId == updated.userId,
+    );
+    if (index != -1) {
+      UserMockData.usersDatabase[index] = updated;
+    }
+    await sessionStorage.saveSession(user: updated);
+    return updated;
+  }
+
+  @override
   Future<void> logout() async {
     await _simulateDelay(200, 400);
     _currentUser = null;

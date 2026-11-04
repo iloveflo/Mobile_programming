@@ -6,6 +6,7 @@ class UserModel {
   final String email;
   final String? phone;
   final String passwordHash;
+  final String? avatarUrl;
   final double? monthlyIncome;
   final DateTime? dateOfBirth;
   final String? idCardNumber;
@@ -30,6 +31,7 @@ class UserModel {
     required this.email,
     this.phone,
     required this.passwordHash,
+    this.avatarUrl,
     this.monthlyIncome,
     this.dateOfBirth,
     this.idCardNumber,
@@ -59,6 +61,7 @@ class UserModel {
     String? email,
     String? phone,
     String? passwordHash,
+    String? avatarUrl,
     double? monthlyIncome,
     DateTime? dateOfBirth,
     String? idCardNumber,
@@ -83,6 +86,7 @@ class UserModel {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       passwordHash: passwordHash ?? this.passwordHash,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
       monthlyIncome: monthlyIncome ?? this.monthlyIncome,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       idCardNumber: idCardNumber ?? this.idCardNumber,
@@ -128,6 +132,7 @@ class UserModel {
       email: json['email'] as String? ?? '',
       phone: json['phone'] as String?,
       passwordHash: json['password_hash'] as String? ?? '',
+      avatarUrl: json['avatar_url'] as String? ?? json['avatarUrl'] as String?,
       monthlyIncome: (json['monthly_income'] as num?)?.toDouble(),
       dateOfBirth: parseDate('date_of_birth'),
       idCardNumber:
@@ -172,6 +177,7 @@ class UserModel {
     'email': email,
     'phone': phone,
     'password_hash': passwordHash,
+    'avatar_url': avatarUrl,
     'monthly_income': monthlyIncome,
     'date_of_birth': dateOfBirth?.toIso8601String(),
     'id_card_number': idCardNumber,

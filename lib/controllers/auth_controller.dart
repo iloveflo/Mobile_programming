@@ -667,6 +667,51 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Xuất báo cáo tóm tắt hồ sơ năng lực tài chính PDF
+  Future<String?> exportFinancialProfilePdf() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final url = await _authRepository.exportFinancialProfilePdf();
+      _isLoading = false;
+      notifyListeners();
+      return url;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Gửi hồ sơ xác thực định danh điện tử eKYC C06
+  Future<bool> verifyEkyc({
+    required String idCardNumber,
+    required String frontCardUrl,
+    required String backCardUrl,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final updated = await _authRepository.verifyEkyc(
+        idCardNumber: idCardNumber,
+        frontCardUrl: frontCardUrl,
+        backCardUrl: backCardUrl,
+      );
+      _currentUser = updated;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
   // ================= Quản lý Timer OTP =================
   void _startOtpTimer() {
     _cancelOtpTimer();

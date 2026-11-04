@@ -50,3 +50,4 @@ AGENTS.md
 .env
 .env.*
 !.env.example
+TaiLieuLamBE.md

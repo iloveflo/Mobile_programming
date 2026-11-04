@@ -385,6 +385,48 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<String> exportFinancialProfilePdf() async {
+    final response = await _handleApiCall<dynamic>(
+      () => client.get('/api/user/financial-profile-pdf'),
+    );
+    final raw = response is Map<String, dynamic>
+        ? response
+        : <String, dynamic>{};
+    final data = raw['data'] is Map<String, dynamic>
+        ? raw['data'] as Map<String, dynamic>
+        : raw;
+    return (data['pdf_url'] ?? data['url'] ?? data['view_url'] ?? '')
+        .toString();
+  }
+
+  @override
+  Future<UserModel> verifyEkyc({
+    required String idCardNumber,
+    required String frontCardUrl,
+    required String backCardUrl,
+  }) async {
+    final response = await _handleApiCall<dynamic>(
+      () => client.post(
+        '/api/user/ekyc-verify',
+        body: {
+          'id_card_number': idCardNumber,
+          'front_card_url': frontCardUrl,
+          'back_card_url': backCardUrl,
+        },
+      ),
+    );
+    final raw = response is Map<String, dynamic>
+        ? response
+        : <String, dynamic>{};
+    final data = raw['data'] is Map<String, dynamic>
+        ? raw['data'] as Map<String, dynamic>
+        : raw;
+    final updated = UserModel.fromJson(Map<String, dynamic>.from(data as Map));
+    await sessionStorage.saveSession(user: updated);
+    return updated;
+  }
+
+  @override
   Future<void> logout() async {
     try {
       await _handleApiCall<dynamic>(() => client.post('/api/auth/logout'));

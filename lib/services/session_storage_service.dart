@@ -60,11 +60,11 @@ class SessionStorageService {
 
   /// Lưu trữ toàn bộ thông tin phiên làm việc sau khi đăng nhập thành công
   Future<void> saveSession({
-    required AuthTokenModel token,
+    AuthTokenModel? token,
     UserModel? user,
     String? identifier,
   }) async {
-    _cachedToken = token;
+    if (token != null) _cachedToken = token;
     if (user != null) _cachedUser = user;
     if (identifier != null && identifier.isNotEmpty) {
       _cachedIdentifier = identifier;
@@ -74,15 +74,15 @@ class SessionStorageService {
     try {
       final file = _sessionFile;
       final sessionMap = <String, dynamic>{
-        'token': token.toJson(),
+        if (_cachedToken != null) 'token': _cachedToken!.toJson(),
         'saved_at': DateTime.now().toIso8601String(),
       };
 
-      if (user != null) {
-        sessionMap['user'] = user.toJson();
+      if (_cachedUser != null) {
+        sessionMap['user'] = _cachedUser!.toJson();
       }
-      if (identifier != null && identifier.isNotEmpty) {
-        sessionMap['last_identifier'] = identifier;
+      if (_cachedIdentifier != null && _cachedIdentifier!.isNotEmpty) {
+        sessionMap['last_identifier'] = _cachedIdentifier;
       }
 
       file.writeAsStringSync(jsonEncode(sessionMap), flush: true);

@@ -134,6 +134,16 @@ abstract class AuthRepository {
   /// Xóa tài khoản ngân hàng liên kết theo mã định danh
   Future<void> deleteBankAccount(String accountId);
 
+  /// Xuất báo cáo tóm tắt hồ sơ năng lực tài chính dưới dạng tệp PDF
+  Future<String> exportFinancialProfilePdf();
+
+  /// Gửi yêu cầu xác thực / cập nhật định danh điện tử eKYC C06
+  Future<UserModel> verifyEkyc({
+    required String idCardNumber,
+    required String frontCardUrl,
+    required String backCardUrl,
+  });
+
   /// Đăng xuất, hủy phiên làm việc hiện tại
   Future<void> logout();
 }

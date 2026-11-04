@@ -231,5 +231,41 @@ void main() {
       expect(controller.exceptionCode, equals('EX-05'));
       expect(controller.errorMessage, contains('EX-05'));
     });
+
+    test(
+      '9. Hủy kế hoạch tối ưu nợ đang hoạt động (cancelActivePlan)',
+      () async {
+        mockDebtRepo.shouldSimulateDatabaseError = false;
+        await controller.loadData();
+
+        // Kích hoạt một chiến lược
+        final applied = await controller.applySelectedStrategy();
+        expect(applied, isTrue);
+        expect(controller.hasActivePlan, isTrue);
+
+        // Hủy kế hoạch
+        await controller.cancelActivePlan();
+        expect(controller.hasActivePlan, isFalse);
+        expect(controller.activeAppliedStrategy, isNull);
+      },
+    );
+
+    test(
+      '9. Hủy kế hoạch tối ưu nợ đang hoạt động (cancelActivePlan)',
+      () async {
+        mockDebtRepo.shouldSimulateDatabaseError = false;
+        await controller.loadData();
+
+        // Kích hoạt một chiến lược
+        final applied = await controller.applySelectedStrategy();
+        expect(applied, isTrue);
+        expect(controller.hasActivePlan, isTrue);
+
+        // Hủy kế hoạch
+        await controller.cancelActivePlan();
+        expect(controller.hasActivePlan, isFalse);
+        expect(controller.activeAppliedStrategy, isNull);
+      },
+    );
   });
 }
