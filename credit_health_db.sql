@@ -18,6 +18,7 @@ CREATE TABLE users (
     date_of_birth DATE,
 
     -- Thông tin hồ sơ định danh, việc làm & tín dụng (khớp UserModel FinCredit)
+    avatar_url VARCHAR(500) NULL,
     id_card_number VARCHAR(20) UNIQUE NULL,
     address VARCHAR(255) NULL,
     occupation VARCHAR(100) NULL,
@@ -138,6 +139,8 @@ CREATE TABLE assets (
     asset_type VARCHAR(50) NOT NULL, -- REAL_ESTATE, VEHICLE, SAVINGS, OTHER
     asset_value DECIMAL(15,2) NOT NULL,
     valuation_date DATE,
+    legal_document_url VARCHAR(500) NULL,
+    image_url VARCHAR(500) NULL,
     description TEXT,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
