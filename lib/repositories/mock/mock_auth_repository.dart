@@ -149,6 +149,7 @@ class MockAuthRepository implements AuthRepository {
   Future<UserModel> login({
     required String identifier,
     required String password,
+    bool rememberMe = true,
   }) async {
     await _simulateDelay();
 
@@ -214,11 +215,16 @@ class MockAuthRepository implements AuthRepository {
         userId: user.userId,
         expiresAt: DateTime.now().add(const Duration(days: 7)),
       );
-      await sessionStorage.saveSession(
-        token: _currentToken!,
-        user: user,
-        identifier: identifier,
-      );
+      if (rememberMe) {
+        await sessionStorage.saveSession(
+          token: _currentToken!,
+          user: user,
+          identifier: identifier,
+        );
+      } else {
+        // Không lưu phiên bền vững vào ổ đĩa khi người dùng bỏ chọn ghi nhớ
+        await sessionStorage.clearSession(keepMemoryCache: true);
+      }
       return user;
     }
 

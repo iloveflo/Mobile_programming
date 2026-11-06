@@ -123,10 +123,13 @@ class SessionStorageService {
     return _cachedIdentifier;
   }
 
-  /// Xóa sạch phiên khi người dùng chủ động Đăng xuất (Logout)
-  Future<void> clearSession() async {
-    _cachedToken = null;
-    _cachedUser = null;
+  /// Xóa sạch phiên (tùy chọn giữ lại bộ nhớ đệm trong phiên hiện tại khi không nhớ đăng nhập)
+  Future<void> clearSession({bool keepMemoryCache = false}) async {
+    if (!keepMemoryCache) {
+      _cachedToken = null;
+      _cachedUser = null;
+      _cachedIdentifier = null;
+    }
     _isInitialized = true;
 
     try {

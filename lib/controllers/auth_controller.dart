@@ -325,8 +325,13 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  /// Đăng nhập tài khoản
-  Future<AuthResultState> login(String identifier, String password) async {
+  /// Đăng nhập tài khoản (hỗ trợ tùy chọn ghi nhớ phiên đăng nhập)
+  Future<AuthResultState> login(
+    String identifier,
+    String password, {
+    bool? rememberMe,
+  }) async {
+    final shouldRemember = rememberMe ?? _rememberMe;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -345,6 +350,7 @@ class AuthController extends ChangeNotifier {
       final user = await _authRepository.login(
         identifier: identifier,
         password: password,
+        rememberMe: shouldRemember,
       );
       _currentUser = user;
       _biometricEnabled = user.isBiometricEnabled;

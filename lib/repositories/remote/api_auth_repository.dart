@@ -153,11 +153,16 @@ class ApiAuthRepository implements AuthRepository {
   Future<UserModel> login({
     required String identifier,
     required String password,
+    bool rememberMe = true,
   }) async {
     final response = await _handleApiCall<dynamic>(
       () => client.post(
         '/api/auth/login',
-        body: {'identifier': identifier.trim(), 'password': password},
+        body: {
+          'identifier': identifier.trim(),
+          'password': password,
+          'remember_me': rememberMe,
+        },
       ),
     );
 
@@ -189,7 +194,7 @@ class ApiAuthRepository implements AuthRepository {
 
     final user = UserModel.fromJson(userMap);
 
-    // Lưu phiên làm việc bền vững xuống SessionStorageService
+    // Lưu phiên làm việc bền vững xuống SessionStorageService (chỉ khi bật Ghi nhớ)
     if (token != null && token.toString().isNotEmpty) {
       final tokenModel = AuthTokenModel(
         accessToken: token.toString(),
@@ -198,11 +203,19 @@ class ApiAuthRepository implements AuthRepository {
         expiresAt: DateTime.now().add(const Duration(days: 7)),
         userId: user.userId,
       );
-      await sessionStorage.saveSession(
-        token: tokenModel,
-        user: user,
-        identifier: identifier,
-      );
+      if (rememberMe) {
+        await sessionStorage.saveSession(
+          token: tokenModel,
+          user: user,
+          identifier: identifier,
+        );
+      } else {
+        await sessionStorage.clearSession(keepMemoryCache: true);
+      }
+    } else {
+      if (!rememberMe) {
+        await sessionStorage.clearSession(keepMemoryCache: true);
+      }
     }
 
     return user;

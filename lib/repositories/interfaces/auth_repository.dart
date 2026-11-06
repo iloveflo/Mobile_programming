@@ -83,10 +83,11 @@ abstract class AuthRepository {
   /// Kiểm tra tính hợp lệ của token và phiên làm việc hiện tại
   Future<AuthTokenModel?> checkSession();
 
-  /// Đăng nhập tài khoản bằng Email/Mã CIC và mật khẩu
+  /// Đăng nhập tài khoản bằng Email/Mã CIC và mật khẩu (kèm tùy chọn ghi nhớ phiên)
   Future<UserModel> login({
     required String identifier,
     required String password,
+    bool rememberMe = true,
   });
 
   /// Tạo tài khoản mới, hệ thống chuyển sang trạng thái chờ xác thực OTP

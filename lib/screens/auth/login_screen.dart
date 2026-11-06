@@ -46,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final result = await _authController.login(
       _identifierController.text.trim(),
       _passwordController.text,
+      rememberMe: _authController.rememberMe,
     );
 
     if (!mounted) {
@@ -345,21 +346,26 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Logo & Tiêu đề
                     Center(
                       child: Container(
-                        width: 64.0,
-                        height: 64.0,
+                        width: 68.0,
+                        height: 68.0,
                         decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
                           shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFBFDBFE),
-                            width: 1.5,
-                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF0953AC,
+                              ).withValues(alpha: 0.15),
+                              blurRadius: 16.0,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.account_balance_wallet_rounded,
-                            size: 34.0,
-                            color: AppColors.primary,
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/icon/app_icon.png',
+                            width: 68.0,
+                            height: 68.0,
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),
@@ -428,10 +434,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 16.0),
                     ],
 
-                    // Ô nhập Email hoặc Mã định danh CIC
+                    // Ô nhập Email
                     AppTextField(
-                      label: 'Email / Mã định danh CIC',
-                      hint: 'dev@test.com hoặc mã CIC',
+                      label: 'Email',
+                      hint: 'dev@test.com',
                       controller: _identifierController,
                       prefixIcon: const Icon(
                         Icons.mail_outline,
@@ -470,31 +476,44 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 24.0,
-                              height: 24.0,
-                              child: Checkbox(
-                                value: _authController.rememberMe,
-                                activeColor: AppColors.primary,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
+                        InkWell(
+                          onTap: () {
+                            _authController.setRememberMe(
+                              !_authController.rememberMe,
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(6.0),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 24.0,
+                                  height: 24.0,
+                                  child: Checkbox(
+                                    value: _authController.rememberMe,
+                                    activeColor: AppColors.primary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4.0),
+                                    ),
+                                    onChanged: (val) {
+                                      _authController.setRememberMe(
+                                        val ?? true,
+                                      );
+                                    },
+                                  ),
                                 ),
-                                onChanged: (val) {
-                                  _authController.setRememberMe(val ?? true);
-                                },
-                              ),
+                                const SizedBox(width: 8.0),
+                                const Text(
+                                  'Ghi nhớ đăng nhập',
+                                  style: TextStyle(
+                                    fontSize: 13.0,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8.0),
-                            const Text(
-                              'Ghi nhớ đăng nhập',
-                              style: TextStyle(
-                                fontSize: 13.0,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                         TextButton(
                           onPressed: () {

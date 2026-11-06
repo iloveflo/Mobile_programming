@@ -117,6 +117,38 @@ void main() {
         expect(user.fullName, 'Nguyễn Văn Backend');
         expect(user.email, 'backend@fincredit.vn');
         expect(fakeClient.authToken, 'jwt_real_token_xyz');
+        expect(fakeClient.lastBody['remember_me'], isTrue);
+      },
+    );
+
+    test(
+      'ApiAuthRepository truyền chính xác cờ remember_me lên backend API',
+      () async {
+        fakeClient.postResponse = {
+          'data': {
+            'token': 'jwt_real_token_remember',
+            'user': {
+              'user_id': 102,
+              'full_name': 'Nguyễn Văn Nhớ',
+              'email': 'remember@fincredit.vn',
+              'phone': '0988776655',
+            },
+          },
+        };
+
+        await authRepo.login(
+          identifier: 'remember@fincredit.vn',
+          password: 'Password123!',
+          rememberMe: false,
+        );
+        expect(fakeClient.lastBody['remember_me'], isFalse);
+
+        await authRepo.login(
+          identifier: 'remember@fincredit.vn',
+          password: 'Password123!',
+          rememberMe: true,
+        );
+        expect(fakeClient.lastBody['remember_me'], isTrue);
       },
     );
 

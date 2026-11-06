@@ -1,14 +1,29 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_first_app/controllers/auth_controller.dart';
+import 'package:my_first_app/mock_data/user_mock_data.dart';
 import 'package:my_first_app/models/register_request_model.dart';
 import 'package:my_first_app/repositories/mock/mock_auth_repository.dart';
+import 'package:my_first_app/services/session_storage_service.dart';
 import 'package:my_first_app/widgets/dev/dev_state_panel.dart';
 
 void main() {
   group('AuthController', () {
     late AuthController controller;
 
-    setUp(() => controller = AuthController(MockAuthRepository()));
+    setUp(() {
+      final index = UserMockData.usersDatabase.indexWhere(
+        (u) => u.email == 'dev@test.com',
+      );
+      if (index != -1) {
+        final current = UserMockData.usersDatabase[index];
+        UserMockData.usersDatabase[index] = current.copyWith(
+          passwordHash: '123456',
+        );
+      }
+      controller = AuthController(MockAuthRepository());
+    });
 
     tearDown(() {
       controller.setDevState(DevAuthState.normal);
@@ -171,6 +186,72 @@ void main() {
 
       final hasSession = await controller.checkSession();
       expect(hasSession, isTrue);
+    });
+
+    test('đăng nhập với rememberMe = true lưu phiên bền vững', () async {
+      final tempDir = Directory.systemTemp.createTempSync(
+        'fincredit_test_remember_',
+      );
+      addTearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+
+      final testStorage = SessionStorageService(customDirectory: tempDir);
+      final repo = MockAuthRepository(sessionStorage: testStorage);
+      final testController = AuthController(repo);
+
+      final result = await testController.login(
+        'dev@test.com',
+        '123456',
+        rememberMe: true,
+      );
+      expect(result, AuthResultState.success);
+      expect(testController.isAuthenticated, isTrue);
+
+      final sessionFile = File('${tempDir.path}/auth_session.json');
+      expect(sessionFile.existsSync(), isTrue);
+
+      final freshStorage = SessionStorageService(customDirectory: tempDir);
+      expect(freshStorage.getSavedTokenSync(), isNotNull);
+      expect(freshStorage.getSavedTokenSync()?.userId, 1);
+    });
+
+    test(
+      'đăng nhập với rememberMe = false không lưu phiên bền vững xuống ổ đĩa',
+      () async {
+        final tempDir = Directory.systemTemp.createTempSync(
+          'fincredit_test_session_',
+        );
+        addTearDown(() {
+          if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+        });
+
+        final testStorage = SessionStorageService(customDirectory: tempDir);
+        final repo = MockAuthRepository(sessionStorage: testStorage);
+        final testController = AuthController(repo);
+
+        final result = await testController.login(
+          'dev@test.com',
+          '123456',
+          rememberMe: false,
+        );
+        expect(result, AuthResultState.success);
+        expect(testController.isAuthenticated, isTrue);
+
+        final sessionFile = File('${tempDir.path}/auth_session.json');
+        expect(sessionFile.existsSync(), isFalse);
+
+        final freshStorage = SessionStorageService(customDirectory: tempDir);
+        expect(freshStorage.getSavedTokenSync(), isNull);
+      },
+    );
+
+    test('setRememberMe cập nhật giá trị và thông báo listeners', () {
+      expect(controller.rememberMe, isTrue);
+      controller.setRememberMe(false);
+      expect(controller.rememberMe, isFalse);
+      controller.setRememberMe(true);
+      expect(controller.rememberMe, isTrue);
     });
   });
 }

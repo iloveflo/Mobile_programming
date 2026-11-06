@@ -158,8 +158,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       onAddLoan: () =>
                           Navigator.pushNamed(context, AppRouter.loanForm),
                       onViewSchedule: () =>
-                          MainShellScreen.switchTab(context, 1),
-                      onViewCic: () => MainShellScreen.switchTab(context, 2),
+                          MainShellScreen.switchTab(context, 2),
+                      onViewCic: () => MainShellScreen.switchTab(context, 3),
                       onOcr: () => Navigator.pushNamed(
                         context,
                         AppRouter.loanCollateralOcr,
@@ -183,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 SliverToBoxAdapter(
                   child: HomeUrgentDueBanner(
                     loanController: _loanController,
-                    onPayNow: () => MainShellScreen.switchTab(context, 1),
+                    onPayNow: () => MainShellScreen.switchTab(context, 2),
                   ),
                 ),
 
