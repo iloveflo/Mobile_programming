@@ -2,6 +2,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
 
 import '../config/app_env.dart';
 
@@ -53,7 +55,7 @@ class ApiClient {
 
   /// Callback tự động làm mới Access Token khi gặp mã lỗi HTTP 401
   Future<bool> Function()? onRefreshToken;
-  bool _isRefreshing = false;
+  Future<bool>? _refreshFuture;
 
   /// Chuẩn hóa và tạo URI hoàn chỉnh từ baseUrl + endpoint
   Uri _buildUri(String endpoint, [Map<String, dynamic>? queryParams]) {
@@ -172,18 +174,18 @@ class ApiClient {
           endpoint.contains('register') ||
           endpoint.contains('refresh') ||
           endpoint.contains('session');
-      if (e.statusCode == 401 &&
-          !isAuthEndpoint &&
-          !_isRefreshing &&
-          onRefreshToken != null) {
-        _isRefreshing = true;
+      if (e.statusCode == 401 && !isAuthEndpoint && onRefreshToken != null) {
+        final bool isInitiator = _refreshFuture == null;
+        _refreshFuture ??= onRefreshToken!();
         try {
-          final success = await onRefreshToken!();
+          final success = await _refreshFuture!;
           if (success) {
             return await action();
           }
         } finally {
-          _isRefreshing = false;
+          if (isInitiator) {
+            _refreshFuture = null;
+          }
         }
       }
       rethrow;
@@ -206,15 +208,62 @@ class ApiClient {
     });
   }
 
+  /// Tải dữ liệu nhị phân (file PDF/ảnh) trực tiếp từ Backend
+  Future<List<int>> getBytes(
+    String endpoint, {
+    Map<String, String>? headers,
+    Map<String, dynamic>? queryParams,
+  }) async {
+    final result = await _executeWithRetry(endpoint, () async {
+      final uri = _buildUri(endpoint, queryParams);
+      final request = await _httpClient.getUrl(uri).timeout(timeout);
+      _applyHeaders(request, headers);
+      final response = await request.close().timeout(timeout);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final builder = BytesBuilder(copy: false);
+        await for (final chunk in response) {
+          builder.add(chunk);
+        }
+        return builder.takeBytes();
+      }
+      await _processResponse(response);
+      return <int>[];
+    });
+    return List<int>.from(result as List);
+  }
+
+  static final Random _idempotencyRandom = Random.secure();
+
+  static String _generateIdempotencyKey() {
+    final ts = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
+    final r1 = _idempotencyRandom.nextInt(1 << 30).toRadixString(36);
+    final r2 = _idempotencyRandom.nextInt(1 << 30).toRadixString(36);
+    return 'fc-$ts-$r1$r2';
+  }
+
+  static Map<String, String> _withIdempotencyKey(Map<String, String>? headers) {
+    final merged = <String, String>{...?headers};
+    final hasKey = merged.keys.any(
+      (k) =>
+          k.toLowerCase() == 'idempotency-key' ||
+          k.toLowerCase() == 'x-idempotency-key',
+    );
+    if (!hasKey) {
+      merged['Idempotency-Key'] = _generateIdempotencyKey();
+    }
+    return merged;
+  }
+
   Future<dynamic> post(
     String endpoint, {
     dynamic body,
     Map<String, String>? headers,
   }) {
+    final effectiveHeaders = _withIdempotencyKey(headers);
     return _executeWithRetry(endpoint, () async {
       final uri = _buildUri(endpoint);
       final request = await _httpClient.postUrl(uri).timeout(timeout);
-      _applyHeaders(request, headers);
+      _applyHeaders(request, effectiveHeaders);
 
       if (body != null) {
         request.write(body is String ? body : jsonEncode(body));
@@ -230,10 +279,11 @@ class ApiClient {
     dynamic body,
     Map<String, String>? headers,
   }) {
+    final effectiveHeaders = _withIdempotencyKey(headers);
     return _executeWithRetry(endpoint, () async {
       final uri = _buildUri(endpoint);
       final request = await _httpClient.putUrl(uri).timeout(timeout);
-      _applyHeaders(request, headers);
+      _applyHeaders(request, effectiveHeaders);
 
       if (body != null) {
         request.write(body is String ? body : jsonEncode(body));
@@ -249,10 +299,11 @@ class ApiClient {
     dynamic body,
     Map<String, String>? headers,
   }) {
+    final effectiveHeaders = _withIdempotencyKey(headers);
     return _executeWithRetry(endpoint, () async {
       final uri = _buildUri(endpoint);
       final request = await _httpClient.patchUrl(uri).timeout(timeout);
-      _applyHeaders(request, headers);
+      _applyHeaders(request, effectiveHeaders);
 
       if (body != null) {
         request.write(body is String ? body : jsonEncode(body));
@@ -268,10 +319,11 @@ class ApiClient {
     dynamic body,
     Map<String, String>? headers,
   }) {
+    final effectiveHeaders = _withIdempotencyKey(headers);
     return _executeWithRetry(endpoint, () async {
       final uri = _buildUri(endpoint);
       final request = await _httpClient.deleteUrl(uri).timeout(timeout);
-      _applyHeaders(request, headers);
+      _applyHeaders(request, effectiveHeaders);
 
       if (body != null) {
         request.write(body is String ? body : jsonEncode(body));
@@ -291,7 +343,7 @@ class ApiClient {
   }) async {
     final request = await _httpClient
         .putUrl(presignedUri)
-        .timeout(const Duration(minutes: 2));
+        .timeout(const Duration(minutes: 5));
     request.headers.set(HttpHeaders.contentTypeHeader, contentType);
     request.headers.contentLength = bytes.length;
     if (extraHeaders != null) {
@@ -300,7 +352,7 @@ class ApiClient {
       });
     }
     request.add(bytes);
-    final response = await request.close().timeout(const Duration(minutes: 2));
+    final response = await request.close().timeout(const Duration(minutes: 5));
     return response.statusCode >= 200 && response.statusCode < 300;
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../layout/responsive_layout.dart';
 import '../common/app_colors.dart';
 
 /// Modal giải thích chi tiết cơ chế cấu thành chỉ số tín dụng (Mục 8: Xem chi tiết các chỉ số)
@@ -46,8 +47,8 @@ class CreditFactorSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 32.0),
+    return ResponsiveBottomSheetBody(
+      padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 24.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,22 +106,27 @@ class CreditFactorSheet extends StatelessWidget {
               border: Border.all(color: AppColors.border),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Giá trị ghi nhận hiện tại:',
-                  style: TextStyle(
-                    fontSize: 13.0,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+                const Expanded(
+                  child: Text(
+                    'Giá trị ghi nhận hiện tại:',
+                    style: TextStyle(
+                      fontSize: 13.0,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
-                Text(
-                  currentValue,
-                  style: const TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+                const SizedBox(width: 8.0),
+                Flexible(
+                  child: Text(
+                    currentValue,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
               ],

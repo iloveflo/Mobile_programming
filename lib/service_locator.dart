@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get_it/get_it.dart';
 
 import 'controllers/auth_controller.dart';
@@ -35,7 +38,10 @@ import 'repositories/remote/api_payment_schedule_repository.dart';
 import 'repositories/remote/api_simulation_repository.dart';
 import 'repositories/remote/api_storage_repository.dart';
 import 'services/cache_service.dart';
+import 'services/biometric_auth_service.dart';
 import 'services/image_upload_service.dart';
+import 'services/loan_contract_scanner_service.dart';
+import 'services/realtime_service.dart';
 import 'services/session_storage_service.dart';
 
 /// Service Locator trung tâm quản lý Dependency Injection cho toàn ứng dụng FinCredit
@@ -55,7 +61,12 @@ const bool defaultIsMock = AppEnv.useMock;
 /// - `true`: Bắt buộc sử dụng Mock Data
 /// - `false`: Bắt buộc gọi Backend API thật qua ApiClient
 void setupServiceLocator({bool? isMock}) {
-  final bool useMockMode = isMock ?? defaultIsMock;
+  bool useMockMode = isMock ?? defaultIsMock;
+  if (isMock == null && !useMockMode && !kIsWeb) {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      useMockMode = true;
+    }
+  }
 
   // =========================================================================
   // 1. TẦNG CORE, NETWORK & STORAGE
@@ -95,6 +106,10 @@ void setupServiceLocator({bool? isMock}) {
   _registerLazySingletonIfNot<SessionStorageService>(
     () => SessionStorageService(),
   );
+  _registerLazySingletonIfNot<BiometricAuthService>(
+    () => BiometricAuthService(),
+  );
+  _registerLazySingletonIfNot<RealtimeService>(() => RealtimeService());
 
   // =========================================================================
   // 2. TẦNG DATA & REPOSITORIES (Tự động hoán đổi theo useMockMode)
@@ -188,7 +203,19 @@ void setupServiceLocator({bool? isMock}) {
   _registerLazySingletonIfNot<ImageUploadService>(
     () => ImageUploadService(storageRepository: sl<StorageRepository>()),
   );
-  _registerLazySingletonIfNot<CacheService>(() => CacheService());
+  _registerLazySingletonIfNot<LoanContractScannerService>(
+    () => LoanContractScannerService(),
+  );
+  _registerLazySingletonIfNot<CacheService>(
+    () => CacheService(
+      onClearMemoryCaches: () {
+        final storage = sl<StorageRepository>();
+        if (storage is ApiStorageRepository) {
+          storage.clearViewUrlCache();
+        }
+      },
+    ),
+  );
 
   // =========================================================================
   // 4. TẦNG CONTROLLERS / STATE MANAGEMENT

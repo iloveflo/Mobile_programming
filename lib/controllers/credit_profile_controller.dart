@@ -155,4 +155,15 @@ class CreditProfileController extends ChangeNotifier {
     _exceptionCode = null;
     notifyListeners();
   }
+
+  /// Đặt lại toàn bộ trạng thái khi đăng xuất / chuyển tài khoản
+  void clear() {
+    _isLoading = false;
+    _isRecalculating = false;
+    _errorMessage = null;
+    _exceptionCode = null;
+    _creditProfile = null;
+    _userLoans = [];
+    notifyListeners();
+  }
 }

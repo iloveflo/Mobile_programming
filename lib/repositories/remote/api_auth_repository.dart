@@ -3,7 +3,6 @@ import 'dart:io';
 
 import '../../core/network/api_client.dart';
 import '../../models/auth_token_model.dart';
-import '../../models/bank_account_model.dart';
 import '../../models/session_model.dart';
 import '../../models/user_model.dart';
 import '../../services/session_storage_service.dart';
@@ -13,6 +12,10 @@ import '../interfaces/auth_repository.dart';
 class ApiAuthRepository implements AuthRepository {
   final ApiClient client;
   final SessionStorageService sessionStorage;
+
+  String? _pendingChallengeToken;
+  String? _pendingIdentifier;
+  String? _pendingResetToken;
 
   ApiAuthRepository({
     required this.client,
@@ -155,9 +158,17 @@ class ApiAuthRepository implements AuthRepository {
     required String password,
     bool rememberMe = true,
   }) async {
+    final osLabel = Platform.isAndroid
+        ? 'Android'
+        : (Platform.isIOS ? 'iOS' : Platform.operatingSystem);
+
     final response = await _handleApiCall<dynamic>(
       () => client.post(
         '/api/auth/login',
+        headers: {
+          'x-device-name': '$osLabel Device',
+          'x-platform': 'Flutter - $osLabel',
+        },
         body: {
           'identifier': identifier.trim(),
           'password': password,
@@ -223,9 +234,20 @@ class ApiAuthRepository implements AuthRepository {
 
   @override
   Future<void> register(Map<String, dynamic> registerData) async {
-    await _handleApiCall<dynamic>(
+    _pendingIdentifier = registerData['email']?.toString();
+    _pendingChallengeToken = null;
+    final response = await _handleApiCall<dynamic>(
       () => client.post('/api/auth/register', body: registerData),
     );
+    if (response is Map<String, dynamic>) {
+      final data = response['data'] is Map<String, dynamic>
+          ? response['data'] as Map<String, dynamic>
+          : response;
+      final token = data['challenge_token'] ?? response['challenge_token'];
+      if (token != null && token.toString().isNotEmpty) {
+        _pendingChallengeToken = token.toString();
+      }
+    }
   }
 
   @override
@@ -233,22 +255,115 @@ class ApiAuthRepository implements AuthRepository {
     required String otp,
     required String flowType,
   }) async {
+    final osLabel = Platform.isAndroid
+        ? 'Android'
+        : (Platform.isIOS ? 'iOS' : Platform.operatingSystem);
+
     final response = await _handleApiCall<dynamic>(
       () => client.post(
         '/api/auth/verify-otp',
-        body: {'otp': otp, 'flow_type': flowType},
+        headers: {
+          'x-device-name': '$osLabel Device',
+          'x-platform': 'Flutter - $osLabel',
+        },
+        body: {
+          'otp': otp,
+          'flow_type': flowType,
+          if (_pendingChallengeToken != null)
+            'challenge_token': _pendingChallengeToken,
+          if (_pendingIdentifier != null) 'identifier': _pendingIdentifier,
+        },
       ),
     );
 
     if (response is Map<String, dynamic>) {
+      final data = response['data'] is Map<String, dynamic>
+          ? response['data'] as Map<String, dynamic>
+          : response;
+      final resetToken = data['reset_token'] ?? response['reset_token'];
+      if (resetToken != null && resetToken.toString().isNotEmpty) {
+        _pendingResetToken = resetToken.toString();
+      }
+
+      // Khi xác thực OTP đăng ký thành công, Backend cấp ngay accessToken + refreshToken + user
+      final token =
+          data['token'] ??
+          data['accessToken'] ??
+          data['access_token'] ??
+          response['token'] ??
+          response['accessToken'];
+      if (token != null && token.toString().isNotEmpty) {
+        final accessTokenStr = token.toString();
+        client.setAuthToken(accessTokenStr);
+
+        final userMap = data['user'] is Map<String, dynamic>
+            ? Map<String, dynamic>.from(data['user'] as Map)
+            : null;
+        final user = userMap != null
+            ? UserModel.fromJson({...userMap, 'token': accessTokenStr})
+            : null;
+
+        final refreshTokenStr =
+            (data['refreshToken'] ?? data['refresh_token'] ?? '').toString();
+        final tokenModel = AuthTokenModel(
+          accessToken: accessTokenStr,
+          refreshToken: refreshTokenStr,
+          expiresAt: DateTime.now().add(const Duration(days: 7)),
+          userId: user?.userId ?? 0,
+        );
+        await sessionStorage.saveSession(
+          token: tokenModel,
+          user: user,
+          identifier: user?.email ?? _pendingIdentifier,
+        );
+      }
+
       return (response['success'] ?? true) as bool;
     }
     return true;
   }
 
   @override
+  Future<void> requestForgotPasswordOtp(String identifier) async {
+    _pendingIdentifier = identifier.trim();
+    final response = await _handleApiCall<dynamic>(
+      () => client.post(
+        '/api/auth/resend-otp',
+        body: {'identifier': _pendingIdentifier, 'flow_type': 'RESET_PASSWORD'},
+      ),
+    );
+    if (response is Map<String, dynamic>) {
+      final data = response['data'] is Map<String, dynamic>
+          ? response['data'] as Map<String, dynamic>
+          : response;
+      final token = data['challenge_token'] ?? response['challenge_token'];
+      if (token != null && token.toString().isNotEmpty) {
+        _pendingChallengeToken = token.toString();
+      }
+    }
+  }
+
+  @override
   Future<void> resendOtp() async {
-    await _handleApiCall<dynamic>(() => client.post('/api/auth/resend-otp'));
+    final response = await _handleApiCall<dynamic>(
+      () => client.post(
+        '/api/auth/resend-otp',
+        body: {
+          if (_pendingChallengeToken != null)
+            'challenge_token': _pendingChallengeToken,
+          if (_pendingIdentifier != null) 'identifier': _pendingIdentifier,
+        },
+      ),
+    );
+    if (response is Map<String, dynamic>) {
+      final data = response['data'] is Map<String, dynamic>
+          ? response['data'] as Map<String, dynamic>
+          : response;
+      final token = data['challenge_token'] ?? response['challenge_token'];
+      if (token != null && token.toString().isNotEmpty) {
+        _pendingChallengeToken = token.toString();
+      }
+    }
   }
 
   @override
@@ -256,9 +371,14 @@ class ApiAuthRepository implements AuthRepository {
     await _handleApiCall<dynamic>(
       () => client.post(
         '/api/auth/reset-password',
-        body: {'new_password': newPassword},
+        body: {
+          'new_password': newPassword,
+          if (_pendingResetToken != null) 'reset_token': _pendingResetToken,
+        },
       ),
     );
+    _pendingResetToken = null;
+    _pendingChallengeToken = null;
   }
 
   @override
@@ -357,47 +477,6 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<List<BankAccountModel>> getBankAccounts() async {
-    final response = await _handleApiCall<dynamic>(
-      () => client.get('/api/user/bank-accounts'),
-    );
-    final list = response is List
-        ? response
-        : (response is Map<String, dynamic>
-              ? (response['data'] as List? ?? [])
-              : []);
-    return list
-        .map(
-          (item) =>
-              BankAccountModel.fromJson(Map<String, dynamic>.from(item as Map)),
-        )
-        .toList();
-  }
-
-  @override
-  Future<BankAccountModel> addBankAccount(
-    Map<String, dynamic> accountData,
-  ) async {
-    final response = await _handleApiCall<dynamic>(
-      () => client.post('/api/user/bank-accounts', body: accountData),
-    );
-    final raw = response is Map<String, dynamic>
-        ? response
-        : <String, dynamic>{};
-    final data = raw['data'] is Map<String, dynamic>
-        ? raw['data'] as Map<String, dynamic>
-        : raw;
-    return BankAccountModel.fromJson(Map<String, dynamic>.from(data as Map));
-  }
-
-  @override
-  Future<void> deleteBankAccount(String accountId) async {
-    await _handleApiCall<dynamic>(
-      () => client.delete('/api/user/bank-accounts/$accountId'),
-    );
-  }
-
-  @override
   Future<String> exportFinancialProfilePdf() async {
     final response = await _handleApiCall<dynamic>(
       () => client.get('/api/user/financial-profile-pdf'),
@@ -413,18 +492,34 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<List<int>> downloadFinancialProfilePdfBytes() async {
+    return await _handleApiCall<List<int>>(
+      () => client.getBytes('/api/user/financial-profile-pdf?direct=1'),
+    );
+  }
+
+  @override
   Future<UserModel> verifyEkyc({
     required String idCardNumber,
     required String frontCardUrl,
     required String backCardUrl,
+    String? fullName,
+    String? dateOfBirth,
+    String? address,
   }) async {
     final response = await _handleApiCall<dynamic>(
       () => client.post(
         '/api/user/ekyc-verify',
         body: {
-          'id_card_number': idCardNumber,
+          if (idCardNumber.trim().isNotEmpty) 'id_card_number': idCardNumber,
           'front_card_url': frontCardUrl,
           'back_card_url': backCardUrl,
+          if (fullName != null && fullName.trim().isNotEmpty)
+            'full_name': fullName.trim(),
+          if (dateOfBirth != null && dateOfBirth.trim().isNotEmpty)
+            'date_of_birth': dateOfBirth.trim(),
+          if (address != null && address.trim().isNotEmpty)
+            'address': address.trim(),
         },
       ),
     );

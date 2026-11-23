@@ -12,7 +12,9 @@ class HomeCashflowProjectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeLoans = loanController.loans.where((l) => l.isActive).toList();
+    final activeLoans = loanController.loans
+        .where((l) => l.isActive || l.isOverdue)
+        .toList();
 
     // Tính toán dự phóng 6 tháng dựa trên dữ liệu thực tế từ các khoản vay
     final now = DateTime.now();
@@ -81,16 +83,20 @@ class HomeCashflowProjectionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Dự phóng dòng tiền trả nợ (6 tháng)',
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Dự phóng dòng tiền trả nợ (6 tháng)',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8.0),
               Text(
                 totalProjectedMillion > 0
                     ? 'Tổng: ${totalProjectedMillion.toStringAsFixed(1)} tr'
@@ -140,48 +146,58 @@ class HomeCashflowProjectionCard extends StatelessWidget {
                   final heightFactor = (values[idx] / maxVal).clamp(0.1, 1.0);
                   final isCurrent = idx == 0;
 
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        '${values[idx]}tr',
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: isCurrent
-                              ? FontWeight.bold
-                              : FontWeight.w500,
-                          color: isCurrent
-                              ? AppColors.primary
-                              : AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 6.0),
-                      Container(
-                        width: 28.0,
-                        height: 75.0 * heightFactor,
-                        decoration: BoxDecoration(
-                          color: isCurrent
-                              ? AppColors.primary
-                              : const Color(0xFF93C5FD).withValues(alpha: 0.6),
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(6.0),
+                  return Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '${values[idx]}tr',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: isCurrent
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
+                              color: isCurrent
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 6.0),
-                      Text(
-                        months[idx],
-                        style: TextStyle(
-                          fontSize: 11.0,
-                          fontWeight: isCurrent
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: isCurrent
-                              ? AppColors.primary
-                              : AppColors.textSecondary,
+                        const SizedBox(height: 6.0),
+                        Container(
+                          width: 24.0,
+                          height: 75.0 * heightFactor,
+                          decoration: BoxDecoration(
+                            color: isCurrent
+                                ? AppColors.primary
+                                : const Color(
+                                    0xFF93C5FD,
+                                  ).withValues(alpha: 0.6),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(6.0),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 6.0),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            months[idx],
+                            style: TextStyle(
+                              fontSize: 11.0,
+                              fontWeight: isCurrent
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: isCurrent
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 }),
               ),

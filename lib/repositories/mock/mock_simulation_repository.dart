@@ -47,6 +47,9 @@ class MockSimulationRepository implements SimulationRepository {
 
   @override
   Future<void> deleteSimulation(int simulationId) async {
+    if (shouldSimulateDatabaseError) {
+      throw Exception('Lỗi cơ sở dữ liệu: Không thể xóa bản ghi mô phỏng.');
+    }
     SimulationMockData.simulationsDatabase.removeWhere(
       (s) => s.id == simulationId,
     );

@@ -253,15 +253,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   ],
 
                   // Đồng hồ đếm ngược và số lần gửi lại
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 4.0,
+                    runSpacing: 4.0,
                     children: [
                       const Icon(
                         Icons.timer_outlined,
                         size: 16.0,
                         color: AppColors.textSecondary,
                       ),
-                      const SizedBox(width: 6.0),
                       Text(
                         _authController.otpCountdown > 0
                             ? 'Mã hết hạn trong: '

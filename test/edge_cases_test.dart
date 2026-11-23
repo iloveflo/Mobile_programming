@@ -95,53 +95,35 @@ void main() {
       },
     );
 
-    test(
-      '6. UserModel & BankAccountModel map chuẩn xác schema SQL database',
-      () {
-        final userJson = {
-          'user_id': 99,
-          'full_name': 'Nguyen SQL',
-          'email': 'sql@test.com',
-          'password_hash': 'hashed_sql',
-          'avatar_url': 'https://r2.dev/avatars/user_99.png',
-          'monthly_income': 35000000.0,
-          'contract_type': 'INDEFINITE',
-          'ekyc_tier': 'PRO',
-          'membership_tier': 'VIP',
-          'cic_score': 760,
-          'is_biometric_enabled': true,
-          'auto_lock_enabled': true,
-          'bank_accounts': [
-            {
-              'account_id': 501,
-              'bank_name': 'Vietcombank',
-              'account_number': '0011009999',
-              'account_holder_name': 'NGUYEN SQL',
-              'is_default_disbursal': true,
-              'is_auto_debit': false,
-            },
-          ],
-        };
+    test('6. UserModel map chuẩn xác schema SQL database', () {
+      final userJson = {
+        'user_id': 99,
+        'full_name': 'Nguyen SQL',
+        'email': 'sql@test.com',
+        'password_hash': 'hashed_sql',
+        'avatar_url': 'https://r2.dev/avatars/user_99.png',
+        'monthly_income': 35000000.0,
+        'contract_type': 'INDEFINITE',
+        'ekyc_tier': 'PRO',
+        'membership_tier': 'VIP',
+        'cic_score': 760,
+        'is_biometric_enabled': true,
+        'auto_lock_enabled': true,
+      };
 
-        final user = UserModel.fromJson(userJson);
-        expect(user.userId, 99);
-        expect(user.avatarUrl, 'https://r2.dev/avatars/user_99.png');
-        expect(user.membershipTier, 'VIP');
-        expect(user.bankAccounts.first.id, '501');
-        expect(user.bankAccounts.first.isDefaultDisbursal, true);
+      final user = UserModel.fromJson(userJson);
+      expect(user.userId, 99);
+      expect(user.avatarUrl, 'https://r2.dev/avatars/user_99.png');
+      expect(user.membershipTier, 'VIP');
 
-        final exportedJson = user.toJson();
-        expect(
-          exportedJson['avatar_url'],
-          'https://r2.dev/avatars/user_99.png',
-        );
-        expect(exportedJson['user_id'], 99);
+      final exportedJson = user.toJson();
+      expect(exportedJson['avatar_url'], 'https://r2.dev/avatars/user_99.png');
+      expect(exportedJson['user_id'], 99);
 
-        final updated = user.copyWith(
-          avatarUrl: 'https://r2.dev/avatars/new.png',
-        );
-        expect(updated.avatarUrl, 'https://r2.dev/avatars/new.png');
-      },
-    );
+      final updated = user.copyWith(
+        avatarUrl: 'https://r2.dev/avatars/new.png',
+      );
+      expect(updated.avatarUrl, 'https://r2.dev/avatars/new.png');
+    });
   });
 }

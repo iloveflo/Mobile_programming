@@ -72,42 +72,53 @@ class PortfolioSummaryCard extends StatelessWidget {
         children: [
           // Header: Nhãn & Badge số khoản vay active
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
-                children: [
-                  Icon(
-                    Icons.pie_chart_outline_rounded,
-                    color: Color(0xFFBFDBFE),
-                    size: 18.0,
-                  ),
-                  SizedBox(width: 6.0),
-                  Text(
-                    'TỔNG DƯ NỢ HIỆN TẠI',
-                    style: TextStyle(
-                      fontSize: 12.0,
-                      fontWeight: FontWeight.w700,
+              const Expanded(
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.pie_chart_outline_rounded,
                       color: Color(0xFFBFDBFE),
-                      letterSpacing: 0.8,
+                      size: 18.0,
                     ),
-                  ),
-                ],
+                    SizedBox(width: 6.0),
+                    Expanded(
+                      child: Text(
+                        'TỔNG DƯ NỢ HIỆN TẠI',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.0,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFBFDBFE),
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10.0,
-                  vertical: 4.0,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                child: Text(
-                  '$activeLoansCount khoản vay active',
-                  style: const TextStyle(
-                    fontSize: 11.0,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+              const SizedBox(width: 8.0),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 145.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10.0,
+                    vertical: 4.0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  child: Text(
+                    '$activeLoansCount khoản vay active',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11.0,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -132,12 +143,19 @@ class PortfolioSummaryCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Tiến độ trả nợ gốc',
-                    style: TextStyle(fontSize: 12.0, color: Color(0xFFBFDBFE)),
+                  const Expanded(
+                    child: Text(
+                      'Tiến độ trả nợ gốc',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.0,
+                        color: Color(0xFFBFDBFE),
+                      ),
+                    ),
                   ),
+                  const SizedBox(width: 8.0),
                   Text(
                     '$percentInt% hoàn thành',
                     style: const TextStyle(
@@ -168,43 +186,61 @@ class PortfolioSummaryCard extends StatelessWidget {
 
           // Footer 2 cột: Gốc ban đầu & Đã trả
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Tổng gốc ban đầu',
-                    style: TextStyle(fontSize: 11.0, color: Color(0xFFBFDBFE)),
-                  ),
-                  const SizedBox(height: 3.0),
-                  Text(
-                    _formatCurrency(totalOriginalPrincipal),
-                    style: const TextStyle(
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Tổng gốc ban đầu',
+                      style: TextStyle(
+                        fontSize: 11.0,
+                        color: Color(0xFFBFDBFE),
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 3.0),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _formatCurrency(totalOriginalPrincipal),
+                        style: const TextStyle(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const Text(
-                    'Đã thanh toán',
-                    style: TextStyle(fontSize: 11.0, color: Color(0xFFBFDBFE)),
-                  ),
-                  const SizedBox(height: 3.0),
-                  Text(
-                    _formatCurrency(totalPaidAmount),
-                    style: const TextStyle(
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF86EFAC),
+              const SizedBox(width: 12.0),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text(
+                      'Đã thanh toán',
+                      style: TextStyle(
+                        fontSize: 11.0,
+                        color: Color(0xFFBFDBFE),
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 3.0),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        _formatCurrency(totalPaidAmount),
+                        style: const TextStyle(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF86EFAC),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

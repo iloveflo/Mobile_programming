@@ -1,47 +1,66 @@
 import 'dart:io';
 
+import 'package:flutter/painting.dart';
+
 /// Dịch vụ quản lý và dọn dẹp bộ nhớ đệm (Cache) cục bộ của ứng dụng FinCredit
 class CacheService {
+  static const Set<String> _protectedTempNames = {'fincredit_storage'};
+
   final Directory? customCacheDir;
+  final Directory? customSystemTempDir;
+  final void Function()? onClearMemoryCaches;
+  final bool includeFlutterImageCache;
 
-  CacheService({this.customCacheDir});
+  CacheService({
+    this.customCacheDir,
+    this.customSystemTempDir,
+    this.onClearMemoryCaches,
+    this.includeFlutterImageCache = true,
+  });
 
-  /// Thư mục lưu trữ bộ nhớ đệm độc quyền của ứng dụng FinCredit
+  /// Đường dẫn thư mục cache riêng của ứng dụng
   Directory get appCacheDirectory {
     if (customCacheDir != null) return customCacheDir!;
-    final path = '${Directory.systemTemp.path}/fincredit_app_cache';
-    final dir = Directory(path);
-    if (!dir.existsSync()) {
-      dir.createSync(recursive: true);
-    }
-    return dir;
+    final path = '${_systemTempDirectory.path}/fincredit_app_cache';
+    return Directory(path);
   }
+
+  Directory get _systemTempDirectory =>
+      customSystemTempDir ?? Directory.systemTemp;
 
   /// Tính toán dung lượng bộ nhớ đệm của ứng dụng (bytes)
   Future<int> getCacheSizeBytes() async {
     try {
+      int total = 0;
+
       final cacheDir = appCacheDirectory;
-      if (!await cacheDir.exists()) return 0;
+      if (await cacheDir.exists()) {
+        total += await _calculateDirectorySize(cacheDir);
+      }
 
-      int total = await _calculateDirectorySize(cacheDir);
-
-      // Cộng thêm các file ảnh tạm do ứng dụng/image_picker tạo ra trong temp hệ thống
-      final sysTemp = Directory.systemTemp;
+      // Cộng thêm các file/thư mục ảnh tạm do ứng dụng/image_picker tạo ra trong temp hệ thống
+      final sysTemp = _systemTempDirectory;
       if (await sysTemp.exists()) {
         final entities = sysTemp.listSync(followLinks: false);
         for (final entity in entities) {
-          final name = entity.uri.pathSegments.isNotEmpty
-              ? entity.uri.pathSegments.lastWhere(
-                  (s) => s.isNotEmpty,
-                  orElse: () => '',
-                )
-              : '';
-          if (_isAppTemporaryEntity(name) && entity is File) {
-            try {
-              total += await entity.length();
-            } catch (_) {}
+          final name = _extractEntityName(entity);
+          if (_isAppTemporaryEntity(name)) {
+            if (entity is File) {
+              try {
+                total += await entity.length();
+              } catch (_) {}
+            } else if (entity is Directory) {
+              total += await _calculateDirectorySize(entity);
+            }
           }
         }
+      }
+
+      // Cộng thêm bộ nhớ đệm ảnh giải mã trong RAM của Flutter (nếu binding đã khởi tạo)
+      if (includeFlutterImageCache) {
+        try {
+          total += PaintingBinding.instance.imageCache.currentSizeBytes;
+        } catch (_) {}
       }
 
       return total;
@@ -62,8 +81,8 @@ class CacheService {
     return '${mb.toStringAsFixed(1)} MB';
   }
 
-  /// Dọn dẹp an toàn các tệp và thư mục con trong bộ nhớ đệm ứng dụng
-  /// TUYỆT ĐỐI KHÔNG xóa các file của tiến trình khác hay flutter_tools trong /tmp
+  /// Dọn dẹp an toàn các tệp tạm trên đĩa và bộ nhớ đệm ảnh/URL trong RAM.
+  /// TUYỆT ĐỐI KHÔNG xóa `fincredit_storage` (phiên đăng nhập) hay tệp của tiến trình khác.
   Future<bool> clearCache() async {
     try {
       final cacheDir = appCacheDirectory;
@@ -81,16 +100,11 @@ class CacheService {
       }
 
       // Xóa các file ảnh/tài liệu tạm do camera/image_picker sinh ra
-      final sysTemp = Directory.systemTemp;
+      final sysTemp = _systemTempDirectory;
       if (await sysTemp.exists()) {
         final entities = sysTemp.listSync(followLinks: false);
         for (final entity in entities) {
-          final name = entity.uri.pathSegments.isNotEmpty
-              ? entity.uri.pathSegments.lastWhere(
-                  (s) => s.isNotEmpty,
-                  orElse: () => '',
-                )
-              : '';
+          final name = _extractEntityName(entity);
           if (_isAppTemporaryEntity(name)) {
             try {
               if (entity is File) {
@@ -103,18 +117,41 @@ class CacheService {
         }
       }
 
+      // Dọn bộ nhớ đệm ảnh trong RAM của Flutter
+      if (includeFlutterImageCache) {
+        try {
+          PaintingBinding.instance.imageCache.clear();
+          PaintingBinding.instance.imageCache.clearLiveImages();
+        } catch (_) {}
+      }
+
+      // Dọn các bộ nhớ đệm trong RAM khác (VD: Presigned View URL của R2)
+      try {
+        onClearMemoryCaches?.call();
+      } catch (_) {}
+
       return true;
     } catch (_) {
       return false;
     }
   }
 
+  String _extractEntityName(FileSystemEntity entity) {
+    if (entity.uri.pathSegments.isEmpty) return '';
+    return entity.uri.pathSegments.lastWhere(
+      (s) => s.isNotEmpty,
+      orElse: () => '',
+    );
+  }
+
   bool _isAppTemporaryEntity(String name) {
     if (name.isEmpty) return false;
+    if (_protectedTempNames.contains(name)) return false;
+    if (name == 'fincredit_app_cache') return false;
     // Chỉ nhận diện các file ảnh/tài liệu tạm của ứng dụng FinCredit & image_picker
     return name.startsWith('image_picker_') ||
         name.startsWith('scaled_') ||
-        name.startsWith('fincredit_') ||
+        name.startsWith('fincredit_tmp_') ||
         name.startsWith('avatar_tmp_') ||
         name.startsWith('ocr_tmp_');
   }

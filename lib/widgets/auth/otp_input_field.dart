@@ -110,7 +110,14 @@ class _OtpInputFieldState extends State<OtpInputField> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(widget.length, (index) {
-        return _buildDigitBox(index);
+        return Flexible(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: index == 0 || index == widget.length - 1 ? 0 : 2.0,
+            ),
+            child: _buildDigitBox(index),
+          ),
+        );
       }),
     );
   }

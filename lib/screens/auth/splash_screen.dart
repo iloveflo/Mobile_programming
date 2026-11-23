@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../controllers/auth_controller.dart';
+import '../../layout/responsive_layout.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
 import '../../widgets/widget.dart';
@@ -89,21 +90,20 @@ class _SplashScreenState extends State<SplashScreen> {
   void _showDevPanelBottomSheet() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
       builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: DevStatePanel(
-              currentState: _currentDevState,
-              onStateSelected: (st) {
-                Navigator.pop(ctx);
-                _onDevStateSelected(st);
-              },
-            ),
+        return ResponsiveBottomSheetBody(
+          padding: const EdgeInsets.all(16.0),
+          child: DevStatePanel(
+            currentState: _currentDevState,
+            onStateSelected: (st) {
+              Navigator.pop(ctx);
+              _onDevStateSelected(st);
+            },
           ),
         );
       },

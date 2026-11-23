@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../controllers/loan_controller.dart';
+import '../../controllers/payment_schedule_controller.dart';
+import '../../layout/responsive_layout.dart';
 import '../../models/loan_model.dart';
+import '../../models/payment_schedule_model.dart';
+import '../../repositories/interfaces/payment_schedule_repository.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
 import '../../widgets/widget.dart';
@@ -61,7 +65,30 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     return '${buffer.toString()} đ';
   }
 
-  void _handlePaymentConfirmation(LoanModel loan) {
+  Future<void> _handlePaymentConfirmation(LoanModel loan) async {
+    PaymentScheduleModel? nextSchedule;
+    if (sl.isRegistered<PaymentScheduleRepository>()) {
+      try {
+        final schedules = await sl<PaymentScheduleRepository>()
+            .getPaymentSchedules(loanId: loan.id);
+        final unpaid = schedules.where((s) => s.status != 'PAID').toList()
+          ..sort((a, b) => a.installmentNumber.compareTo(b.installmentNumber));
+        if (unpaid.isNotEmpty) {
+          nextSchedule = unpaid.first;
+        }
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
+    if (nextSchedule == null) {
+      AppSnackBar.showError(
+        context,
+        'Khoản vay này hiện không có kỳ thanh toán nào đang chờ.',
+      );
+      return;
+    }
+
+    final targetSchedule = nextSchedule;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -69,95 +96,140 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
       builder: (bottomSheetCtx) {
-        return Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        bool isSubmitting = false;
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return ResponsiveBottomSheetBody(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.payment_rounded,
-                    color: AppColors.primary,
-                    size: 24.0,
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.payment_rounded,
+                        color: AppColors.primary,
+                        size: 24.0,
+                      ),
+                      const SizedBox(width: 8.0),
+                      Expanded(
+                        child: Text(
+                          'Ghi nhận thanh toán Kỳ ${targetSchedule.installmentNumber}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: isSubmitting
+                            ? null
+                            : () => Navigator.pop(bottomSheetCtx),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8.0),
-                  const Text(
-                    'Ghi nhận thanh toán kỳ này',
-                    style: TextStyle(
-                      fontSize: 18.0,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                  const SizedBox(height: 12.0),
+                  Text(
+                    'Khoản vay: ${loan.loanName} (${loan.lenderName})',
+                    style: const TextStyle(
+                      fontSize: 14.0,
+                      color: AppColors.textSecondary,
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(bottomSheetCtx),
+                  const SizedBox(height: 16.0),
+                  Container(
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Số tiền thanh toán:',
+                            style: TextStyle(
+                              fontSize: 14.0,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8.0),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              _formatCurrency(targetSchedule.totalAmount),
+                              style: const TextStyle(
+                                fontSize: 18.0,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: 20.0),
+                  AppPrimaryButton(
+                    label: isSubmitting
+                        ? 'Đang xử lý...'
+                        : 'Xác nhận đã thanh toán',
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            setSheetState(() => isSubmitting = true);
+                            bool success = false;
+                            String? errMsg;
+                            if (sl.isRegistered<PaymentScheduleController>()) {
+                              final schedCtrl = sl<PaymentScheduleController>();
+                              success = await schedCtrl.markAsPaid(
+                                targetSchedule.id,
+                              );
+                              errMsg = schedCtrl.errorMessage;
+                            } else {
+                              try {
+                                await sl<PaymentScheduleRepository>()
+                                    .markScheduleAsPaid(targetSchedule.id);
+                                success = true;
+                              } catch (e) {
+                                errMsg = e.toString().replaceAll(
+                                  'Exception: ',
+                                  '',
+                                );
+                              }
+                            }
+                            if (!bottomSheetCtx.mounted) return;
+                            Navigator.pop(bottomSheetCtx);
+                            if (!mounted) return;
+                            if (success) {
+                              await _loanController.getDetail(_activeLoanId);
+                              if (!mounted) return;
+                              AppSnackBar.showSuccess(
+                                context,
+                                'Đã ghi nhận thanh toán Kỳ ${targetSchedule.installmentNumber} thành công!',
+                              );
+                            } else {
+                              AppSnackBar.showError(
+                                context,
+                                errMsg ??
+                                    'Không thể ghi nhận thanh toán kỳ này.',
+                              );
+                            }
+                          },
+                  ),
+                  const SizedBox(height: 10.0),
                 ],
               ),
-              const SizedBox(height: 12.0),
-              Text(
-                'Khoản vay: ${loan.loanName} (${loan.lenderName})',
-                style: const TextStyle(
-                  fontSize: 14.0,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 16.0),
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Số tiền thanh toán:',
-                      style: TextStyle(
-                        fontSize: 14.0,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      _formatCurrency(loan.monthlyInstallmentEstimate),
-                      style: const TextStyle(
-                        fontSize: 18.0,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20.0),
-              AppPrimaryButton(
-                label: 'Xác nhận đã thanh toán',
-                onPressed: () async {
-                  Navigator.pop(bottomSheetCtx);
-                  final newOutstanding =
-                      (loan.outstandingAmount - loan.monthlyInstallmentEstimate)
-                          .clamp(0.0, loan.principalAmount);
-                  final success = await _loanController
-                      .updateLoan(loan.id.toString(), {
-                        'outstanding_amount': newOutstanding,
-                        if (newOutstanding == 0) 'status': 'CLOSED',
-                      });
-                  if (mounted && success) {
-                    AppSnackBar.showSuccess(
-                      context,
-                      'Đã ghi nhận thanh toán thành công!',
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 10.0),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -361,20 +433,21 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                   }
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.edit_outlined,
-                          size: 18.0,
-                          color: AppColors.primary,
-                        ),
-                        SizedBox(width: 8.0),
-                        Text('Chỉnh sửa thông tin'),
-                      ],
+                  if (!loan.isClosed)
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.edit_outlined,
+                            size: 18.0,
+                            color: AppColors.primary,
+                          ),
+                          SizedBox(width: 8.0),
+                          Text('Chỉnh sửa thông tin'),
+                        ],
+                      ),
                     ),
-                  ),
                   if (loan.isActive)
                     const PopupMenuItem(
                       value: 'simulate',
@@ -440,6 +513,12 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           }
 
           if (loan == null) {
+            if (_loanController.errorMessage != null) {
+              return ConnectionErrorView(
+                message: _loanController.errorMessage,
+                onRetry: () => _loanController.getDetail(_activeLoanId),
+              );
+            }
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -557,49 +636,61 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                       const Divider(color: AppColors.border, height: 1),
                       const SizedBox(height: 14.0),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Dư nợ hiện tại',
-                                style: TextStyle(
-                                  fontSize: 12.0,
-                                  color: AppColors.textSecondary,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Dư nợ hiện tại',
+                                  style: TextStyle(
+                                    fontSize: 12.0,
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 3.0),
-                              Text(
-                                _formatCurrency(loan.outstandingAmount),
-                                style: const TextStyle(
-                                  fontSize: 18.0,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.primary,
+                                const SizedBox(height: 3.0),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    _formatCurrency(loan.outstandingAmount),
+                                    style: const TextStyle(
+                                      fontSize: 18.0,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Text(
-                                'Số tiền gốc ban đầu',
-                                style: TextStyle(
-                                  fontSize: 12.0,
-                                  color: AppColors.textSecondary,
+                          const SizedBox(width: 12.0),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                const Text(
+                                  'Số tiền gốc ban đầu',
+                                  style: TextStyle(
+                                    fontSize: 12.0,
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 3.0),
-                              Text(
-                                _formatCurrency(loan.principalAmount),
-                                style: const TextStyle(
-                                  fontSize: 15.0,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
+                                const SizedBox(height: 3.0),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    _formatCurrency(loan.principalAmount),
+                                    style: const TextStyle(
+                                      fontSize: 15.0,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -670,7 +761,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                                 const SizedBox(height: 3.0),
                                 Text(
                                   _formatCurrency(
-                                    loan.monthlyInstallmentEstimate,
+                                    loan.nextPaymentAmount ??
+                                        loan.monthlyInstallmentEstimate,
                                   ),
                                   style: const TextStyle(
                                     fontSize: 20.0,
@@ -763,10 +855,31 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
                 // 4. Nếu có tài sản bảo đảm gắn kèm
                 if (collaterals.isNotEmpty) ...[
-                  LtvIndicatorBar(
-                    ltvRatio: ltvRatio,
-                    outstandingAmount: loan.outstandingAmount,
-                    collateralValue: totalCollateralVal,
+                  Builder(
+                    builder: (_) {
+                      final sharedLoanIds = <String>{};
+                      double maxSharedDebt = 0.0;
+                      for (final c in collaterals) {
+                        sharedLoanIds.addAll(c.linkedLoanIds);
+                        if (c.totalSecuredDebt > maxSharedDebt) {
+                          maxSharedDebt = c.totalSecuredDebt;
+                        }
+                      }
+                      final isShared =
+                          sharedLoanIds.length > 1 ||
+                          maxSharedDebt > loan.outstandingAmount + 1.0;
+                      return LtvIndicatorBar(
+                        ltvRatio: ltvRatio,
+                        outstandingAmount: loan.outstandingAmount,
+                        collateralValue: totalCollateralVal,
+                        sharedSecuredDebt: isShared ? maxSharedDebt : null,
+                        sharedLoanCount: isShared
+                            ? (sharedLoanIds.length > 1
+                                  ? sharedLoanIds.length
+                                  : 2)
+                            : 0,
+                      );
+                    },
                   ),
                   const SizedBox(height: 16.0),
                 ],

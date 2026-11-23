@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/loan_document_model.dart';
 import '../../models/loan_model.dart';
+import '../../repositories/interfaces/storage_repository.dart';
 import '../../service_locator.dart';
 import '../../services/image_upload_service.dart';
 import '../widget.dart';
@@ -31,6 +32,46 @@ class LoanContractDocumentsSection extends StatelessWidget {
     if (result != null) {
       AppSnackBar.showSuccess(context, 'Tải lên tài liệu hợp đồng thành công!');
       onDocumentUploaded();
+    }
+  }
+
+  Future<void> _handleDeleteDocument(
+    BuildContext context,
+    LoanDocumentModel doc,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa tài liệu hợp đồng?'),
+        content: Text(
+          'Bạn có chắc muốn xóa "${doc.documentTypeDisplay}" khỏi hệ thống lưu trữ R2?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await sl<StorageRepository>().deleteFile(doc.fileUrl);
+      if (!context.mounted) return;
+      AppSnackBar.showSuccess(context, 'Đã xóa tài liệu thành công!');
+      onDocumentUploaded();
+    } catch (e) {
+      if (!context.mounted) return;
+      AppSnackBar.showError(
+        context,
+        'Không thể xóa tài liệu: ${e.toString().replaceAll('Exception: ', '')}',
+      );
     }
   }
 
@@ -156,11 +197,15 @@ class LoanContractDocumentsSection extends StatelessWidget {
                                 color: AppColors.success,
                               ),
                               const SizedBox(width: 4.0),
-                              Text(
-                                'Chứng từ mã hóa • ${doc.ocrStatusDisplay}',
-                                style: const TextStyle(
-                                  fontSize: 11.0,
-                                  color: AppColors.textSecondary,
+                              Expanded(
+                                child: Text(
+                                  'Chứng từ mã hóa • ${doc.ocrStatusDisplay}',
+                                  style: const TextStyle(
+                                    fontSize: 11.0,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -169,6 +214,16 @@ class LoanContractDocumentsSection extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8.0),
+                    IconButton(
+                      tooltip: 'Xóa tài liệu',
+                      onPressed: () => _handleDeleteDocument(context, doc),
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: AppColors.error,
+                        size: 20.0,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         visualDensity: VisualDensity.compact,

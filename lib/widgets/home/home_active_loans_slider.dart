@@ -162,7 +162,9 @@ class HomeActiveLoansSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeLoans = loanController.loans.where((l) => l.isActive).toList();
+    final activeLoans = loanController.loans
+        .where((l) => l.isActive || l.isOverdue)
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,16 +172,20 @@ class HomeActiveLoansSlider extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Khoản vay đang theo dõi (${activeLoans.length})',
-                style: const TextStyle(
-                  fontSize: 15.0,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              Expanded(
+                child: Text(
+                  'Khoản vay đang theo dõi (${activeLoans.length})',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15.0,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8.0),
               TextButton(
                 onPressed: () {
                   MainShellScreen.switchTab(context, 1); // Tab Khoản vay

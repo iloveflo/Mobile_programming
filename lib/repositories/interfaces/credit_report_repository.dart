@@ -19,4 +19,7 @@ abstract class CreditReportRepository {
     int? userId,
     required String reportPeriod,
   });
+
+  /// Xóa bản ghi báo cáo tín dụng theo [reportId] (để người dùng có thể lập lại khi chỉnh sửa khoản vay)
+  Future<void> deleteReport(int reportId, {int? userId});
 }

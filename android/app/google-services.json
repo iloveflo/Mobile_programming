@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "463796016036",
+    "project_id": "iloveflo-90e8e",
+    "storage_bucket": "iloveflo-90e8e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:463796016036:android:53266d9228249d4499e731",
+        "android_client_info": {
+          "package_name": "com.example.my_first_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAz0DYm0O9OxQIcbEgxXlCKaFpo1oMwI7A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

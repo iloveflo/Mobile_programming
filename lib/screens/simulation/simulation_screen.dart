@@ -8,6 +8,7 @@ import '../../routes/app_router.dart';
 import '../../service_locator.dart';
 import '../../widgets/common/app_colors.dart';
 import '../../widgets/common/app_snack_bar.dart';
+import '../../widgets/common/connection_error_view.dart';
 import '../../widgets/simulation/simulation_comparison_table.dart';
 import '../../widgets/simulation/simulation_history_sheet.dart';
 import '../../widgets/simulation/simulation_input_card.dart';
@@ -155,11 +156,186 @@ class _SimulationScreenState extends State<SimulationScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => SimulationHistorySheet(
-        simulations: _controller.savedSimulations,
-        onDelete: (id) {
-          _controller.deleteSimulation(id);
-        },
+      builder: (ctx) => AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) => SimulationHistorySheet(
+          simulations: _controller.savedSimulations,
+          onSelect: (sim) => _showSavedSimulationDetail(sim, ctx),
+          onDelete: (id) async {
+            final ok = await _controller.deleteSimulation(id);
+            if (!mounted) return;
+            if (ok) {
+              AppSnackBar.showSuccess(
+                this.context,
+                'Đã xóa kịch bản mô phỏng đã lưu.',
+              );
+            } else {
+              AppSnackBar.showError(
+                this.context,
+                _controller.errorMessage ?? 'Không thể xóa kịch bản.',
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  String _formatVnd(double amount) {
+    final integerPart = amount.round().toString();
+    final buffer = StringBuffer();
+    int count = 0;
+    for (int i = integerPart.length - 1; i >= 0; i--) {
+      buffer.write(integerPart[i]);
+      count++;
+      if (count % 3 == 0 && i > 0) {
+        buffer.write('.');
+      }
+    }
+    return '${buffer.toString().split('').reversed.join()} đ';
+  }
+
+  void _showSavedSimulationDetail(
+    SimulationModel sim,
+    BuildContext sheetContext,
+  ) {
+    final matchingLoans = _controller.validLoans.where(
+      (l) => l.id == sim.loanId,
+    );
+    final loanLabel = matchingLoans.isNotEmpty
+        ? matchingLoans.first.name
+        : 'Khoản vay #${sim.loanId}';
+    final dateText = sim.createdAt != null
+        ? '${sim.createdAt!.day.toString().padLeft(2, '0')}/${sim.createdAt!.month.toString().padLeft(2, '0')}/${sim.createdAt!.year}'
+        : '--';
+
+    showDialog<void>(
+      context: sheetContext,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.primarySoft,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                sim.type.title,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              sim.scenarioName ?? sim.type.title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildDetailRow('Khoản vay cơ sở', loanLabel),
+            if (sim.extraPayment > 0)
+              _buildDetailRow('Trả thêm dự kiến', _formatVnd(sim.extraPayment)),
+            _buildDetailRow(
+              'Tiền lãi dự kiến',
+              _formatVnd(sim.estimatedInterest),
+            ),
+            _buildDetailRow(
+              'Tiết kiệm lãi',
+              _formatVnd(sim.estimatedInterestSaved),
+              valueColor: AppColors.success,
+            ),
+            _buildDetailRow(
+              'Thời gian rút ngắn',
+              '${sim.monthsReduced} kỳ',
+              valueColor: AppColors.primary,
+            ),
+            if (sim.earlyPaymentFee > 0)
+              _buildDetailRow(
+                'Phí trả trước hạn',
+                _formatVnd(sim.earlyPaymentFee),
+              ),
+            _buildDetailRow(
+              'Tổng tiết kiệm',
+              _formatVnd(sim.totalSaving),
+              valueColor: AppColors.success,
+            ),
+            _buildDetailRow('Ngày lưu', dateText),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: const Text('Đóng'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              Navigator.of(sheetContext).pop();
+              final matched = _controller.applySavedSimulation(sim);
+              if (!mounted) return;
+              if (matched) {
+                AppSnackBar.showSuccess(
+                  context,
+                  'Đã nạp kịch bản "${sim.scenarioName ?? sim.type.title}" lên màn hình mô phỏng.',
+                );
+              } else {
+                AppSnackBar.showInfo(
+                  context,
+                  'Khoản vay gốc đã đóng hoặc không còn khả dụng; đã chọn loại kịch bản tương ứng.',
+                );
+              }
+            },
+            child: const Text('Áp dụng mô phỏng'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12.5,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: valueColor ?? AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -238,6 +414,18 @@ class _SimulationScreenState extends State<SimulationScreen> {
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
           ],
+        ),
+      );
+    }
+
+    // EX-04: Lỗi kết nối / máy chủ khi chưa có dữ liệu khoản vay
+    if (_controller.exceptionCode == 'EX-04' &&
+        _controller.validLoans.isEmpty) {
+      return ConnectionErrorView(
+        message: _controller.errorMessage,
+        onRetry: () => _controller.loadData(
+          preferredLoanId: widget.initialLoanId,
+          userId: sl<AuthController>().currentUser?.userId ?? 1,
         ),
       );
     }
@@ -392,7 +580,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

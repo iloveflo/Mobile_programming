@@ -27,13 +27,17 @@ class MockStorageRepository implements StorageRepository {
         ? 'https://pub-r2.fincredit.vn/$fileKey'
         : 'https://private-r2.fincredit.vn/$fileKey?token=mock_secure_jwt';
 
+    final cacheControl = isPublic
+        ? 'public, max-age=31536000, immutable'
+        : 'no-cache, private';
+
     return PresignedUploadUrlModel(
       uploadUrl: uploadUrl,
       fileKey: fileKey,
       downloadUrl: downloadUrl,
       expiresIn: 300,
       httpMethod: 'PUT',
-      headers: {'Content-Type': contentType},
+      headers: {'Content-Type': contentType, 'Cache-Control': cacheControl},
     );
   }
 
@@ -111,5 +115,16 @@ class MockStorageRepository implements StorageRepository {
       fileKey: presigned.fileKey,
       downloadUrl: finalUrl,
     );
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> listUploadedFiles({String? folder}) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    return [];
+  }
+
+  @override
+  Future<void> deleteFile(String fileKey) async {
+    await Future.delayed(const Duration(milliseconds: 120));
   }
 }

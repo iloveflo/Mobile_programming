@@ -178,4 +178,12 @@ class MockCreditReportRepository implements CreditReportRepository {
 
     return newReport;
   }
+
+  @override
+  Future<void> deleteReport(int reportId, {int? userId}) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    CreditReportMockData.creditReportsDatabase.removeWhere(
+      (r) => r.id == reportId,
+    );
+  }
 }

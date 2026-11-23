@@ -77,7 +77,10 @@ class InterestMethodCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  Wrap(
+                    spacing: 8.0,
+                    runSpacing: 4.0,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
                         title,
@@ -91,8 +94,7 @@ class InterestMethodCard extends StatelessWidget {
                               : AppColors.textPrimary,
                         ),
                       ),
-                      if (isReducing) ...[
-                        const SizedBox(width: 8.0),
+                      if (isReducing)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 6.0,
@@ -111,7 +113,6 @@ class InterestMethodCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ],
                     ],
                   ),
                   const SizedBox(height: 4.0),

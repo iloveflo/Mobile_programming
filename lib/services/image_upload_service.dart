@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../layout/responsive_layout.dart';
 import '../models/storage_upload_model.dart';
 import '../repositories/interfaces/storage_repository.dart';
 import '../widgets/common/app_colors.dart';
@@ -21,11 +22,12 @@ class ImageUploadService {
   }) async {
     return showModalBottomSheet<ImageSource>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
-      builder: (ctx) => Padding(
+      builder: (ctx) => ResponsiveBottomSheetBody(
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 18.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -125,6 +127,60 @@ class ImageUploadService {
         ),
       ),
     );
+  }
+
+  /// Chọn ảnh từ Camera/Thư viện (chỉ trả về XFile để xử lý/quét trước khi upload)
+  Future<XFile?> pickImageOnly(
+    BuildContext context, {
+    String title = 'Chọn nguồn hình ảnh',
+    double maxWidth = 2048,
+    double maxHeight = 2048,
+    int imageQuality = 92,
+  }) async {
+    final source = await showSourceSelector(context, title: title);
+    if (source == null) return null;
+    return await picker.pickImage(
+      source: source,
+      maxWidth: maxWidth,
+      maxHeight: maxHeight,
+      imageQuality: imageQuality,
+    );
+  }
+
+  /// Tải dữ liệu XFile lên Cloudflare R2 sau khi đã kiểm tra/quét hợp lệ
+  Future<UploadResultModel> uploadPickedFile(
+    XFile pickedFile, {
+    required String folder,
+    required String filePrefix,
+    bool isPublic = false,
+    Map<String, dynamic>? metadata,
+  }) async {
+    try {
+      final bytes = await pickedFile.readAsBytes();
+      final extension = pickedFile.name.contains('.')
+          ? pickedFile.name.split('.').last.toLowerCase()
+          : 'jpg';
+      final contentType = extension == 'png'
+          ? 'image/png'
+          : extension == 'webp'
+          ? 'image/webp'
+          : 'image/jpeg';
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = '${filePrefix}_$timestamp.$extension';
+
+      return await storageRepository.uploadImageFile(
+        bytes: bytes,
+        folder: folder,
+        fileName: fileName,
+        contentType: contentType,
+        isPublic: isPublic,
+        metadata: metadata,
+      );
+    } catch (e) {
+      return UploadResultModel.failure(
+        'Lỗi xử lý hình ảnh: ${e.toString().replaceAll('Exception: ', '')}',
+      );
+    }
   }
 
   /// Quy trình chọn và tải ảnh hoàn chỉnh:

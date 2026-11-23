@@ -164,13 +164,29 @@ class ApiLoanRepository implements LoanRepository {
   Future<CollateralModel> addCollateral(
     Map<String, dynamic> collateralData,
   ) async {
+    final body = <String, dynamic>{
+      ...collateralData,
+      'asset_name':
+          collateralData['asset_name'] ?? collateralData['name'] ?? '',
+      'asset_type':
+          collateralData['asset_type'] ?? collateralData['type'] ?? 'OTHER',
+      'estimated_value':
+          collateralData['estimated_value'] ?? collateralData['value'],
+    };
     final response = await _handleApiCall<dynamic>(
-      () => client.post('/api/collaterals', body: collateralData),
+      () => client.post('/api/collaterals', body: body),
     );
     final data = response is Map<String, dynamic>
         ? (response['data'] ?? response)
         : response;
     return CollateralModel.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
+  @override
+  Future<void> deleteCollateral(int assetId) async {
+    await _handleApiCall<dynamic>(
+      () => client.delete('/api/collaterals/$assetId'),
+    );
   }
 
   @override
@@ -190,12 +206,20 @@ class ApiLoanRepository implements LoanRepository {
       () => client.get('/api/loans/$loanId/documents'),
     );
 
-    if (response is List) {
-      return response
-          .whereType<Map<String, dynamic>>()
-          .map((item) => LoanDocumentModel.fromJson(item))
-          .toList();
-    }
-    return [];
+    final list = response is List
+        ? response
+        : (response is Map<String, dynamic>
+              ? (response['data'] as List? ??
+                    response['documents'] as List? ??
+                    [])
+              : []);
+
+    return list
+        .map(
+          (item) => LoanDocumentModel.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        )
+        .toList();
   }
 }

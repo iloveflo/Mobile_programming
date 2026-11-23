@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_first_app/core/network/api_client.dart';
-import 'package:my_first_app/models/bank_account_model.dart';
 import 'package:my_first_app/models/collateral_model.dart';
 import 'package:my_first_app/models/loan_model.dart';
 import 'package:my_first_app/repositories/interfaces/auth_repository.dart';
@@ -253,58 +252,6 @@ void main() {
         expect(updated.isAutoLockEnabled, isFalse);
       },
     );
-
-    test('Lấy danh sách tài khoản ngân hàng getBankAccounts', () async {
-      fakeClient.getResponse = {
-        'data': [
-          {
-            'id': 'bank_1',
-            'bank_name': 'Vietcombank',
-            'account_number': '0071001234567',
-            'account_holder_name': 'TRAN VAN PROFILE',
-            'is_default_disbursal': true,
-          },
-        ],
-      };
-
-      final List<BankAccountModel> accounts = await authRepo.getBankAccounts();
-      expect(fakeClient.lastEndpoint, '/api/user/bank-accounts');
-      expect(accounts.length, 1);
-      expect(accounts.first.bankName, 'Vietcombank');
-      expect(accounts.first.accountHolderName, 'TRAN VAN PROFILE');
-      expect(accounts.first.isDefaultDisbursal, isTrue);
-    });
-
-    test('Thêm tài khoản ngân hàng addBankAccount', () async {
-      fakeClient.postResponse = {
-        'data': {
-          'id': 'bank_2',
-          'bank_name': 'Techcombank',
-          'account_number': '19030099887766',
-          'account_holder_name': 'TRAN VAN PROFILE',
-          'is_default_disbursal': false,
-        },
-      };
-
-      final BankAccountModel account = await authRepo.addBankAccount({
-        'bank_name': 'Techcombank',
-        'account_number': '19030099887766',
-        'account_holder_name': 'TRAN VAN PROFILE',
-        'is_default_disbursal': false,
-      });
-
-      expect(fakeClient.lastEndpoint, '/api/user/bank-accounts');
-      expect(account.id, 'bank_2');
-      expect(account.bankName, 'Techcombank');
-      expect(account.isDefaultDisbursal, isFalse);
-    });
-
-    test('Xóa tài khoản ngân hàng deleteBankAccount', () async {
-      fakeClient.deleteResponse = {'success': true};
-
-      await authRepo.deleteBankAccount('bank_2');
-      expect(fakeClient.lastEndpoint, '/api/user/bank-accounts/bank_2');
-    });
   });
 
   group('ApiLoanRepository Tests', () {

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../controllers/auth_controller.dart';
+import '../../controllers/credit_profile_controller.dart';
 import '../../controllers/loan_controller.dart';
 import '../../controllers/payment_schedule_controller.dart';
 import '../../models/loan_model.dart';
 import '../../models/user_model.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
+import '../../services/local_notification_service.dart';
+import '../../services/push_notification_service.dart';
 import '../../widgets/widget.dart';
 import '../main_shell_screen.dart';
 
@@ -27,6 +30,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final LoanController _loanController = sl<LoanController>();
   final PaymentScheduleController _scheduleController =
       sl<PaymentScheduleController>();
+  final CreditProfileController? _creditProfileController =
+      sl.isRegistered<CreditProfileController>()
+      ? sl<CreditProfileController>()
+      : null;
 
   /// Sử dụng ValueNotifier cho trạng thái ẩn/hiện số dư để tránh setState toàn bộ màn hình
   final ValueNotifier<bool> _isBalanceHidden = ValueNotifier<bool>(false);
@@ -34,6 +41,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    LocalNotificationService.setTapHandler(_handleNotificationTap);
+    PushNotificationService.instance.onNotificationTap = _handleNotificationTap;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -45,13 +54,72 @@ class _HomeScreenState extends State<HomeScreen> {
         _authController.loadSessions();
       }
       final userId = _authController.currentUser?.userId;
-      _scheduleController.loadNotifications(userId: userId);
-      _scheduleController.loadSchedules(userId: userId);
+      Future.wait([
+        _scheduleController.loadNotifications(userId: userId),
+        _scheduleController.loadSchedules(userId: userId),
+        _scheduleController.loadNotificationPreference(userId: userId),
+      ]).then((_) async {
+        if (!mounted) return;
+        await LocalNotificationService.checkInitialLaunch();
+        await PushNotificationService.instance.checkInitialMessage();
+        await LocalNotificationService.requestPermissionOnce();
+        await LocalNotificationService.notifyOverdueOrUrgent(
+          notifications: _scheduleController.notifications,
+          schedules: _scheduleController.schedules,
+          loans: _loanController.loans,
+          preference: _scheduleController.preference,
+        );
+      });
+      if (_creditProfileController != null &&
+          (_creditProfileController.creditProfile == null ||
+              _creditProfileController.creditProfile?.userId != userId)) {
+        _creditProfileController.loadCreditProfile(userId: userId);
+      }
     });
+  }
+
+  Future<void> _handleNotificationTap(int tabIndex, int? scheduleId) async {
+    if (!mounted) return;
+    MainShellScreen.switchTab(context, tabIndex);
+    if (scheduleId == null) return;
+    final success = await _scheduleController.selectSchedule(
+      scheduleId,
+      userId: _authController.currentUser?.userId,
+    );
+    if (!mounted || !success || _scheduleController.selectedSchedule == null) {
+      return;
+    }
+    final schedule = _scheduleController.selectedSchedule!;
+    final loan = _loanController.loans.cast<LoanModel?>().firstWhere(
+      (l) => l?.id == schedule.loanId,
+      orElse: () => null,
+    );
+    ScheduleDetailSheet.show(
+      context,
+      schedule: schedule,
+      loanName: loan?.name,
+      onPay: () async {
+        final paid = await _scheduleController.markAsPaid(
+          schedule.id,
+          userId: _authController.currentUser?.userId,
+        );
+        if (!mounted) return;
+        if (paid) {
+          AppSnackBar.showSuccess(
+            context,
+            'Đã ghi nhận thanh toán thành công!',
+          );
+        } else if (_scheduleController.errorMessage != null) {
+          AppSnackBar.showError(context, _scheduleController.errorMessage!);
+        }
+      },
+    );
   }
 
   @override
   void dispose() {
+    LocalNotificationService.setTapHandler(null);
+    PushNotificationService.instance.onNotificationTap = null;
     _isBalanceHidden.dispose();
     super.dispose();
   }
@@ -67,10 +135,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showNotificationSheet(BuildContext context) {
+  Future<void> _showNotificationSheet(BuildContext context) async {
+    await _scheduleController.loadNotifications(
+      userId: _authController.currentUser?.userId,
+    );
+    if (!context.mounted) return;
     NotificationListSheet.show(
       context,
       notifications: _scheduleController.notifications,
+      onDeleteNotification: (id) => _scheduleController.deleteNotification(
+        id,
+        userId: _authController.currentUser?.userId,
+      ),
+      onClearAll: () => _scheduleController.clearNotifications(
+        userId: _authController.currentUser?.userId,
+      ),
       onSelectSchedule: (scheduleId) async {
         final success = await _scheduleController.selectSchedule(
           scheduleId,
@@ -90,15 +169,20 @@ class _HomeScreenState extends State<HomeScreen> {
             schedule: schedule,
             loanName: loan?.name,
             onPay: () async {
-              Navigator.pop(this.context);
-              await _scheduleController.markAsPaid(
+              final paid = await _scheduleController.markAsPaid(
                 schedule.id,
                 userId: _authController.currentUser?.userId,
               );
-              if (mounted) {
+              if (!mounted) return;
+              if (paid) {
                 AppSnackBar.showSuccess(
                   this.context,
                   'Đã ghi nhận thanh toán thành công!',
+                );
+              } else if (_scheduleController.errorMessage != null) {
+                AppSnackBar.showError(
+                  this.context,
+                  _scheduleController.errorMessage!,
                 );
               }
             },
@@ -116,130 +200,200 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([_authController, _loanController]),
+      listenable: Listenable.merge([
+        _authController,
+        _loanController,
+        ?_creditProfileController,
+      ]),
       builder: (context, _) {
         final user = _authController.currentUser;
+        final loadedProfile = _creditProfileController?.creditProfile;
+        final matchingProfile =
+            (loadedProfile != null &&
+                user != null &&
+                loadedProfile.userId == user.userId)
+            ? loadedProfile
+            : null;
+
+        final hasConnectionError =
+            !_loanController.isLoading &&
+            _loanController.loans.isEmpty &&
+            (_loanController.errorMessage != null ||
+                (user == null &&
+                    _creditProfileController?.exceptionCode == 'EX-04'));
 
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFD),
           body: SafeArea(
             bottom: false,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics(),
-              ),
-              slivers: [
-                // 1. SliverAppBar (Header thông minh & Tinh tế)
-                _buildSliverHeader(context, user),
+            child: hasConnectionError
+                ? ConnectionErrorView(
+                    message:
+                        _loanController.errorMessage ??
+                        _creditProfileController?.errorMessage,
+                    onRetry: () {
+                      final uid = _authController.currentUser?.userId;
+                      _loanController.fetchLoans();
+                      _authController.loadSessions();
+                      _scheduleController.loadNotifications(userId: uid);
+                      _scheduleController.loadSchedules(userId: uid);
+                      _scheduleController.loadNotificationPreference(
+                        userId: uid,
+                      );
+                      _creditProfileController?.loadCreditProfile(userId: uid);
+                    },
+                  )
+                : CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    slivers: [
+                      // 1. SliverAppBar (Header thông minh & Tinh tế)
+                      _buildSliverHeader(context, user),
 
-                // 2. Hero Card: Tổng quan Dư nợ & Điểm Sức khỏe Tín dụng
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 14.0, 16.0, 0.0),
-                    child: HomeHeroCard(
-                      loanController: _loanController,
-                      user: user,
-                      isBalanceHidden: _isBalanceHidden,
-                      onPlanDebt: () => DebtPlanningSheet.show(context),
-                      onViewCashflow: () => CashflowDetailSheet.show(
-                        context,
-                        user: user,
-                        loanController: _loanController,
+                      // 2. Hero Card: Tổng quan Dư nợ & Điểm Sức khỏe Tín dụng
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            16.0,
+                            14.0,
+                            16.0,
+                            0.0,
+                          ),
+                          child: HomeHeroCard(
+                            loanController: _loanController,
+                            user: user,
+                            isBalanceHidden: _isBalanceHidden,
+                            onPlanDebt: () => DebtPlanningSheet.show(context),
+                            onViewCashflow: () => CashflowDetailSheet.show(
+                              context,
+                              user: user,
+                              loanController: _loanController,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
 
-                // 3. Quick Action Grid (Phím tắt nghiệp vụ tài chính 2 hàng - 8 chức năng)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0.0),
-                    child: HomeQuickActionGrid(
-                      onAddLoan: () =>
-                          Navigator.pushNamed(context, AppRouter.loanForm),
-                      onViewSchedule: () =>
-                          MainShellScreen.switchTab(context, 2),
-                      onViewCic: () => MainShellScreen.switchTab(context, 3),
-                      onOcr: () => Navigator.pushNamed(
-                        context,
-                        AppRouter.loanCollateralOcr,
+                      // 3. Quick Action Grid (Phím tắt nghiệp vụ tài chính 2 hàng - 8 chức năng)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            16.0,
+                            16.0,
+                            16.0,
+                            0.0,
+                          ),
+                          child: HomeQuickActionGrid(
+                            onAddLoan: () => Navigator.pushNamed(
+                              context,
+                              AppRouter.loanForm,
+                            ),
+                            onViewSchedule: () =>
+                                MainShellScreen.switchTab(context, 2),
+                            onViewCic: () =>
+                                MainShellScreen.switchTab(context, 3),
+                            onOcr: () => Navigator.pushNamed(
+                              context,
+                              AppRouter.loanCollateralOcr,
+                            ),
+                            onInterestCalc: () =>
+                                QuickInterestCalculatorDialog.show(context),
+                            onSimulation: () => Navigator.pushNamed(
+                              context,
+                              AppRouter.simulation,
+                            ),
+                            onDebtStrategy: () => Navigator.pushNamed(
+                              context,
+                              AppRouter.debtStrategy,
+                            ),
+                            onDtiReport: () => DtiReportModal.show(
+                              context,
+                              user: user,
+                              loanController: _loanController,
+                              creditProfile: matchingProfile,
+                            ),
+                          ),
+                        ),
                       ),
-                      onInterestCalc: () =>
-                          QuickInterestCalculatorDialog.show(context),
-                      onSimulation: () =>
-                          Navigator.pushNamed(context, AppRouter.simulation),
-                      onDebtStrategy: () =>
-                          Navigator.pushNamed(context, AppRouter.debtStrategy),
-                      onDtiReport: () => DtiReportModal.show(
-                        context,
-                        user: user,
-                        loanController: _loanController,
+
+                      // 4. Khối Cảnh báo Kỳ thanh toán Khẩn cấp (Urgent Due Reminder Banner)
+                      SliverToBoxAdapter(
+                        child: HomeUrgentDueBanner(
+                          loanController: _loanController,
+                          onPayNow: () => MainShellScreen.switchTab(context, 2),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
 
-                // 4. Khối Cảnh báo Kỳ thanh toán Khẩn cấp (Urgent Due Reminder Banner)
-                SliverToBoxAdapter(
-                  child: HomeUrgentDueBanner(
-                    loanController: _loanController,
-                    onPayNow: () => MainShellScreen.switchTab(context, 2),
-                  ),
-                ),
-
-                // 5. Danh mục Khoản vay Đang hoạt động (Active Loans Horizontal Slider)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0.0, 20.0, 0.0, 0.0),
-                    child: HomeActiveLoansSlider(
-                      loanController: _loanController,
-                    ),
-                  ),
-                ),
-
-                // 6. Chỉ số Gánh nặng Nợ DTI (Debt-to-Income Gauge Widget)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 20.0, 16.0, 0.0),
-                    child: HomeDtiGaugeCard(
-                      user: user,
-                      loanController: _loanController,
-                      onTap: () => DtiReportModal.show(
-                        context,
-                        user: user,
-                        loanController: _loanController,
+                      // 5. Danh mục Khoản vay Đang hoạt động (Active Loans Horizontal Slider)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            0.0,
+                            20.0,
+                            0.0,
+                            0.0,
+                          ),
+                          child: HomeActiveLoansSlider(
+                            loanController: _loanController,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
 
-                // 7. Biểu đồ Dự phóng Dòng tiền Trả nợ (6-Month Cashflow Projection)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 20.0, 16.0, 0.0),
-                    child: HomeCashflowProjectionCard(
-                      loanController: _loanController,
-                    ),
-                  ),
-                ),
+                      // 6. Chỉ số Gánh nặng Nợ DTI (Debt-to-Income Gauge Widget)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            16.0,
+                            20.0,
+                            16.0,
+                            0.0,
+                          ),
+                          child: HomeDtiGaugeCard(
+                            user: user,
+                            loanController: _loanController,
+                            creditProfile: matchingProfile,
+                            onTap: () => DtiReportModal.show(
+                              context,
+                              user: user,
+                              loanController: _loanController,
+                              creditProfile: matchingProfile,
+                            ),
+                          ),
+                        ),
+                      ),
 
-                // 8. Cẩm nang Tài chính & Mẹo tăng Điểm Tín dụng (Financial Education Carousel)
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(0.0, 20.0, 0.0, 0.0),
-                    child: HomeEducationCarousel(),
-                  ),
-                ),
+                      // 7. Biểu đồ Dự phóng Dòng tiền Trả nợ (6-Month Cashflow Projection)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            16.0,
+                            20.0,
+                            16.0,
+                            0.0,
+                          ),
+                          child: HomeCashflowProjectionCard(
+                            loanController: _loanController,
+                          ),
+                        ),
+                      ),
 
-                // 9. Footer Tiêu chuẩn An ninh & Bản quyền
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 100.0),
-                    child: HomeSecurityFooter(),
+                      // 8. Cẩm nang Tài chính & Mẹo tăng Điểm Tín dụng (Financial Education Carousel)
+                      const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(0.0, 20.0, 0.0, 0.0),
+                          child: HomeEducationCarousel(),
+                        ),
+                      ),
+
+                      // 9. Footer Tiêu chuẩn An ninh & Bản quyền
+                      const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 100.0),
+                          child: HomeSecurityFooter(),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         );
       },
@@ -288,22 +442,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 1.0),
-                Row(
+                Wrap(
+                  spacing: 6.0,
+                  runSpacing: 4.0,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Flexible(
-                      child: Text(
-                        (user?.fullName.isNotEmpty == true)
-                            ? user!.fullName
-                            : 'Khách hàng FinCredit',
-                        style: const TextStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    Text(
+                      (user?.fullName.isNotEmpty == true)
+                          ? user!.fullName
+                          : 'Khách hàng FinCredit',
+                      style: const TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 6.0),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6.0,
@@ -328,16 +483,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                 : const Color(0xFFD97706),
                           ),
                           const SizedBox(width: 3.0),
-                          Text(
-                            (user?.isEkycVerified ?? false)
-                                ? 'Đã xác thực CIC'
-                                : 'Chưa xác thực eKYC',
-                            style: TextStyle(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w700,
-                              color: (user?.isEkycVerified ?? false)
-                                  ? const Color(0xFF16A34A)
-                                  : const Color(0xFFD97706),
+                          Flexible(
+                            child: Text(
+                              (user?.isEkycVerified ?? false)
+                                  ? 'Đã xác thực CIC'
+                                  : 'Chưa xác thực eKYC',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: (user?.isEkycVerified ?? false)
+                                    ? const Color(0xFF16A34A)
+                                    : const Color(0xFFD97706),
+                              ),
                             ),
                           ),
                         ],

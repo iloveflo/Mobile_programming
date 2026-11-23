@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../controllers/loan_controller.dart';
+import '../../models/credit_profile_model.dart';
 import '../../models/user_model.dart';
 import '../../routes/app_router.dart';
 import '../widget.dart';
@@ -9,11 +10,13 @@ import '../widget.dart';
 class DtiReportModal extends StatelessWidget {
   final UserModel? user;
   final LoanController loanController;
+  final CreditProfileModel? creditProfile;
 
   const DtiReportModal({
     super.key,
     required this.user,
     required this.loanController,
+    this.creditProfile,
   });
 
   /// Phương thức hiển thị modal
@@ -21,6 +24,7 @@ class DtiReportModal extends StatelessWidget {
     BuildContext context, {
     required UserModel? user,
     required LoanController loanController,
+    CreditProfileModel? creditProfile,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -29,8 +33,11 @@ class DtiReportModal extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
       ),
-      builder: (ctx) =>
-          DtiReportModal(user: user, loanController: loanController),
+      builder: (ctx) => DtiReportModal(
+        user: user,
+        loanController: loanController,
+        creditProfile: creditProfile,
+      ),
     );
   }
 
@@ -115,10 +122,22 @@ class DtiReportModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double income = user?.monthlyIncome ?? 0.0;
-    final double commitment = loanController.totalMonthlyCommitment;
-    final double dtiRatio = income > 0 ? (commitment / income) * 100 : 0.0;
+    final double? backendDti =
+        (creditProfile != null &&
+            creditProfile!.dtiRatio != null &&
+            (user == null || creditProfile!.userId == user!.userId))
+        ? creditProfile!.dtiRatio
+        : null;
+    final double commitment = (backendDti != null && income > 0)
+        ? (backendDti * income)
+        : loanController.totalMonthlyCommitment;
+    final double dtiRatio = backendDti != null
+        ? (backendDti * 100.0)
+        : (income > 0 ? (commitment / income) * 100 : 0.0);
     final double netCashFlow = income - commitment;
-    final activeLoans = loanController.loans.where((l) => l.isActive).toList();
+    final activeLoans = loanController.loans
+        .where((l) => l.isActive || l.isOverdue)
+        .toList();
 
     final String tierTitle;
     final String tierSubtitle;
@@ -346,38 +365,43 @@ class DtiReportModal extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6.0),
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '0% (Tối ưu)',
-                        style: TextStyle(
-                          fontSize: 10.0,
-                          color: Color(0xFF16A34A),
+                  const SizedBox(
+                    width: double.infinity,
+                    child: Wrap(
+                      spacing: 8.0,
+                      runSpacing: 4.0,
+                      alignment: WrapAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '0% (Tối ưu)',
+                          style: TextStyle(
+                            fontSize: 10.0,
+                            color: Color(0xFF16A34A),
+                          ),
                         ),
-                      ),
-                      Text(
-                        '40% (Ngưỡng)',
-                        style: TextStyle(
-                          fontSize: 10.0,
-                          color: Color(0xFF0891B2),
+                        Text(
+                          '40% (Ngưỡng)',
+                          style: TextStyle(
+                            fontSize: 10.0,
+                            color: Color(0xFF0891B2),
+                          ),
                         ),
-                      ),
-                      Text(
-                        '50% (Cảnh báo)',
-                        style: TextStyle(
-                          fontSize: 10.0,
-                          color: Color(0xFFD97706),
+                        Text(
+                          '50% (Cảnh báo)',
+                          style: TextStyle(
+                            fontSize: 10.0,
+                            color: Color(0xFFD97706),
+                          ),
                         ),
-                      ),
-                      Text(
-                        '100%+ (Rất rủi ro)',
-                        style: TextStyle(
-                          fontSize: 10.0,
-                          color: Color(0xFFDC2626),
+                        Text(
+                          '100%+ (Rất rủi ro)',
+                          style: TextStyle(
+                            fontSize: 10.0,
+                            color: Color(0xFFDC2626),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

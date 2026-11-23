@@ -154,6 +154,27 @@ class CreditReportController extends ChangeNotifier {
     }
   }
 
+  /// Xóa một bản ghi báo cáo tín dụng để người dùng có thể lập lại kỳ đó
+  Future<bool> deleteReport(int reportId, {int? userId}) async {
+    _errorMessage = null;
+    try {
+      await _repository.deleteReport(reportId, userId: userId);
+      _reports.removeWhere((r) => r.id == reportId);
+      if (_selectedReport?.id == reportId) {
+        _selectedReport = null;
+      }
+      if (_reports.isEmpty) {
+        _exceptionCode = 'EX-01';
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Đặt lại chi tiết đang chọn
   void clearSelection() {
     _selectedReport = null;

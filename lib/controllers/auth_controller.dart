@@ -2,12 +2,15 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 
-import '../models/bank_account_model.dart';
+import '../core/network/api_client.dart';
 import '../models/register_request_model.dart';
 import '../models/session_model.dart';
 import '../models/user_model.dart';
+import '../services/push_notification_service.dart';
+import '../services/realtime_service.dart';
 import '../repositories/interfaces/auth_repository.dart';
 import '../widgets/dev/dev_state_panel.dart';
+import 'credit_profile_controller.dart';
 import 'loan_controller.dart';
 
 /// Kết quả của thao tác đăng nhập
@@ -177,7 +180,6 @@ class AuthController extends ChangeNotifier {
     String? ekycTier,
     String? membershipTier,
     int? cicScore,
-    List<BankAccountModel>? bankAccounts,
   }) {
     if (_currentUser == null) {
       return;
@@ -196,7 +198,6 @@ class AuthController extends ChangeNotifier {
       ekycTier: ekycTier,
       membershipTier: membershipTier,
       cicScore: cicScore,
-      bankAccounts: bankAccounts,
       updatedAt: DateTime.now(),
     );
     notifyListeners();
@@ -219,37 +220,6 @@ class AuthController extends ChangeNotifier {
     if (patchData.isNotEmpty) {
       _authRepository.updateProfile(patchData).catchError((_) => _currentUser!);
     }
-  }
-
-  /// Thêm tài khoản ngân hàng thụ hưởng liên kết
-  void addBankAccount(BankAccountModel account) {
-    if (_currentUser == null) {
-      return;
-    }
-    final updatedList = List<BankAccountModel>.from(_currentUser!.bankAccounts)
-      ..add(account);
-    _currentUser = _currentUser!.copyWith(
-      bankAccounts: updatedList,
-      updatedAt: DateTime.now(),
-    );
-    notifyListeners();
-    _authRepository.addBankAccount(account.toJson()).catchError((_) => account);
-  }
-
-  /// Xóa tài khoản ngân hàng liên kết
-  void removeBankAccount(String accountId) {
-    if (_currentUser == null) {
-      return;
-    }
-    final updatedList = _currentUser!.bankAccounts
-        .where((a) => a.id != accountId)
-        .toList();
-    _currentUser = _currentUser!.copyWith(
-      bankAccounts: updatedList,
-      updatedAt: DateTime.now(),
-    );
-    notifyListeners();
-    _authRepository.deleteBankAccount(accountId).catchError((_) {});
   }
 
   /// Tải thông tin hồ sơ mới nhất từ backend repository
@@ -435,7 +405,7 @@ class AuthController extends ChangeNotifier {
     try {
       final isSuccess = await _authRepository.verifyOtp(
         otp: otp,
-        flowType: flow == OtpFlow.register ? 'REGISTER' : 'FORGOT_PASSWORD',
+        flowType: flow == OtpFlow.register ? 'REGISTER' : 'RESET_PASSWORD',
       );
 
       if (!isSuccess) {
@@ -450,21 +420,25 @@ class AuthController extends ChangeNotifier {
       _cancelOtpTimer();
 
       if (flow == OtpFlow.register) {
-        final registeredName =
-            (_pendingFullName != null && _pendingFullName!.trim().isNotEmpty)
-            ? _pendingFullName!.trim()
-            : 'Khách hàng FinCredit';
-        final uid = DateTime.now().millisecondsSinceEpoch;
+        try {
+          _currentUser = await _authRepository.getProfile();
+        } catch (_) {
+          final registeredName =
+              (_pendingFullName != null && _pendingFullName!.trim().isNotEmpty)
+              ? _pendingFullName!.trim()
+              : 'Khách hàng FinCredit';
+          final uid = DateTime.now().millisecondsSinceEpoch;
 
-        _currentUser = UserModel(
-          userId: uid,
-          fullName: registeredName,
-          email: _pendingEmail ?? 'user@fincredit.vn',
-          phone: _pendingPhone ?? '0912345678',
-          passwordHash: 'secured_hash',
-          token: 'jwt_verified_token_$uid',
-          createdAt: DateTime.now(),
-        );
+          _currentUser = UserModel(
+            userId: uid,
+            fullName: registeredName,
+            email: _pendingEmail ?? 'user@fincredit.vn',
+            phone: _pendingPhone ?? '0912345678',
+            passwordHash: 'secured_hash',
+            token: 'jwt_verified_token_$uid',
+            createdAt: DateTime.now(),
+          );
+        }
         _biometricEnabled =
             false; // Mới tạo tài khoản -> chưa bật sinh trắc học
         await loadSessions();
@@ -487,6 +461,31 @@ class AuthController extends ChangeNotifier {
     } catch (e) {
       _isLoading = false;
       _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Gửi mã OTP khôi phục mật khẩu tới Email hoặc SĐT người dùng nhập
+  Future<bool> requestForgotPasswordOtp(String identifier) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _authRepository.requestForgotPasswordOtp(identifier);
+      _isLoading = false;
+      _startOtpTimer();
+      notifyListeners();
+      return true;
+    } on NetworkAuthException catch (e) {
+      _errorMessage = e.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _isLoading = false;
       notifyListeners();
       return false;
     }
@@ -527,7 +526,11 @@ class AuthController extends ChangeNotifier {
 
     try {
       await _authRepository.resetPassword(newPassword: newPassword);
-      _activeSessions = await _authRepository.getActiveSessions();
+      if (_currentUser != null) {
+        try {
+          _activeSessions = await _authRepository.getActiveSessions();
+        } catch (_) {}
+      }
 
       _isLoading = false;
       notifyListeners();
@@ -618,8 +621,19 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (GetIt.I.isRegistered<ApiClient>()) {
+        await PushNotificationService.instance.unregisterDeviceToken(
+          GetIt.I<ApiClient>(),
+        );
+      }
+      if (GetIt.I.isRegistered<RealtimeService>()) {
+        GetIt.I<RealtimeService>().disconnect();
+      }
       if (GetIt.I.isRegistered<LoanController>()) {
         GetIt.I<LoanController>().clear();
+      }
+      if (GetIt.I.isRegistered<CreditProfileController>()) {
+        GetIt.I<CreditProfileController>().clear();
       }
     } catch (_) {}
 
@@ -691,11 +705,32 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  /// Tải trực tiếp file PDF hồ sơ năng lực tài chính về thiết bị (không lưu R2)
+  Future<List<int>?> downloadFinancialProfilePdfBytes() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final bytes = await _authRepository.downloadFinancialProfilePdfBytes();
+      _isLoading = false;
+      notifyListeners();
+      return bytes;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return null;
+    }
+  }
+
   /// Gửi hồ sơ xác thực định danh điện tử eKYC C06
   Future<bool> verifyEkyc({
     required String idCardNumber,
     required String frontCardUrl,
     required String backCardUrl,
+    String? fullName,
+    String? dateOfBirth,
+    String? address,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -705,6 +740,9 @@ class AuthController extends ChangeNotifier {
         idCardNumber: idCardNumber,
         frontCardUrl: frontCardUrl,
         backCardUrl: backCardUrl,
+        fullName: fullName,
+        dateOfBirth: dateOfBirth,
+        address: address,
       );
       _currentUser = updated;
       _isLoading = false;
@@ -732,6 +770,8 @@ class AuthController extends ChangeNotifier {
       }
     });
   }
+
+  void cancelOtpTimer() => _cancelOtpTimer();
 
   void _cancelOtpTimer() {
     _otpTimer?.cancel();

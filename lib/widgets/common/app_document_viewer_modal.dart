@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../repositories/interfaces/storage_repository.dart';
 import '../../service_locator.dart';
@@ -72,6 +73,16 @@ class _AppDocumentViewerModalState extends State<AppDocumentViewerModal> {
   Future<void> _loadPresignedViewUrl() async {
     if (widget.fileKey.isEmpty || widget.fileKey == 'null') {
       setState(() {
+        _isLoading = false;
+        _errorMessage = null;
+      });
+      return;
+    }
+
+    if (widget.fileKey.startsWith('http://') ||
+        widget.fileKey.startsWith('https://')) {
+      setState(() {
+        _viewUrl = widget.fileKey;
         _isLoading = false;
         _errorMessage = null;
       });
@@ -586,134 +597,252 @@ class _AppDocumentViewerModalState extends State<AppDocumentViewerModal> {
       maxScale: 4.0,
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Center(
-          child: Container(
-            padding: const EdgeInsets.all(14.0),
-            margin: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10.0),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black45,
-                  blurRadius: 10.0,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.verified_user_rounded,
-                          color: Color(0xFF16A34A),
-                          size: 16.0,
+        child: SingleChildScrollView(
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(14.0),
+              margin: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10.0),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black45,
+                    blurRadius: 10.0,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.verified_user_rounded,
+                              color: Color(0xFF16A34A),
+                              size: 16.0,
+                            ),
+                            const SizedBox(width: 4.0),
+                            Expanded(
+                              child: Text(
+                                _formatDocumentType(widget.documentType),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1E293B),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 4.0),
-                        Text(
-                          _formatDocumentType(widget.documentType),
-                          style: const TextStyle(
-                            fontSize: 11.0,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E293B),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Text(
-                      'FINCREDIT VERIFIED',
-                      style: TextStyle(
-                        fontSize: 9.0,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF64748B),
                       ),
-                    ),
-                  ],
-                ),
-                const Divider(height: 14.0),
-                Text(
-                  widget.title,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-                const SizedBox(height: 4.0),
-                Text(
-                  'Tập tin: ${widget.fileKey.split('/').last}',
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-                const SizedBox(height: 10.0),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 24.0,
-                    horizontal: 16.0,
-                  ),
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(6.0),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.picture_as_pdf_rounded,
-                          size: 40.0,
-                          color: Color(0xFFDC2626),
+                      const SizedBox(width: 8.0),
+                      const Text(
+                        'FINCREDIT VERIFIED',
+                        style: TextStyle(
+                          fontSize: 9.0,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF64748B),
                         ),
-                        const SizedBox(height: 6.0),
-                        const Text(
-                          'Bản quét chứng từ gốc được mã hóa',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF334155),
-                          ),
-                        ),
-                        const SizedBox(height: 2.0),
-                        Text(
-                          _viewUrl != null &&
-                                  widget.ocrDetails != null &&
-                                  widget.ocrDetails!.isNotEmpty
-                              ? 'Trạng thái: Đã số hóa và trích xuất OCR'
-                              : 'Trạng thái: Đã lưu trữ trên hệ thống an toàn',
-                          style: const TextStyle(
-                            fontSize: 10.0,
-                            color: Color(0xFF16A34A),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 14.0),
+                  Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F172A),
                     ),
                   ),
-                ),
-                const SizedBox(height: 10.0),
-                const Text(
-                  'Tài liệu này được lưu trữ phân tán và mã hóa tuân thủ Thông tư 09/2020/TT-NHNN và Nghị định 13/2023/NĐ-CP.',
-                  style: TextStyle(
-                    fontSize: 9.0,
-                    color: Color(0xFF94A3B8),
-                    height: 1.3,
+                  const SizedBox(height: 4.0),
+                  Text(
+                    'Tập tin: ${Uri.tryParse(widget.fileKey)?.pathSegments.lastOrNull ?? widget.fileKey.split('/').last}',
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      color: Color(0xFF64748B),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10.0),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 24.0,
+                      horizontal: 16.0,
+                    ),
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(6.0),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: _buildFilePreview(),
+                  ),
+                  const SizedBox(height: 10.0),
+                  const Text(
+                    'Tài liệu này được lưu trữ phân tán và mã hóa tuân thủ Thông tư 09/2020/TT-NHNN và Nghị định 13/2023/NĐ-CP.',
+                    style: TextStyle(
+                      fontSize: 9.0,
+                      color: Color(0xFF94A3B8),
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  static const MethodChannel _launcherChannel = MethodChannel(
+    'fincredit/launcher',
+  );
+
+  bool _isImageFile() {
+    final path = (Uri.tryParse(widget.fileKey)?.path ?? widget.fileKey)
+        .toLowerCase();
+    return path.endsWith('.jpg') ||
+        path.endsWith('.jpeg') ||
+        path.endsWith('.png') ||
+        path.endsWith('.gif') ||
+        path.endsWith('.webp');
+  }
+
+  Future<void> _openPdfExternal() async {
+    if (_viewUrl == null || _viewUrl!.isEmpty) return;
+    try {
+      await _launcherChannel.invokeMethod('openUrl', {'url': _viewUrl!});
+    } catch (_) {
+      await Clipboard.setData(ClipboardData(text: _viewUrl!));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Đã sao chép liên kết PDF. Dán vào trình duyệt để xem/tải về.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildFilePreview() {
+    if (_viewUrl != null && _isImageFile()) {
+      return Image.network(
+        _viewUrl!,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                      : null,
+                  color: const Color(0xFF1E40AF),
+                ),
+                const SizedBox(height: 8.0),
+                const Text(
+                  'Đang tải ảnh...',
+                  style: TextStyle(fontSize: 11.0, color: Color(0xFF64748B)),
+                ),
+              ],
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.broken_image_outlined,
+                size: 36.0,
+                color: Color(0xFFDC2626),
+              ),
+              const SizedBox(height: 6.0),
+              const Text(
+                'Không thể tải ảnh',
+                style: TextStyle(fontSize: 11.5, color: Color(0xFF334155)),
+              ),
+              const SizedBox(height: 4.0),
+              TextButton(
+                onPressed: _loadPresignedViewUrl,
+                child: const Text('Thử lại', style: TextStyle(fontSize: 11.0)),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    // PDF hoặc file không phải ảnh
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          _isImageFile() ? Icons.image_outlined : Icons.picture_as_pdf_rounded,
+          size: 40.0,
+          color: _isImageFile()
+              ? const Color(0xFF2563EB)
+              : const Color(0xFFDC2626),
+        ),
+        const SizedBox(height: 6.0),
+        const Text(
+          'Bản quét chứng từ gốc được mã hóa',
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF334155),
+          ),
+        ),
+        const SizedBox(height: 2.0),
+        Text(
+          _viewUrl != null &&
+                  widget.ocrDetails != null &&
+                  widget.ocrDetails!.isNotEmpty
+              ? 'Trạng thái: Đã số hóa và trích xuất OCR'
+              : 'Trạng thái: Đã lưu trữ trên hệ thống an toàn',
+          style: const TextStyle(
+            fontSize: 10.0,
+            color: Color(0xFF16A34A),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        if (!_isImageFile() &&
+            _viewUrl != null &&
+            (_viewUrl!.startsWith('http://') ||
+                _viewUrl!.startsWith('https://'))) ...[
+          const SizedBox(height: 12.0),
+          ElevatedButton.icon(
+            onPressed: _openPdfExternal,
+            icon: const Icon(Icons.open_in_new_rounded, size: 16.0),
+            label: const Text('Mở / Xem PDF'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E40AF),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 10.0,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

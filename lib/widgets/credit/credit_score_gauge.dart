@@ -18,24 +18,31 @@ class CreditScoreGauge extends StatelessWidget {
 
   String _formatDate(DateTime? dt) {
     if (dt == null) return 'Chưa cập nhật';
-    final day = dt.day.toString().padLeft(2, '0');
-    final month = dt.month.toString().padLeft(2, '0');
-    final year = dt.year;
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final min = dt.minute.toString().padLeft(2, '0');
+    final local = dt.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final year = local.year;
+    final hour = local.hour.toString().padLeft(2, '0');
+    final min = local.minute.toString().padLeft(2, '0');
     return '$hour:$min $day/$month/$year';
   }
 
   @override
   Widget build(BuildContext context) {
-    final int score = profile?.creditScore ?? 0;
-    final double progress = (score / 850.0).clamp(0.0, 1.0);
+    final int? rawScore = profile?.creditScore;
+    final bool hasScore = rawScore != null && rawScore > 0;
+    final int score = hasScore ? rawScore : 0;
+    final double progress = hasScore ? (score / 850.0).clamp(0.0, 1.0) : 0.0;
 
     final Color themeColor;
     final String riskText;
     final String tierTitle;
 
-    if (score >= 750) {
+    if (!hasScore) {
+      themeColor = AppColors.textSecondary;
+      riskText = 'Cần bổ sung thu nhập';
+      tierTitle = 'Chưa đủ dữ liệu';
+    } else if (score >= 750) {
       themeColor = const Color(0xFF16A34A);
       riskText = 'Rủi ro rất thấp • Chuẩn mực';
       tierTitle = 'Hạng 1 (Xuất sắc)';
@@ -75,29 +82,34 @@ class CreditScoreGauge extends StatelessWidget {
         children: [
           // Header: Tiêu đề + Nút tính toán lại
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'ĐIỂM SỨC KHỎE TÍN DỤNG',
-                    style: TextStyle(
-                      fontSize: 12.0,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
-                      letterSpacing: 0.5,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'ĐIỂM SỨC KHỎE TÍN DỤNG',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.0,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2.0),
-                  Text(
-                    'Cập nhật: ${_formatDate(profile?.updatedAt)}',
-                    style: const TextStyle(
-                      fontSize: 11.0,
-                      color: AppColors.textSecondary,
+                    const SizedBox(height: 2.0),
+                    Text(
+                      'Cập nhật: ${_formatDate(profile?.updatedAt)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11.0,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               IconButton(
                 icon: isRecalculating
@@ -133,7 +145,7 @@ class CreditScoreGauge extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      score > 0 ? '$score' : '--',
+                      hasScore ? '$score' : '--',
                       style: const TextStyle(
                         fontSize: 38.0,
                         fontWeight: FontWeight.w800,
@@ -169,14 +181,22 @@ class CreditScoreGauge extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.shield_outlined, size: 16.0, color: themeColor),
+                Icon(
+                  hasScore ? Icons.shield_outlined : Icons.info_outline_rounded,
+                  size: 16.0,
+                  color: themeColor,
+                ),
                 const SizedBox(width: 6.0),
-                Text(
-                  '$tierTitle • $riskText',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: themeColor,
+                Flexible(
+                  child: Text(
+                    '$tierTitle • $riskText',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: themeColor,
+                    ),
                   ),
                 ),
               ],

@@ -8,6 +8,7 @@ import '../../routes/app_router.dart';
 import '../../service_locator.dart';
 import '../../widgets/common/app_colors.dart';
 import '../../widgets/common/app_snack_bar.dart';
+import '../../widgets/common/connection_error_view.dart';
 import '../../widgets/debt_strategy/active_plan_banner.dart';
 import '../../widgets/debt_strategy/debt_comparison_view.dart';
 import '../../widgets/debt_strategy/debt_overview_card.dart';
@@ -230,6 +231,17 @@ class _DebtStrategyScreenState extends State<DebtStrategyScreen> {
       );
     }
 
+    // EX-04: Lỗi kết nối / máy chủ khi chưa có dữ liệu khoản nợ
+    if (_controller.exceptionCode == 'EX-04' &&
+        _controller.validLoans.isEmpty) {
+      return ConnectionErrorView(
+        message: _controller.errorMessage,
+        onRetry: () => _controller.loadData(
+          userId: sl<AuthController>().currentUser?.userId,
+        ),
+      );
+    }
+
     // EX-01: Không có khoản nợ
     if (_controller.exceptionCode == 'EX-01' ||
         _controller.validLoans.isEmpty) {
@@ -416,7 +428,7 @@ class _DebtStrategyScreenState extends State<DebtStrategyScreen> {
 
   Widget _buildEmptyDebtState() {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

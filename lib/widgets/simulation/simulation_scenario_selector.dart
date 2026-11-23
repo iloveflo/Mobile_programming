@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../layout/responsive_layout.dart';
 import '../../models/simulation_model.dart';
 import '../common/app_colors.dart';
 
@@ -42,13 +43,9 @@ class SimulationScenarioSelector extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 2.2,
+        ResponsiveTwoColumnGrid(
+          spacing: 10,
+          runSpacing: 10,
           children: SimulationScenarioType.values.map((scenario) {
             final isSelected = scenario == selectedScenario;
             return InkWell(

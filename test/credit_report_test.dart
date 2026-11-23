@@ -352,5 +352,45 @@ void main() {
         expect(find.text('745'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'CreditReportCard không bị tràn giao diện trên màn hình hẹp 320px khi có Rủi ro trung bình và nút xóa',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final sample = CreditReportMockData.creditReportsDatabase.first
+            .copyWith(
+              reportPeriod: '2026-11',
+              riskLevel: 'MEDIUM',
+              creditScore: 772,
+              totalDebt: 200000000,
+            );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: CreditReportCard(
+                  report: sample,
+                  onTap: () {},
+                  onDelete: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Kỳ Tháng 11/2026'), findsOneWidget);
+        expect(find.text('Rủi ro trung bình'), findsOneWidget);
+        expect(find.byIcon(Icons.delete_outline_rounded), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 }

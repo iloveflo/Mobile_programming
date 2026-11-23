@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../layout/responsive_layout.dart';
 import '../widget.dart';
 
 /// Modal BottomSheet hiển thị nội dung bài viết cẩm nang tài chính FinCredit
@@ -21,6 +22,7 @@ class ArticleDetailModal extends StatelessWidget {
   }) {
     return showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
@@ -30,7 +32,7 @@ class ArticleDetailModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return ResponsiveBottomSheetBody(
       padding: const EdgeInsets.all(20.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -40,11 +42,14 @@ class ArticleDetailModal extends StatelessWidget {
             children: [
               const Icon(Icons.menu_book_rounded, color: AppColors.primary),
               const SizedBox(width: 8.0),
-              const Text(
-                'Cẩm nang FinCredit',
-                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+              const Expanded(
+                child: Text(
+                  'Cẩm nang FinCredit',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                ),
               ),
-              const Spacer(),
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.pop(context),

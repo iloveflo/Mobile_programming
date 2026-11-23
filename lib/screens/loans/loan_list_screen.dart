@@ -239,6 +239,14 @@ class _LoanListScreenState extends State<LoanListScreen> {
         child: ListenableBuilder(
           listenable: _loanController,
           builder: (context, _) {
+            if (_loanController.loans.isEmpty &&
+                _loanController.errorMessage != null &&
+                !_loanController.isLoading) {
+              return ConnectionErrorView(
+                message: _loanController.errorMessage,
+                onRetry: () => _loanController.fetchLoans(),
+              );
+            }
             return RefreshIndicator(
               onRefresh: () => _loanController.fetchLoans(),
               color: AppColors.primary,

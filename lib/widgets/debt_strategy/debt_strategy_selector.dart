@@ -109,28 +109,30 @@ class DebtStrategySelector extends StatelessWidget {
           const SizedBox(height: 14),
           // Extra Payment Section
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Số tiền trả thêm mỗi tháng',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Số tiền trả thêm mỗi tháng',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                  ),
-                  Text(
-                    'Dồn vào khoản vay ưu tiên số 1',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
+                    Text(
+                      'Dồn vào khoản vay ưu tiên số 1',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -169,15 +171,20 @@ class DebtStrategySelector extends StatelessWidget {
               onChanged: onExtraPaymentChanged,
             ),
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildQuickChip(0, '0 đ'),
-              _buildQuickChip(1000000, '1 triệu'),
-              _buildQuickChip(2000000, '2 triệu'),
-              _buildQuickChip(3000000, '3 triệu'),
-              _buildQuickChip(5000000, '5 triệu'),
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              alignment: WrapAlignment.spaceBetween,
+              children: [
+                _buildQuickChip(0, '0 đ'),
+                _buildQuickChip(1000000, '1 triệu'),
+                _buildQuickChip(2000000, '2 triệu'),
+                _buildQuickChip(3000000, '3 triệu'),
+                _buildQuickChip(5000000, '5 triệu'),
+              ],
+            ),
           ),
         ],
       ),

@@ -479,12 +479,14 @@ class _CreditHealthScreenState extends State<CreditHealthScreen> {
                 color: Color(0xFFD97706),
               ),
               SizedBox(width: 8.0),
-              Text(
-                'Dữ liệu cần bổ sung',
-                style: TextStyle(
-                  fontSize: 13.0,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF92400E),
+              Expanded(
+                child: Text(
+                  'Dữ liệu cần bổ sung',
+                  style: TextStyle(
+                    fontSize: 13.0,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF92400E),
+                  ),
                 ),
               ),
             ],

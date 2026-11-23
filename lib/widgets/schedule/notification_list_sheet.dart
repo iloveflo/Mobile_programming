@@ -5,20 +5,26 @@ import '../common/app_colors.dart';
 
 /// Modal Hộp thư Thông báo nhắc nợ (Mục 9)
 /// Cho phép điều hướng trực tiếp sang kỳ thanh toán tương ứng khi nhấn vào thông báo
-class NotificationListSheet extends StatelessWidget {
+class NotificationListSheet extends StatefulWidget {
   final List<NotificationModel> notifications;
   final ValueChanged<int> onSelectSchedule;
+  final Future<bool> Function(int notificationId)? onDeleteNotification;
+  final Future<bool> Function()? onClearAll;
 
   const NotificationListSheet({
     super.key,
     required this.notifications,
     required this.onSelectSchedule,
+    this.onDeleteNotification,
+    this.onClearAll,
   });
 
   static Future<void> show(
     BuildContext context, {
     required List<NotificationModel> notifications,
     required ValueChanged<int> onSelectSchedule,
+    Future<bool> Function(int notificationId)? onDeleteNotification,
+    Future<bool> Function()? onClearAll,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -27,8 +33,74 @@ class NotificationListSheet extends StatelessWidget {
       builder: (context) => NotificationListSheet(
         notifications: notifications,
         onSelectSchedule: onSelectSchedule,
+        onDeleteNotification: onDeleteNotification,
+        onClearAll: onClearAll,
       ),
     );
+  }
+
+  @override
+  State<NotificationListSheet> createState() => _NotificationListSheetState();
+}
+
+class _NotificationListSheetState extends State<NotificationListSheet> {
+  late List<NotificationModel> _items;
+  bool _isMutating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _items = List.of(widget.notifications);
+  }
+
+  Future<void> _handleDeleteOne(NotificationModel notif) async {
+    if (widget.onDeleteNotification == null || _isMutating) return;
+    setState(() => _isMutating = true);
+    final ok = await widget.onDeleteNotification!(notif.id);
+    if (!mounted) return;
+    setState(() {
+      _isMutating = false;
+      if (ok) {
+        _items.removeWhere((n) => n.id == notif.id);
+      }
+    });
+  }
+
+  Future<void> _handleClearAll() async {
+    if (widget.onClearAll == null || _isMutating || _items.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa tất cả thông báo'),
+        content: const Text(
+          'Bạn có chắc muốn xóa toàn bộ thông báo nhắc nợ hiện có không?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Xóa tất cả'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _isMutating = true);
+    final ok = await widget.onClearAll!();
+    if (!mounted) return;
+    setState(() {
+      _isMutating = false;
+      if (ok) {
+        _items.clear();
+      }
+    });
   }
 
   String _formatDateTime(DateTime? dt) {
@@ -135,6 +207,25 @@ class NotificationListSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8.0),
+              if (widget.onClearAll != null && _items.isNotEmpty) ...[
+                TextButton(
+                  onPressed: _isMutating ? null : _handleClearAll,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    minimumSize: const Size(0, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Xóa hết',
+                    style: TextStyle(
+                      fontSize: 12.0,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4.0),
+              ],
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10.0,
@@ -145,7 +236,7 @@ class NotificationListSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12.0),
                 ),
                 child: Text(
-                  '${notifications.length} tin',
+                  '${_items.length} tin',
                   style: const TextStyle(
                     fontSize: 12.0,
                     fontWeight: FontWeight.w700,
@@ -167,7 +258,7 @@ class NotificationListSheet extends StatelessWidget {
           const SizedBox(height: 16.0),
 
           Expanded(
-            child: notifications.isEmpty
+            child: _items.isEmpty
                 ? const Center(
                     child: Text(
                       'Chưa có thông báo nhắc nợ nào.',
@@ -178,17 +269,17 @@ class NotificationListSheet extends StatelessWidget {
                     ),
                   )
                 : ListView.separated(
-                    itemCount: notifications.length,
+                    itemCount: _items.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 10.0),
                     itemBuilder: (context, index) {
-                      final notif = notifications[index];
+                      final notif = _items[index];
                       final statusColor = _resolveStatusColor(notif.status);
 
                       return InkWell(
                         onTap: notif.scheduleId != null
                             ? () {
                                 Navigator.pop(context);
-                                onSelectSchedule(notif.scheduleId!);
+                                widget.onSelectSchedule(notif.scheduleId!);
                               }
                             : null,
                         borderRadius: BorderRadius.circular(14.0),
@@ -257,6 +348,23 @@ class NotificationListSheet extends StatelessWidget {
                                       ),
                                     ),
                                   ),
+                                  if (widget.onDeleteNotification != null) ...[
+                                    const SizedBox(width: 4.0),
+                                    InkWell(
+                                      onTap: _isMutating
+                                          ? null
+                                          : () => _handleDeleteOne(notif),
+                                      borderRadius: BorderRadius.circular(8.0),
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(4.0),
+                                        child: Icon(
+                                          Icons.delete_outline_rounded,
+                                          size: 18.0,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                               const SizedBox(height: 6.0),

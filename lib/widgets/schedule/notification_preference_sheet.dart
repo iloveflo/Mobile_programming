@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../layout/responsive_layout.dart';
 import '../../models/notification_preference_model.dart';
 import '../common/app_colors.dart';
 
@@ -81,11 +82,9 @@ class _NotificationPreferenceSheetState
     final hasNoEmail =
         widget.userEmail == null || widget.userEmail!.trim().isEmpty;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
-      ),
+    return ResponsiveBottomSheetBody(
+      backgroundColor: AppColors.surface,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
       padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -106,12 +105,16 @@ class _NotificationPreferenceSheetState
             children: const [
               Icon(Icons.tune_rounded, color: AppColors.primary, size: 24.0),
               SizedBox(width: 10.0),
-              Text(
-                'Cài đặt nhắc nợ định kỳ',
-                style: TextStyle(
-                  fontSize: 17.0,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              Expanded(
+                child: Text(
+                  'Cài đặt nhắc nợ định kỳ',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 17.0,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ],

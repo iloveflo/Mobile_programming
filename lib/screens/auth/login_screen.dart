@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../controllers/auth_controller.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
+import '../../services/biometric_auth_service.dart';
 import '../../services/session_storage_service.dart';
 import '../../widgets/widget.dart';
 
@@ -17,11 +17,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _identifierController = TextEditingController(text: 'dev@test.com');
-  final _passwordController = TextEditingController(text: '123456');
+  final _identifierController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   final AuthController _authController = sl<AuthController>();
-  DevAuthState _currentDevState = DevAuthState.normal;
 
   @override
   void initState() {
@@ -37,6 +36,135 @@ class _LoginScreenState extends State<LoginScreen> {
     _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showForgotPasswordDialog() async {
+    final initialIdentifier = _identifierController.text.trim();
+    final inputController = TextEditingController(
+      text: initialIdentifier.contains('@') ? initialIdentifier : '',
+    );
+    final dialogFormKey = GlobalKey<FormState>();
+    bool isSending = false;
+    String? inlineError;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              title: const Text(
+                'Quên mật khẩu',
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w700),
+              ),
+              content: Form(
+                key: dialogFormKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Nhập địa chỉ Email đã đăng ký để nhận mã xác thực OTP.',
+                      style: TextStyle(
+                        fontSize: 13.0,
+                        color: AppColors.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 14.0),
+                    AppTextField(
+                      label: 'Email',
+                      hint: 'VD: nguyenvana@gmail.com',
+                      controller: inputController,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (val) => AppValidators.validateEmail(val),
+                    ),
+                    if (inlineError != null) ...[
+                      const SizedBox(height: 10.0),
+                      Text(
+                        inlineError!,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSending ? null : () => Navigator.pop(dialogCtx),
+                  child: const Text('Hủy'),
+                ),
+                ElevatedButton(
+                  onPressed: isSending
+                      ? null
+                      : () async {
+                          if (!dialogFormKey.currentState!.validate()) return;
+                          final identifier = inputController.text.trim();
+                          setDialogState(() {
+                            isSending = true;
+                            inlineError = null;
+                          });
+
+                          final ok = await _authController
+                              .requestForgotPasswordOtp(identifier);
+                          if (!dialogCtx.mounted) return;
+                          if (ok) {
+                            Navigator.pop(dialogCtx);
+                            if (!mounted) return;
+                            Navigator.pushNamed(
+                              context,
+                              AppRouter.otp,
+                              arguments: {
+                                'email': identifier.contains('@')
+                                    ? identifier
+                                    : '',
+                                'phone': identifier.contains('@')
+                                    ? ''
+                                    : identifier,
+                                'flow': OtpFlow.forgotPassword,
+                              },
+                            );
+                          } else {
+                            setDialogState(() {
+                              isSending = false;
+                              inlineError =
+                                  _authController.errorMessage ??
+                                  'Không thể gửi mã OTP. Vui lòng thử lại.';
+                            });
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                  ),
+                  child: isSending
+                      ? const SizedBox(
+                          width: 18.0,
+                          height: 18.0,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.0,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Gửi mã OTP'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    inputController.dispose();
   }
 
   Future<void> _handleLogin() async {
@@ -219,108 +347,30 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 3. Hiển thị hộp thoại xác thực sinh trắc học chuẩn Fintech
-    final bool? confirmed = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40.0,
-              height: 4.0,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2.0),
-              ),
-            ),
-            const SizedBox(height: 20.0),
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.fingerprint_rounded,
-                size: 48.0,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 16.0),
-            const Text(
-              'Xác thực Sinh trắc học',
-              style: TextStyle(
-                fontSize: 18.0,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              'Xác nhận vân tay hoặc FaceID để đăng nhập tài khoản ${savedUser?.fullName ?? savedUser?.email ?? "FinCredit"}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13.0,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 24.0),
-            AppPrimaryButton(
-              label: 'Xác nhận Đăng nhập',
-              onPressed: () => Navigator.pop(ctx, true),
-            ),
-            const SizedBox(height: 8.0),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text(
-                'Hủy bỏ',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-            ),
-            const SizedBox(height: 8.0),
-          ],
-        ),
-      ),
+    // 3. Kích hoạt cảm biến vân tay phần cứng Android (BiometricPrompt)
+    final accountLabel = savedUser?.fullName ?? savedUser?.email ?? 'FinCredit';
+    final bioResult = await sl<BiometricAuthService>().authenticateFingerprint(
+      reason: 'Quét vân tay để đăng nhập tài khoản $accountLabel',
     );
+    if (!mounted) return;
 
-    if (confirmed == true && mounted) {
-      final success = await _authController.checkSession();
-      if (!mounted) return;
-      if (success) {
-        Navigator.pushReplacementNamed(context, AppRouter.home);
-      } else {
-        AppSnackBar.showError(
-          context,
-          'Phiên làm việc đã hết hạn. Vui lòng nhập lại mật khẩu.',
-        );
-      }
-    }
-  }
-
-  void _onDevStateSelected(DevAuthState state) {
-    setState(() {
-      _currentDevState = state;
-    });
-    _authController.setDevState(state);
-
-    if (state == DevAuthState.accountUnverified) {
-      Navigator.pushNamed(
+    if (!bioResult.isSuccess) {
+      AppSnackBar.showError(
         context,
-        AppRouter.otp,
-        arguments: {
-          'email': 'dev@test.com',
-          'phone': '0900000001',
-          'flow': OtpFlow.register,
-        },
+        bioResult.errorMessage ?? 'Xác thực vân tay không thành công.',
       );
-    } else if (state == DevAuthState.accountLocked) {
-      _showLockedDialog(15);
+      return;
+    }
+
+    final success = await _authController.checkSession();
+    if (!mounted) return;
+    if (success) {
+      Navigator.pushReplacementNamed(context, AppRouter.home);
+    } else {
+      AppSnackBar.showError(
+        context,
+        'Phiên làm việc đã hết hạn. Vui lòng nhập lại mật khẩu.',
+      );
     }
   }
 
@@ -437,7 +487,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Ô nhập Email
                     AppTextField(
                       label: 'Email',
-                      hint: 'dev@test.com',
+                      hint: 'Nhập email của bạn',
                       controller: _identifierController,
                       prefixIcon: const Icon(
                         Icons.mail_outline,
@@ -473,8 +523,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 12.0),
 
                     // Ghi nhớ & Quên mật khẩu
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8.0,
+                      runSpacing: 4.0,
                       children: [
                         InkWell(
                           onTap: () {
@@ -486,6 +539,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4.0),
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 SizedBox(
                                   width: 24.0,
@@ -504,11 +558,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 8.0),
-                                const Text(
-                                  'Ghi nhớ đăng nhập',
-                                  style: TextStyle(
-                                    fontSize: 13.0,
-                                    color: AppColors.textSecondary,
+                                const Flexible(
+                                  child: Text(
+                                    'Ghi nhớ đăng nhập',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13.0,
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -516,20 +574,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(
-                              context,
-                              AppRouter.otp,
-                              arguments: {
-                                'email':
-                                    _identifierController.text.trim().isNotEmpty
-                                    ? _identifierController.text.trim()
-                                    : 'dev@test.com',
-                                'phone': '0900000001',
-                                'flow': OtpFlow.forgotPassword,
-                              },
-                            );
-                          },
+                          onPressed: _showForgotPasswordDialog,
                           child: const Text(
                             'Quên mật khẩu?',
                             style: TextStyle(
@@ -551,7 +596,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 16.0),
 
-                    // Nút Sinh trắc học (Vân tay / Face ID)
+                    // Nút Sinh trắc học (Vân tay Android)
                     OutlinedButton.icon(
                       onPressed: _authController.isLoading
                           ? null
@@ -565,8 +610,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       label: Text(
                         _authController.biometricEnabled
-                            ? 'Đăng nhập bằng Sinh trắc học'
-                            : 'Sinh trắc học (Đã tắt trong Cài đặt)',
+                            ? 'Đăng nhập bằng Vân tay'
+                            : 'Vân tay (Đã tắt trong Cài đặt)',
                         style: TextStyle(
                           fontSize: 15.0,
                           fontWeight: FontWeight.w600,
@@ -591,8 +636,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24.0),
 
                     // Chân trang: Đăng ký tài khoản mới
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         const Text(
                           'Chưa có tài khoản? ',
@@ -617,13 +663,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     const SizedBox(height: 28.0),
-
-                    // Bảng điều khiển giả lập dành cho Dev/QA (Chỉ hiển thị khi debug môi trường dev)
-                    if (kDebugMode)
-                      DevStatePanel(
-                        currentState: _currentDevState,
-                        onStateSelected: _onDevStateSelected,
-                      ),
                   ],
                 ),
               ),

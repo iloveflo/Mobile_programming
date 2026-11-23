@@ -99,17 +99,62 @@ class _EditContactSheetState extends State<EditContactSheet> {
               ),
               const SizedBox(height: 6.0),
               const Text(
-                'Thông tin liên hệ được sử dụng để gửi mã OTP xác thực và đối soát hồ sơ tín dụng.',
+                'Thông tin trên CCCD (Họ tên, Số CCCD, Ngày sinh, Địa chỉ thường trú) được đồng bộ tự động qua Quét & Xác thực eKYC, không thể sửa thủ công.',
                 style: TextStyle(
                   fontSize: 12.5,
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 20.0),
+              const SizedBox(height: 12.0),
+              Container(
+                padding: const EdgeInsets.all(12.0),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(10.0),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.lock_outline_rounded,
+                      color: AppColors.primary,
+                      size: 18.0,
+                    ),
+                    const SizedBox(width: 10.0),
+                    Expanded(
+                      child: Text(
+                        (widget.user?.isEkycVerified ?? false)
+                            ? 'Dữ liệu CCCD đã được khóa bảo mật theo chuẩn C06.'
+                            : 'Vui lòng thực hiện định danh eKYC để tự động điền thông tin từ CCCD.',
+                        style: const TextStyle(
+                          fontSize: 12.0,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (!(widget.user?.isEkycVerified ?? false))
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          EkycVerificationSheet.show(
+                            context,
+                            authController: widget.authController,
+                            user: widget.user,
+                          );
+                        },
+                        child: const Text('Quét CCCD'),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16.0),
               AppTextField(
-                label: 'Họ và tên',
+                label: 'Họ và tên (Theo CCCD)',
                 controller: _nameController,
-                validator: AppValidators.validateFullName,
+                enabled: false,
               ),
               const SizedBox(height: 14.0),
               AppTextField(
@@ -120,58 +165,42 @@ class _EditContactSheetState extends State<EditContactSheet> {
               ),
               const SizedBox(height: 14.0),
               AppTextField(
-                label: 'Số CCCD gắn chip (12 số)',
-                hint: 'Nhập 12 số CCCD',
+                label: 'Số CCCD gắn chip (Theo CCCD)',
+                hint: 'Cập nhật qua định danh eKYC',
                 controller: _idCardController,
-                keyboardType: TextInputType.number,
+                enabled: false,
                 prefixIcon: const Icon(
                   Icons.badge_outlined,
-                  color: AppColors.primary,
+                  color: AppColors.textSecondary,
                   size: 20,
                 ),
-                validator: (val) =>
-                    AppValidators.validateIdCard(val, required: false),
               ),
               const SizedBox(height: 14.0),
               AppTextField(
-                label: 'Địa chỉ thường trú / Nơi ở',
-                hint: 'Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/TP',
+                label: 'Địa chỉ thường trú (Theo CCCD)',
+                hint: 'Cập nhật qua định danh eKYC',
                 controller: _addressController,
+                enabled: false,
                 prefixIcon: const Icon(
                   Icons.home_outlined,
-                  color: AppColors.primary,
+                  color: AppColors.textSecondary,
                   size: 20,
                 ),
-                validator: (val) {
-                  if (val != null &&
-                      val.trim().isNotEmpty &&
-                      val.trim().length < 5) {
-                    return 'Địa chỉ cần chi tiết hơn (tối thiểu 5 ký tự)';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 24.0),
               AppPrimaryButton(
-                label: 'Lưu thay đổi',
+                label: 'Lưu số điện thoại',
                 onPressed: () {
                   if (!_formKey.currentState!.validate()) {
                     return;
                   }
                   widget.authController.updateCurrentUser(
-                    fullName: _nameController.text.trim(),
                     phone: _phoneController.text.trim(),
-                    idCardNumber: _idCardController.text.trim().isEmpty
-                        ? null
-                        : _idCardController.text.trim(),
-                    address: _addressController.text.trim().isEmpty
-                        ? null
-                        : _addressController.text.trim(),
                   );
                   Navigator.pop(context);
                   AppSnackBar.showSuccess(
                     context,
-                    'Đã cập nhật thông tin định danh & liên hệ thành công!',
+                    'Đã cập nhật số điện thoại liên hệ thành công!',
                   );
                 },
               ),

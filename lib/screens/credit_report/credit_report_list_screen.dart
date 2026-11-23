@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../controllers/auth_controller.dart';
 import '../../controllers/credit_report_controller.dart';
+import '../../controllers/loan_controller.dart';
+import '../../models/credit_report_model.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
 import '../../widgets/widget.dart';
@@ -30,15 +32,29 @@ class _CreditReportListScreenState extends State<CreditReportListScreen> {
     });
   }
 
+  bool _isDialogOpen = false;
+
   void _handleGenerateReport() {
+    if (_isDialogOpen || _controller.isLoading) return;
+    _isDialogOpen = true;
     final existingPeriods = _controller.reports
         .map((r) => r.reportPeriod)
         .whereType<String>()
         .toList();
 
+    DateTime? earliestDate = _authController.currentUser?.createdAt;
+    if (sl.isRegistered<LoanController>()) {
+      for (final loan in sl<LoanController>().loans) {
+        if (earliestDate == null || loan.startDate.isBefore(earliestDate)) {
+          earliestDate = loan.startDate;
+        }
+      }
+    }
+
     GenerateReportDialog.show(
       context,
       existingPeriods: existingPeriods,
+      earliestAllowedDate: earliestDate,
       onConfirm: (period) async {
         final success = await _controller.generateNewReport(
           userId: _authController.currentUser?.userId,
@@ -68,7 +84,66 @@ class _CreditReportListScreenState extends State<CreditReportListScreen> {
           return false;
         }
       },
+    ).whenComplete(() {
+      if (mounted) {
+        _isDialogOpen = false;
+      }
+    });
+  }
+
+  Future<void> _handleDeleteReport(CreditReportModel report) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        title: const Text(
+          'Xóa báo cáo tín dụng?',
+          style: TextStyle(fontSize: 17.0, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'Bạn có chắc muốn xóa báo cáo kỳ ${report.reportPeriod ?? ''} để lập lại dữ liệu mới nhất không?',
+          style: const TextStyle(
+            fontSize: 14.0,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            child: const Text('Xóa báo cáo'),
+          ),
+        ],
+      ),
     );
+
+    if (confirmed != true || !mounted) return;
+    final success = await _controller.deleteReport(
+      report.id,
+      userId: _authController.currentUser?.userId,
+    );
+    if (!mounted) return;
+    if (success) {
+      AppSnackBar.showSuccess(
+        context,
+        'Đã xóa báo cáo kỳ ${report.reportPeriod ?? ''}.',
+      );
+    } else {
+      AppSnackBar.showError(
+        context,
+        _controller.errorMessage ?? 'Không thể xóa báo cáo.',
+      );
+    }
   }
 
   void _navigateToDetail(int reportId) {
@@ -192,17 +267,21 @@ class _CreditReportListScreenState extends State<CreditReportListScreen> {
 
                 // 2. Tiêu đề danh sách các kỳ báo cáo
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'LỊCH SỬ CÁC KỲ BÁO CÁO ĐÃ LẬP',
-                      style: TextStyle(
-                        fontSize: 12.0,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textSecondary,
-                        letterSpacing: 0.5,
+                    const Expanded(
+                      child: Text(
+                        'LỊCH SỬ CÁC KỲ BÁO CÁO ĐÃ LẬP',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.0,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textSecondary,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8.0),
                     Text(
                       '${reports.length} bản ghi',
                       style: const TextStyle(
@@ -220,6 +299,7 @@ class _CreditReportListScreenState extends State<CreditReportListScreen> {
                   (report) => CreditReportCard(
                     report: report,
                     onTap: () => _navigateToDetail(report.id),
+                    onDelete: () => _handleDeleteReport(report),
                   ),
                 ),
                 const SizedBox(height: 30.0),

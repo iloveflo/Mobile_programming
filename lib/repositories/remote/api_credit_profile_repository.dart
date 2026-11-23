@@ -57,7 +57,15 @@ class ApiCreditProfileRepository implements CreditProfileRepository {
           queryParams: queryParams,
         );
         if (res == null) return null;
-        return CreditProfileModel.fromJson(res as Map<String, dynamic>);
+        if (res is Map<String, dynamic>) {
+          final data = res['data'] is Map<String, dynamic>
+              ? res['data'] as Map<String, dynamic>
+              : (res['data'] is Map
+                    ? Map<String, dynamic>.from(res['data'] as Map)
+                    : res);
+          return CreditProfileModel.fromJson(data);
+        }
+        return null;
       });
     } on ApiException catch (e) {
       if (e.statusCode == 404) {
@@ -77,7 +85,15 @@ class ApiCreditProfileRepository implements CreditProfileRepository {
         '/credit-profile/recalculate',
         body: payload,
       );
-      return CreditProfileModel.fromJson(res as Map<String, dynamic>);
+      if (res is Map<String, dynamic>) {
+        final data = res['data'] is Map<String, dynamic>
+            ? res['data'] as Map<String, dynamic>
+            : (res['data'] is Map
+                  ? Map<String, dynamic>.from(res['data'] as Map)
+                  : res);
+        return CreditProfileModel.fromJson(data);
+      }
+      throw Exception('Phản hồi tính toán hồ sơ tín dụng không hợp lệ.');
     });
   }
 }

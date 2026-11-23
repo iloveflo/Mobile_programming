@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_first_app/controllers/simulation_controller.dart';
 import 'package:my_first_app/mock_data/simulation_mock_data.dart';
@@ -5,6 +6,7 @@ import 'package:my_first_app/models/loan_model.dart';
 import 'package:my_first_app/models/simulation_model.dart';
 import 'package:my_first_app/repositories/interfaces/loan_repository.dart';
 import 'package:my_first_app/repositories/mock/mock_simulation_repository.dart';
+import 'package:my_first_app/widgets/simulation/simulation_history_sheet.dart';
 
 class FakeLoanRepository implements LoanRepository {
   List<LoanModel> stubbedLoans = [];
@@ -215,29 +217,125 @@ void main() {
         final initialCount = controller.savedSimulations.length;
         expect(initialCount, greaterThan(0));
 
-        final idToDelete = controller.savedSimulations.last.id;
-        await controller.deleteSimulation(idToDelete);
+        final idToDelete = controller.savedSimulations.first.id;
+        final deleted = await controller.deleteSimulation(idToDelete);
+        expect(deleted, isTrue);
         expect(controller.savedSimulations.length, equals(initialCount - 1));
+        expect(
+          controller.savedSimulations.any((s) => s.id == idToDelete),
+          isFalse,
+        );
       },
     );
 
-    test(
-      '11. Xóa kịch bản mô phỏng đã lưu khỏi lịch sử (deleteSimulation)',
-      () async {
-        mockSimulationRepo.shouldSimulateDatabaseError = false;
-        await controller.loadData();
+    test('12. Lưu và ánh xạ đúng cả 4 loại SimulationScenarioType', () async {
+      mockSimulationRepo.shouldSimulateDatabaseError = false;
+      await controller.loadData();
 
-        // Lưu 1 kịch bản mới
+      for (final type in SimulationScenarioType.values) {
+        controller.selectScenario(type);
         final saved = await controller.saveCurrentSimulation(
-          customName: 'Kịch bản test xóa',
+          customName: 'Test ${type.code}',
         );
         expect(saved, isTrue);
+        expect(
+          controller.savedSimulations.first.scenarioType,
+          equals(type.code),
+        );
+      }
+    });
+
+    test(
+      '13. deleteSimulation trả về false và gán errorMessage khi repository lỗi',
+      () async {
+        await controller.loadData();
+        mockSimulationRepo.shouldSimulateDatabaseError = true;
+
+        final deleted = await controller.deleteSimulation(999999);
+        expect(deleted, isFalse);
+        expect(controller.errorMessage, contains('Không thể xóa kịch bản'));
+      },
+    );
+    test(
+      '14. applySavedSimulation khôi phục đúng khoản vay, loại kịch bản và extraPayment',
+      () async {
+        await controller.loadData();
+        final savedSim = SimulationModel(
+          id: 50,
+          userId: 1,
+          loanId: sampleLoan.id,
+          extraPayment: 35000000,
+          earlyPaymentFee: 0,
+          estimatedInterest: 10000000,
+          estimatedInterestSaved: 5000000,
+          monthsReduced: 4,
+          totalSaving: 5000000,
+          scenarioType: 'EXTRA_PAYMENT',
+          scenarioName: 'Trả thêm 35tr',
+        );
+
+        final matched = controller.applySavedSimulation(savedSim);
+        expect(matched, isTrue);
+        expect(controller.selectedLoan?.id, equals(sampleLoan.id));
+        expect(
+          controller.selectedScenario,
+          equals(SimulationScenarioType.extraPayment),
+        );
+        expect(controller.extraPayment, equals(35000000));
+
+        final missingLoanSim = savedSim.copyWith(
+          loanId: 9999,
+          scenarioType: 'CHANGE_INTEREST_RATE',
+        );
+        final notMatched = controller.applySavedSimulation(missingLoanSim);
+        expect(notMatched, isFalse);
+        expect(
+          controller.selectedScenario,
+          equals(SimulationScenarioType.changeInterestRate),
+        );
+      },
+    );
+  });
+
+  group('SimulationHistorySheet Widget Tests', () {
+    testWidgets(
+      'Hiển thị danh sách kịch bản đã lưu, hỗ trợ chạm để xem và cập nhật ngay khi xóa qua AnimatedBuilder',
+      (tester) async {
+        await controller.loadData();
+        controller.selectScenario(SimulationScenarioType.changeInterestRate);
+        await controller.saveCurrentSimulation(customName: 'Kịch bản lãi suất');
         final initialCount = controller.savedSimulations.length;
         expect(initialCount, greaterThan(0));
 
-        final idToDelete = controller.savedSimulations.last.id;
-        await controller.deleteSimulation(idToDelete);
-        expect(controller.savedSimulations.length, equals(initialCount - 1));
+        SimulationModel? tappedSimulation;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: AnimatedBuilder(
+                animation: controller,
+                builder: (context, _) => SimulationHistorySheet(
+                  simulations: controller.savedSimulations,
+                  onSelect: (sim) => tappedSimulation = sim,
+                  onDelete: (id) => controller.deleteSimulation(id),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Kịch bản lãi suất'), findsOneWidget);
+        expect(find.text('$initialCount bản ghi'), findsOneWidget);
+
+        await tester.tap(find.text('Kịch bản lãi suất'));
+        await tester.pumpAndSettle();
+        expect(tappedSimulation?.scenarioName, equals('Kịch bản lãi suất'));
+
+        await tester.tap(find.byIcon(Icons.delete_outline_rounded).first);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Kịch bản lãi suất'), findsNothing);
+        expect(find.text('${initialCount - 1} bản ghi'), findsOneWidget);
       },
     );
   });

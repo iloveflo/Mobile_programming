@@ -59,19 +59,5 @@ class NotificationMockData {
       status: 'SENT',
       createdAt: DateTime(2026, 9, 10, 10, 0),
     ),
-    NotificationModel(
-      id: 5,
-      userId: 1,
-      scheduleId: 3,
-      type: 'OVERDUE_ALERT',
-      channel: 'SMS',
-      title: 'Nhắc nợ khẩn cấp qua SMS',
-      message:
-          'Tin nhắn gửi qua SMS không thành công do sự cố mạng viễn thông.',
-      scheduledAt: DateTime(2026, 10, 11, 8, 0),
-      sentAt: null,
-      status: 'FAILED',
-      createdAt: DateTime(2026, 10, 11, 8, 0),
-    ),
   ];
 }

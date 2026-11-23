@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../layout/responsive_layout.dart';
 import '../../models/payment_schedule_model.dart';
 import '../common/app_colors.dart';
 
@@ -68,11 +69,9 @@ class ScheduleDetailSheet extends StatelessWidget {
         ? 'Đã thanh toán hoàn tất'
         : (isOverdue ? 'Kỳ quá hạn thanh toán' : 'Chờ thanh toán định kỳ');
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
-      ),
+    return ResponsiveBottomSheetBody(
+      backgroundColor: AppColors.surface,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
       padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -92,31 +91,37 @@ class ScheduleDetailSheet extends StatelessWidget {
 
           // Tiêu đề & Trạng thái
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Chi tiết Kỳ ${schedule.installmentNumber}',
-                    style: const TextStyle(
-                      fontSize: 18.0,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  if (loanName != null) ...[
-                    const SizedBox(height: 2.0),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      loanName!,
+                      'Chi tiết Kỳ ${schedule.installmentNumber}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 13.0,
-                        color: AppColors.textSecondary,
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
                       ),
                     ),
+                    if (loanName != null) ...[
+                      const SizedBox(height: 2.0),
+                      Text(
+                        loanName!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13.0,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
+              const SizedBox(width: 8.0),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10.0,
@@ -148,22 +153,30 @@ class ScheduleDetailSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(14.0),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Tổng nghĩa vụ phải trả',
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+                const Expanded(
+                  child: Text(
+                    'Tổng nghĩa vụ phải trả',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
-                Text(
-                  _formatCurrency(schedule.totalAmount),
-                  style: const TextStyle(
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+                const SizedBox(width: 8.0),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      _formatCurrency(schedule.totalAmount),
+                      style: const TextStyle(
+                        fontSize: 20.0,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -236,22 +249,30 @@ class ScheduleDetailSheet extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13.0,
-              color: isBold ? AppColors.textPrimary : AppColors.textSecondary,
-              fontWeight: isBold ? FontWeight.w700 : FontWeight.normal,
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13.0,
+                color: isBold ? AppColors.textPrimary : AppColors.textSecondary,
+                fontWeight: isBold ? FontWeight.w700 : FontWeight.normal,
+              ),
             ),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13.5,
-              fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
-              color: AppColors.textPrimary,
+          const SizedBox(width: 8.0),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ),
           ),
         ],

@@ -21,6 +21,27 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncProfileData();
+    });
+  }
+
+  Future<void> _syncProfileData() async {
+    try {
+      final loanController = sl<LoanController>();
+
+      await Future.wait([
+        loanController.fetchCollaterals(),
+        if (loanController.loans.isEmpty) loanController.fetchLoans(),
+      ]);
+    } catch (_) {
+      // Bỏ qua lỗi mạng/tạm thời khi đồng bộ nền để không chặn hiển thị hồ sơ
+    }
+  }
+
   // Tiện ích format tiền tệ VNĐ
   String _formatCurrency(num amount) {
     final str = amount.round().toString();
@@ -43,16 +64,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final firstPart = clean.substring(0, 4);
     final midPart = clean.substring(4, clean.length >= 8 ? 8 : clean.length);
     return '$firstPart $midPart ****';
-  }
-
-  // Tiện ích che số tài khoản: •••• 8888
-  String _maskAccountNumber(String accountNum) {
-    final clean = accountNum.replaceAll(' ', '');
-    if (clean.length <= 4) {
-      return clean;
-    }
-    final last4 = clean.substring(clean.length - 4);
-    return '•••• $last4';
   }
 
   @override
@@ -84,98 +95,97 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ]),
         builder: (context, _) {
           final user = authController.currentUser;
-          final String initialLetter = (user?.fullName.isNotEmpty == true)
-              ? user!.fullName.substring(0, 1).toUpperCase()
+          if (user == null ||
+              (loanController.errorMessage != null &&
+                  loanController.loans.isEmpty &&
+                  loanController.portfolioCollaterals.isEmpty &&
+                  !loanController.isLoading)) {
+            return ConnectionErrorView(
+              message: loanController.errorMessage,
+              onRetry: _syncProfileData,
+            );
+          }
+          final String initialLetter = (user.fullName.isNotEmpty)
+              ? user.fullName.substring(0, 1).toUpperCase()
               : 'U';
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 14.0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. Thẻ Header Cá Nhân & Định Danh eKYC C06
-                _buildProfileHeaderCard(user, initialLetter),
-                const SizedBox(height: 16.0),
+          return RefreshIndicator(
+            onRefresh: _syncProfileData,
+            color: AppColors.primary,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 14.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Thẻ Header Cá Nhân & Định Danh eKYC C06
+                  _buildProfileHeaderCard(user, initialLetter),
+                  const SizedBox(height: 16.0),
 
-                // 2. Thước đo Tài Chính Tóm Tắt (3 Chỉ số Vàng Tính Toán Thực Tế)
-                _buildQuickFinancialMetrics(user, loanController),
-                const SizedBox(height: 20.0),
+                  // 2. Thước đo Tài Chính Tóm Tắt (3 Chỉ số Vàng Tính Toán Thực Tế)
+                  _buildQuickFinancialMetrics(user, loanController),
+                  const SizedBox(height: 20.0),
 
-                // 3. Khối Thông Tin Định Danh Pháp Lý (Legal Identity)
-                _buildSectionTitle(
-                  title: 'Thông tin định danh pháp lý',
-                  actionText: 'Chỉnh sửa',
-                  onAction: () => EditContactSheet.show(
-                    context,
-                    authController: authController,
-                    user: user,
+                  // 3. Khối Thông Tin Định Danh Pháp Lý (Legal Identity)
+                  _buildSectionTitle(
+                    title: 'Thông tin định danh pháp lý',
+                    actionText: 'Chỉnh sửa',
+                    onAction: () => EditContactSheet.show(
+                      context,
+                      authController: authController,
+                      user: user,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8.0),
-                _buildLegalIdentityCard(user),
-                const SizedBox(height: 20.0),
+                  const SizedBox(height: 8.0),
+                  _buildLegalIdentityCard(user),
+                  const SizedBox(height: 20.0),
 
-                // 4. Khối Năng Lực Tài Chính & Thu Nhập Thẩm Định
-                _buildSectionTitle(
-                  title: 'Hồ sơ năng lực tài chính & Thu nhập',
-                  actionText: 'Cập nhật',
-                  onAction: () => EditIncomeSheet.show(
-                    context,
-                    authController: authController,
-                    user: user,
+                  // 4. Khối Năng Lực Tài Chính & Thu Nhập Thẩm Định
+                  _buildSectionTitle(
+                    title: 'Hồ sơ năng lực tài chính & Thu nhập',
+                    actionText: 'Cập nhật',
+                    onAction: () => EditIncomeSheet.show(
+                      context,
+                      authController: authController,
+                      user: user,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8.0),
-                _buildFinancialCapabilityCard(user, loanController),
-                const SizedBox(height: 20.0),
+                  const SizedBox(height: 8.0),
+                  _buildFinancialCapabilityCard(user, loanController),
+                  const SizedBox(height: 20.0),
 
-                // 5. Khối Tài Khoản Ngân Hàng Nhận Giải Ngân
-                _buildSectionTitle(
-                  title: 'Tài khoản thụ hưởng & Nhận giải ngân',
-                  actionText: 'Quản lý',
-                  onAction: () => BankAccountsSheet.show(
-                    context,
-                    authController: authController,
-                    user: user,
+                  // 6. Khối Sức Khỏe Tín Dụng & Xếp Hạng CIC
+                  _buildSectionTitle(
+                    title: 'Hồ sơ tín nhiệm tín dụng CIC',
+                    actionText: user.cicScore != null
+                        ? 'Xem báo cáo'
+                        : 'Tra cứu ngay',
+                    onAction: () => MainShellScreen.switchTab(context, 3),
                   ),
-                ),
-                const SizedBox(height: 8.0),
-                _buildDisbursalAccountPreviewCard(
-                  context,
-                  authController,
-                  user,
-                ),
-                const SizedBox(height: 20.0),
+                  const SizedBox(height: 8.0),
+                  _buildCreditHealthSnapshotCard(context, user, loanController),
+                  const SizedBox(height: 20.0),
 
-                // 6. Khối Sức Khỏe Tín Dụng & Xếp Hạng CIC
-                _buildSectionTitle(
-                  title: 'Hồ sơ tín nhiệm tín dụng CIC',
-                  actionText: user?.cicScore != null
-                      ? 'Xem báo cáo'
-                      : 'Tra cứu ngay',
-                  onAction: () => MainShellScreen.switchTab(context, 3),
-                ),
-                const SizedBox(height: 8.0),
-                _buildCreditHealthSnapshotCard(context, user, loanController),
-                const SizedBox(height: 20.0),
-
-                // 7. Khối Quản Lý Hồ Sơ & Bảo Mật Cá Nhân
-                const Text(
-                  'Hành động & Bảo mật hồ sơ',
-                  style: TextStyle(
-                    fontSize: 14.0,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textSecondary,
+                  // 7. Khối Quản Lý Hồ Sơ & Bảo Mật Cá Nhân
+                  const Text(
+                    'Hành động & Bảo mật hồ sơ',
+                    style: TextStyle(
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8.0),
-                _buildSecurityActionsCard(context, authController, user),
+                  const SizedBox(height: 8.0),
+                  _buildSecurityActionsCard(context, authController, user),
 
-                const SizedBox(height: 100.0), // Đệm an toàn cho Bottom Nav Bar
-              ],
+                  const SizedBox(
+                    height: 100.0,
+                  ), // Đệm an toàn cho Bottom Nav Bar
+                ],
+              ),
             ),
           );
         },
@@ -191,16 +201,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required VoidCallback onAction,
   }) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 14.5,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
+        const SizedBox(width: 8.0),
         TextButton(
           onPressed: onAction,
           style: TextButton.styleFrom(
@@ -230,11 +244,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _handleUpdateAvatar(UserModel? user) async {
     final imageUploadService = sl<ImageUploadService>();
-    final userId = user?.userId ?? 1;
 
     final result = await imageUploadService.pickAndUploadImage(
       context,
-      folder: 'avatars/$userId',
+      folder: 'avatars',
       filePrefix: 'avatar',
       isPublic: true,
       title: 'Cập nhật ảnh đại diện',
@@ -243,10 +256,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted || result == null) return;
 
     if (result.isSuccess) {
-      AppSnackBar.showSuccess(
-        context,
-        'Cập nhật ảnh đại diện lên Cloudflare R2 thành công!',
-      );
+      await sl<AuthController>().fetchProfile();
+      if (!mounted) return;
+      AppSnackBar.showSuccess(context, 'Cập nhật ảnh đại diện thành công!');
     } else if (!result.isSuccess && result.errorMessage != null) {
       AppSnackBar.showError(context, result.errorMessage!);
     }
@@ -297,14 +309,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CircleAvatar(
                       radius: 34.0,
                       backgroundColor: AppColors.primarySoft,
-                      child: Text(
-                        initialLetter,
-                        style: const TextStyle(
-                          fontSize: 28.0,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
+                      child:
+                          (user?.avatarUrl != null &&
+                              user!.avatarUrl!.isNotEmpty)
+                          ? ClipOval(
+                              child: Image.network(
+                                user.avatarUrl!,
+                                width: 68.0,
+                                height: 68.0,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Text(
+                                      initialLetter,
+                                      style: const TextStyle(
+                                        fontSize: 28.0,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                              ),
+                            )
+                          : Text(
+                              initialLetter,
+                              style: const TextStyle(
+                                fontSize: 28.0,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
                     ),
                     Positioned(
                       right: 0,
@@ -350,7 +382,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 6.0),
-                    Row(
+                    Wrap(
+                      spacing: 6.0,
+                      runSpacing: 4.0,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -376,22 +410,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     : const Color(0xFFD97706),
                               ),
                               const SizedBox(width: 4.0),
-                              Text(
-                                isVerified
-                                    ? 'Đã xác thực eKYC ${user?.ekycTier ?? "C06"}'
-                                    : 'Chưa xác thực eKYC',
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: isVerified
-                                      ? AppColors.success
-                                      : const Color(0xFFD97706),
+                              Flexible(
+                                child: Text(
+                                  isVerified
+                                      ? 'Đã xác thực eKYC ${user?.ekycTier ?? "C06"}'
+                                      : 'Chưa xác thực eKYC',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: isVerified
+                                        ? AppColors.success
+                                        : const Color(0xFFD97706),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 6.0),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8.0,
@@ -406,12 +443,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: [
                               Icon(tierIcon, size: 12.0, color: tierColor),
                               const SizedBox(width: 4.0),
-                              Text(
-                                tierLabel,
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: tierColor,
+                              Flexible(
+                                child: Text(
+                                  tierLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: tierColor,
+                                  ),
                                 ),
                               ),
                             ],
@@ -435,9 +476,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     LoanController loanController,
   ) {
     final creditProfileController = sl<CreditProfileController>();
-    // 1. Điểm tín dụng thực tế đồng bộ từ CreditProfile hoặc UserModel
-    final int? score =
-        creditProfileController.creditProfile?.creditScore ?? user?.cicScore;
+    // 1. Điểm tín dụng: chỉ dùng CreditProfile nếu khớp đúng userId hiện tại, fallback sang UserModel
+    final loadedProfile = creditProfileController.creditProfile;
+    final matchingProfile =
+        (loadedProfile != null &&
+            user != null &&
+            loadedProfile.userId == user.userId)
+        ? loadedProfile
+        : null;
+    final int? score = matchingProfile?.creditScore ?? user?.cicScore;
     String scoreVal = 'Chưa có';
     String scoreSub = 'Bấm để tra cứu';
     Color scoreColor = AppColors.textSecondary;
@@ -462,13 +509,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
 
-    // 2. Tỷ lệ gánh nặng nợ DTI thực tế từ danh sách khoản vay và thu nhập
+    // 2. Tỷ lệ gánh nặng nợ DTI: ưu tiên dữ liệu chuẩn từ Backend CreditProfile (khớp userId), fallback ước tính từ khoản vay ACTIVE/OVERDUE
+    final double? backendDti = matchingProfile?.dtiRatio;
     final activeLoans = loanController.loans
-        .where(
-          (l) =>
-              l.status.toLowerCase() != 'paid' &&
-              l.status.toLowerCase() != 'rejected',
-        )
+        .where((l) => l.isActive || l.isOverdue)
         .toList();
     final monthlyRepayment = activeLoans.fold<double>(
       0.0,
@@ -480,7 +524,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String dtiSub;
     Color dtiColor;
 
-    if (income > 0 && monthlyRepayment > 0) {
+    if (backendDti != null) {
+      final dtiPct = backendDti * 100;
+      dtiVal = '${dtiPct.toStringAsFixed(1)}%';
+      dtiSub = dtiPct < 40 ? 'An toàn < 40%' : 'Cần chú ý (>40%)';
+      dtiColor = dtiPct < 40
+          ? const Color(0xFF0284C7)
+          : const Color(0xFFDC2626);
+    } else if (income > 0 && monthlyRepayment > 0) {
       final dti = (monthlyRepayment / income * 100);
       dtiVal = '${dti.toStringAsFixed(1)}%';
       dtiSub = dti < 40 ? 'An toàn < 40%' : 'Cần chú ý (>40%)';
@@ -681,7 +732,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final occupation = user?.occupation;
     final workplace = user?.workplace;
     final contractType = user?.contractType;
-    final totalCollateral = loanController.totalCollateralValue;
+    final totalCollateral = loanController.portfolioCollateralValue;
+    final collateralCount = loanController.portfolioCollaterals.length;
 
     return _buildCard([
       _buildInfoRow(
@@ -728,117 +780,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         value: totalCollateral > 0
             ? _formatCurrency(totalCollateral)
             : '0 đ (Chưa có tài sản thế chấp)',
-        badgeText: totalCollateral > 0
-            ? '${loanController.collaterals.length} tài sản'
-            : null,
+        badgeText: totalCollateral > 0 ? '$collateralCount tài sản' : null,
         badgeColor: AppColors.primary,
-      ),
-    ]);
-  }
-
-  // 5. Khối Tài Khoản Ngân Hàng Nhận Giải Ngân
-  Widget _buildDisbursalAccountPreviewCard(
-    BuildContext context,
-    AuthController authController,
-    UserModel? user,
-  ) {
-    final accounts = user?.bankAccounts ?? [];
-
-    if (accounts.isEmpty) {
-      return _buildCard([
-        ListTile(
-          leading: Container(
-            width: 40.0,
-            height: 40.0,
-            decoration: BoxDecoration(
-              color: AppColors.primarySoft,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.account_balance_outlined,
-              color: AppColors.primary,
-              size: 20.0,
-            ),
-          ),
-          title: const Text(
-            'Chưa liên kết tài khoản nhận giải ngân',
-            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
-          ),
-          subtitle: const Text(
-            'Chạm để liên kết tài khoản ngân hàng thụ hưởng chính chủ',
-            style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
-          ),
-          trailing: const Icon(
-            Icons.add_circle_outline_rounded,
-            size: 20.0,
-            color: AppColors.primary,
-          ),
-          onTap: () => BankAccountsSheet.show(
-            context,
-            authController: authController,
-            user: user,
-          ),
-        ),
-      ]);
-    }
-
-    final defaultAcc = accounts.firstWhere(
-      (a) => a.isDefaultDisbursal,
-      orElse: () => accounts.first,
-    );
-
-    return _buildCard([
-      ListTile(
-        leading: Container(
-          width: 40.0,
-          height: 40.0,
-          decoration: BoxDecoration(
-            color: AppColors.primarySoft,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.account_balance_rounded,
-            color: AppColors.primary,
-            size: 20.0,
-          ),
-        ),
-        title: Row(
-          children: [
-            Text(
-              defaultAcc.bankName,
-              style: const TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(width: 6.0),
-            Text(
-              _maskAccountNumber(defaultAcc.accountNumber),
-              style: const TextStyle(
-                fontSize: 13.0,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        subtitle: Text(
-          'Nhận giải ngân mặc định • ${defaultAcc.accountHolderName.toUpperCase()}',
-          style: const TextStyle(
-            fontSize: 11.5,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios_rounded,
-          size: 14.0,
-          color: AppColors.textSecondary,
-        ),
-        onTap: () => BankAccountsSheet.show(
-          context,
-          authController: authController,
-          user: user,
-        ),
       ),
     ]);
   }
@@ -849,7 +792,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     UserModel? user,
     LoanController loanController,
   ) {
-    final int? score = user?.cicScore;
+    final loadedProfile = sl<CreditProfileController>().creditProfile;
+    final int? score =
+        (loadedProfile != null &&
+            user != null &&
+            loadedProfile.userId == user.userId)
+        ? (loadedProfile.creditScore ?? user.cicScore)
+        : user?.cicScore;
 
     if (score == null) {
       return Container(
@@ -985,69 +934,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
-                children: [
-                  Icon(
-                    Icons.security_rounded,
-                    color: Color(0xFF38BDF8),
-                    size: 20.0,
-                  ),
-                  SizedBox(width: 8.0),
-                  Text(
-                    'Điểm Tín Dụng Quốc Gia (CIC)',
-                    style: TextStyle(
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+              const Expanded(
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.security_rounded,
+                      color: Color(0xFF38BDF8),
+                      size: 20.0,
                     ),
-                  ),
-                ],
+                    SizedBox(width: 8.0),
+                    Expanded(
+                      child: Text(
+                        'Điểm Tín Dụng Quốc Gia (CIC)',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0,
-                  vertical: 3.0,
-                ),
-                decoration: BoxDecoration(
-                  color: riskColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: Text(
-                  riskLabel,
-                  style: TextStyle(
-                    fontSize: 11.0,
-                    fontWeight: FontWeight.w700,
-                    color: riskColor,
+              const SizedBox(width: 8.0),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                    vertical: 3.0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: riskColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: Text(
+                    riskLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11.0,
+                      fontWeight: FontWeight.w700,
+                      color: riskColor,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12.0),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                '$score',
-                style: const TextStyle(
-                  fontSize: 32.0,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '$score',
+                  style: const TextStyle(
+                    fontSize: 32.0,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 6.0),
-              const Text(
-                '/ 850 điểm',
-                style: TextStyle(
-                  fontSize: 14.0,
-                  color: Color(0xFF94A3B8),
-                  fontWeight: FontWeight.w500,
+                const SizedBox(width: 6.0),
+                const Text(
+                  '/ 850 điểm',
+                  style: TextStyle(
+                    fontSize: 14.0,
+                    color: Color(0xFF94A3B8),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 8.0),
           const Text(
@@ -1065,12 +1028,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Mở chi tiết phân tích tín dụng chuyên sâu',
-                  style: TextStyle(
-                    fontSize: 12.0,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF38BDF8),
+                Flexible(
+                  child: Text(
+                    'Mở chi tiết phân tích tín dụng chuyên sâu',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.0,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF38BDF8),
+                    ),
                   ),
                 ),
                 SizedBox(width: 4.0),

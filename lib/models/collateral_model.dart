@@ -31,6 +31,10 @@ class CollateralModel {
   final String? legalDocumentUrl;
   final String? description;
   final DateTime? createdAt;
+  final double? maxLtvRatio;
+  final double totalSecuredDebt;
+  final double? remainingCollateralCapacity;
+  final List<String> linkedLoanIds;
 
   const CollateralModel({
     required this.id,
@@ -43,7 +47,34 @@ class CollateralModel {
     this.legalDocumentUrl,
     this.description,
     this.createdAt,
+    this.maxLtvRatio,
+    this.totalSecuredDebt = 0.0,
+    this.remainingCollateralCapacity,
+    this.linkedLoanIds = const [],
   });
+
+  /// Tỷ lệ LTV tối đa chuẩn ngân hàng VN theo từng loại tài sản (TT 39/2016/TT-NHNN)
+  static double maxLtvForType(String? type) {
+    switch ((type ?? '').toUpperCase()) {
+      case 'REAL_ESTATE':
+        return 0.80;
+      case 'VEHICLE':
+        return 0.70;
+      case 'SAVINGS':
+        return 0.95;
+      default:
+        return 0.70;
+    }
+  }
+
+  double get effectiveMaxLtv => maxLtvRatio ?? maxLtvForType(type);
+
+  double get effectiveRemainingCapacity =>
+      remainingCollateralCapacity ??
+      ((value * effectiveMaxLtv) - totalSecuredDebt).clamp(
+        0.0,
+        double.infinity,
+      );
 
   bool get hasLegalDocument =>
       legalDocumentUrl != null && legalDocumentUrl!.trim().isNotEmpty;
@@ -111,14 +142,23 @@ class CollateralModel {
       return DateTime.tryParse(val.toString());
     }
 
+    int parseInt(dynamic val, [int fallback = 1]) {
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? fallback;
+      return fallback;
+    }
+
+    int? parseNullableInt(dynamic val) {
+      if (val == null) return null;
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val);
+      return null;
+    }
+
     return CollateralModel(
-      id: json['asset_id'] is num
-          ? (json['asset_id'] as num).toInt()
-          : int.tryParse(json['id']?.toString() ?? '1') ?? 1,
-      userId: json['user_id'] is num ? (json['user_id'] as num).toInt() : 1,
-      loanId: json['loan_id'] is num
-          ? (json['loan_id'] as num).toInt()
-          : (int.tryParse(json['loanId']?.toString() ?? '')),
+      id: parseInt(json['asset_id'] ?? json['id'], 1),
+      userId: parseInt(json['user_id'] ?? json['userId'], 1),
+      loanId: parseNullableInt(json['loan_id'] ?? json['loanId']),
       name: (json['asset_name'] ?? json['name'] ?? 'Tài sản') as String,
       type: (json['asset_type'] ?? json['type'] ?? 'OTHER') as String,
       value: (json['asset_value'] ?? json['value'] as num?)?.toDouble() ?? 0.0,
@@ -127,6 +167,15 @@ class CollateralModel {
           (json['legal_document_url'] ?? json['legalDocumentUrl']) as String?,
       description: json['description'] as String?,
       createdAt: parseDate(json['created_at'] ?? json['createdAt']),
+      maxLtvRatio: (json['max_ltv_ratio'] as num?)?.toDouble(),
+      totalSecuredDebt: (json['total_secured_debt'] as num?)?.toDouble() ?? 0.0,
+      remainingCollateralCapacity:
+          (json['remaining_collateral_capacity'] as num?)?.toDouble(),
+      linkedLoanIds:
+          (json['linked_loan_ids'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
     );
   }
 

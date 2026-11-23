@@ -41,13 +41,17 @@ class SecurityBadge extends StatelessWidget {
             color: AppColors.primary,
           ),
           const SizedBox(width: 6.0),
-          Text(
-            displayText,
-            style: const TextStyle(
-              fontSize: 12.0,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
-              letterSpacing: 0.5,
+          Flexible(
+            child: Text(
+              displayText,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12.0,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ],

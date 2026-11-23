@@ -13,8 +13,8 @@ class ChangePasswordSheet extends StatefulWidget {
   static Future<void> show(
     BuildContext context, {
     required AuthController authController,
-  }) {
-    return showModalBottomSheet(
+  }) async {
+    final changed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
@@ -23,6 +23,9 @@ class ChangePasswordSheet extends StatefulWidget {
       ),
       builder: (ctx) => ChangePasswordSheet(authController: authController),
     );
+    if (changed == true && context.mounted) {
+      AppSnackBar.showSuccess(context, 'Đổi mật khẩu thành công!');
+    }
   }
 
   @override
@@ -35,6 +38,8 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String _passwordValue = '';
+  bool _isSubmitting = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -141,32 +146,69 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
               ),
               const SizedBox(height: 24.0),
 
+              if (_errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12.0,
+                    vertical: 10.0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10.0),
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: AppColors.error,
+                        size: 18.0,
+                      ),
+                      const SizedBox(width: 8.0),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16.0),
+              ],
+
               // Nút xác nhận đổi mật khẩu
               AppPrimaryButton(
                 label: 'Xác nhận đổi mật khẩu',
+                isLoading: _isSubmitting,
                 onPressed: () async {
                   if (!_formKey.currentState!.validate()) {
                     return;
                   }
-                  final currentPassword = _currentPasswordController.text;
-                  final newPassword = _newPasswordController.text;
-                  Navigator.pop(context);
+                  setState(() {
+                    _isSubmitting = true;
+                    _errorMessage = null;
+                  });
                   final ok = await widget.authController.changePassword(
-                    currentPassword: currentPassword,
-                    newPassword: newPassword,
+                    currentPassword: _currentPasswordController.text,
+                    newPassword: _newPasswordController.text,
                   );
                   if (!context.mounted) return;
                   if (ok) {
-                    AppSnackBar.showSuccess(
-                      context,
-                      'Đổi mật khẩu thành công!',
-                    );
+                    Navigator.pop(context, true);
                   } else {
-                    AppSnackBar.showError(
-                      context,
-                      widget.authController.errorMessage ??
-                          'Đổi mật khẩu thất bại.',
-                    );
+                    setState(() {
+                      _isSubmitting = false;
+                      _errorMessage =
+                          widget.authController.errorMessage ??
+                          'Đổi mật khẩu thất bại.';
+                    });
                   }
                 },
               ),

@@ -2,6 +2,53 @@ import '../../models/notification_model.dart';
 import '../../models/notification_preference_model.dart';
 import '../../models/payment_schedule_model.dart';
 
+/// Tổng hợp nhanh số lượng kỳ thanh toán theo trạng thái từ Backend
+class ScheduleSummaryModel {
+  final int upcomingCount;
+  final int overdueCount;
+  final int paidCount;
+  final int totalCount;
+  final double currentMonthDueAmount;
+
+  const ScheduleSummaryModel({
+    this.upcomingCount = 0,
+    this.overdueCount = 0,
+    this.paidCount = 0,
+    this.totalCount = 0,
+    this.currentMonthDueAmount = 0.0,
+  });
+
+  factory ScheduleSummaryModel.fromJson(Map<String, dynamic> json) {
+    return ScheduleSummaryModel(
+      upcomingCount: (json['upcoming_count'] as num?)?.toInt() ?? 0,
+      overdueCount: (json['overdue_count'] as num?)?.toInt() ?? 0,
+      paidCount: (json['paid_count'] as num?)?.toInt() ?? 0,
+      totalCount: (json['total_count'] as num?)?.toInt() ?? 0,
+      currentMonthDueAmount:
+          (json['current_month_due_amount'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+}
+
+/// Kết quả phân trang lịch thanh toán từ Backend
+class SchedulePageResult {
+  final List<PaymentScheduleModel> items;
+  final int page;
+  final int limit;
+  final int total;
+  final bool hasMore;
+  final ScheduleSummaryModel summary;
+
+  const SchedulePageResult({
+    required this.items,
+    required this.page,
+    required this.limit,
+    required this.total,
+    required this.hasMore,
+    required this.summary,
+  });
+}
+
 /// Hợp đồng giao diện cho Kho lưu trữ Lịch thanh toán & Nhắc nợ (PaymentScheduleRepository)
 abstract class PaymentScheduleRepository {
   /// Truy xuất toàn bộ danh sách các kỳ phân kỳ thanh toán của người dùng,
@@ -9,6 +56,16 @@ abstract class PaymentScheduleRepository {
   Future<List<PaymentScheduleModel>> getPaymentSchedules({
     int? userId,
     int? loanId,
+  });
+
+  /// Truy xuất lịch phân kỳ có lọc theo trạng thái/thời gian và phân trang từ Backend.
+  Future<SchedulePageResult> getPaymentSchedulesPage({
+    int? userId,
+    int? loanId,
+    String status = 'ALL',
+    String period = 'ALL',
+    int page = 1,
+    int limit = 20,
   });
 
   /// Lấy thông tin chi tiết của một kỳ thanh toán cụ thể theo [scheduleId].
@@ -37,6 +94,12 @@ abstract class PaymentScheduleRepository {
 
   /// Truy xuất danh sách thông báo nhắc nợ (Notification) thuộc quyền sở hữu của người dùng hiện tại.
   Future<List<NotificationModel>> getNotifications({int? userId});
+
+  /// Xóa một thông báo cụ thể theo [notificationId].
+  Future<void> deleteNotification(int notificationId, {int? userId});
+
+  /// Xóa toàn bộ thông báo của người dùng.
+  Future<void> clearNotifications({int? userId});
 
   /// Đồng bộ và làm mới các thông báo nhắc nợ khi lịch phân kỳ có sự biến động (Mục 10).
   /// Tự động vô hiệu hóa các thông báo PENDING cũ gắn với lịch cũ và tái lập lịch mới.

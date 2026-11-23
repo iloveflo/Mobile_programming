@@ -88,7 +88,9 @@ class CashflowDetailSheet extends StatelessWidget {
         ? (commitment / income) * 100
         : 0.0;
     final bool isSurplus = netCashflow >= 0;
-    final activeLoans = loanController.loans.where((l) => l.isActive).toList();
+    final activeLoans = loanController.loans
+        .where((l) => l.isActive || l.isOverdue)
+        .toList();
 
     // Tính toán dự phóng 6 tháng dựa trên dữ liệu thực tế từ các khoản vay
     final now = DateTime.now();

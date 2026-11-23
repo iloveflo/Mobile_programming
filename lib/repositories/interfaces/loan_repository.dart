@@ -32,6 +32,9 @@ abstract class LoanRepository {
   /// Thêm mới tài sản bảo đảm
   Future<CollateralModel> addCollateral(Map<String, dynamic> collateralData);
 
+  /// Xóa tài sản bảo đảm (và xóa kèm giấy tờ R2 nếu không vướng khoản vay)
+  Future<void> deleteCollateral(int assetId);
+
   /// Quét OCR tài liệu/hợp đồng vay từ ảnh chụp
   Future<Map<String, dynamic>> scanDocumentOcr(String imagePath);
 

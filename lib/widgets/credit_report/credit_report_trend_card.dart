@@ -121,27 +121,33 @@ class CreditReportTrendCard extends StatelessWidget {
         children: [
           // Tiêu đề & Tóm tắt biến động
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: const [
-                  Icon(
-                    Icons.trending_up_rounded,
-                    color: AppColors.primary,
-                    size: 22.0,
-                  ),
-                  SizedBox(width: 8.0),
-                  Text(
-                    'XU HƯỚNG TÍN DỤNG',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
+              const Expanded(
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.trending_up_rounded,
                       color: AppColors.primary,
-                      letterSpacing: 0.5,
+                      size: 22.0,
                     ),
-                  ),
-                ],
+                    SizedBox(width: 8.0),
+                    Expanded(
+                      child: Text(
+                        'XU HƯỚNG TÍN DỤNG',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8.0),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 8.0,

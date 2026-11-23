@@ -21,6 +21,7 @@ class _PaymentScheduleScreenState extends State<PaymentScheduleScreen> {
   late final PaymentScheduleController _scheduleController;
   late final LoanController _loanController;
   late final AuthController _authController;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -28,6 +29,7 @@ class _PaymentScheduleScreenState extends State<PaymentScheduleScreen> {
     _scheduleController = sl<PaymentScheduleController>();
     _loanController = sl<LoanController>();
     _authController = sl<AuthController>();
+    _scrollController.addListener(_onScroll);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -40,7 +42,25 @@ class _PaymentScheduleScreenState extends State<PaymentScheduleScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      _scheduleController.loadMoreSchedules(
+        userId: _authController.currentUser?.userId,
+      );
+    }
+  }
+
   void _handlePaySchedule(PaymentScheduleModel schedule) async {
+    if (_scheduleController.isPaying) return;
     final success = await _scheduleController.markAsPaid(
       schedule.id,
       userId: _authController.currentUser?.userId,
@@ -119,6 +139,13 @@ class _PaymentScheduleScreenState extends State<PaymentScheduleScreen> {
     NotificationListSheet.show(
       context,
       notifications: _scheduleController.notifications,
+      onDeleteNotification: (id) => _scheduleController.deleteNotification(
+        id,
+        userId: _authController.currentUser?.userId,
+      ),
+      onClearAll: () => _scheduleController.clearNotifications(
+        userId: _authController.currentUser?.userId,
+      ),
       onSelectSchedule: (scheduleId) async {
         final success = await _scheduleController.selectSchedule(
           scheduleId,
@@ -243,6 +270,7 @@ class _PaymentScheduleScreenState extends State<PaymentScheduleScreen> {
             ),
             color: AppColors.primary,
             child: ListView(
+              controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(
                 horizontal: 16.0,
@@ -267,19 +295,23 @@ class _PaymentScheduleScreenState extends State<PaymentScheduleScreen> {
 
                 // 3. Tiêu đề danh sách
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'KẾ HOẠCH TRẢ NỢ CHI TIẾT',
-                      style: TextStyle(
-                        fontSize: 12.0,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textSecondary,
-                        letterSpacing: 0.5,
+                    const Expanded(
+                      child: Text(
+                        'KẾ HOẠCH TRẢ NỢ CHI TIẾT',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.0,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textSecondary,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8.0),
                     Text(
-                      '${schedules.length} kỳ',
+                      '${_scheduleController.totalMatching} kỳ',
                       style: const TextStyle(
                         fontSize: 12.0,
                         fontWeight: FontWeight.w600,
@@ -310,9 +342,39 @@ class _PaymentScheduleScreenState extends State<PaymentScheduleScreen> {
                       schedule: schedule,
                       loanName: loan?.name,
                       onTap: () => _showScheduleDetail(schedule),
-                      onPay: () => _handlePaySchedule(schedule),
+                      onPay: _scheduleController.isPaying
+                          ? null
+                          : () => _handlePaySchedule(schedule),
                     );
                   }),
+                  if (_scheduleController.isLoadingMore)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16.0),
+                      child: Center(
+                        child: SizedBox(
+                          width: 24.0,
+                          height: 24.0,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (_scheduleController.hasMore)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
+                      child: Center(
+                        child: TextButton.icon(
+                          onPressed: () =>
+                              _scheduleController.loadMoreSchedules(
+                                userId: _authController.currentUser?.userId,
+                              ),
+                          icon: const Icon(Icons.expand_more_rounded, size: 18),
+                          label: const Text('Tải thêm kỳ thanh toán'),
+                        ),
+                      ),
+                    ),
                 ],
                 const SizedBox(
                   height: 80.0,
@@ -328,36 +390,92 @@ class _PaymentScheduleScreenState extends State<PaymentScheduleScreen> {
   Widget _buildFilterChips() {
     final filters = [
       {'key': 'ALL', 'label': 'Tất cả'},
-      {'key': 'UPCOMING', 'label': 'Sắp đến hạn'},
+      {'key': 'UPCOMING', 'label': 'Chưa đến hạn'},
       {'key': 'OVERDUE', 'label': 'Quá hạn'},
       {'key': 'PAID', 'label': 'Đã hoàn tất'},
     ];
+    final periods = [
+      {'key': 'ALL', 'label': 'Tất cả thời gian'},
+      {'key': '1M', 'label': '1 tháng'},
+      {'key': '3M', 'label': '3 tháng'},
+      {'key': '6M', 'label': '6 tháng'},
+      {'key': '1Y', 'label': '1 năm'},
+    ];
+    final showPeriodFilter =
+        _scheduleController.currentFilter == 'PAID' ||
+        _scheduleController.currentFilter == 'ALL';
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: filters.map((f) {
-          final isSelected = _scheduleController.currentFilter == f['key'];
-          return Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ChoiceChip(
-              label: Text(f['label']!),
-              selected: isSelected,
-              selectedColor: AppColors.primary,
-              backgroundColor: AppColors.surface,
-              labelStyle: TextStyle(
-                fontSize: 12.5,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? Colors.white : AppColors.textPrimary,
-              ),
-              side: BorderSide(
-                color: isSelected ? AppColors.primary : AppColors.border,
-              ),
-              onSelected: (_) => _scheduleController.setFilter(f['key']!),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: filters.map((f) {
+              final isSelected = _scheduleController.currentFilter == f['key'];
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: ChoiceChip(
+                  label: Text(f['label']!),
+                  selected: isSelected,
+                  selectedColor: AppColors.primary,
+                  backgroundColor: AppColors.surface,
+                  labelStyle: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                  ),
+                  side: BorderSide(
+                    color: isSelected ? AppColors.primary : AppColors.border,
+                  ),
+                  onSelected: (_) => _scheduleController.setFilter(
+                    f['key']!,
+                    userId: _authController.currentUser?.userId,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        if (showPeriodFilter) ...[
+          const SizedBox(height: 8.0),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: periods.map((p) {
+                final isSelected =
+                    _scheduleController.currentPeriod == p['key'];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6.0),
+                  child: ChoiceChip(
+                    label: Text(p['label']!),
+                    selected: isSelected,
+                    visualDensity: VisualDensity.compact,
+                    selectedColor: AppColors.primary.withValues(alpha: 0.14),
+                    backgroundColor: AppColors.surface,
+                    labelStyle: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                    ),
+                    side: BorderSide(
+                      color: isSelected ? AppColors.primary : AppColors.border,
+                    ),
+                    onSelected: (_) => _scheduleController.setPeriod(
+                      p['key']!,
+                      userId: _authController.currentUser?.userId,
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
-          );
-        }).toList(),
-      ),
+          ),
+        ],
+      ],
     );
   }
 

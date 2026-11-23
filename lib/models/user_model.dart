@@ -1,5 +1,3 @@
-import 'bank_account_model.dart';
-
 class UserModel {
   final int userId;
   final String fullName;
@@ -20,7 +18,6 @@ class UserModel {
   final int? cicScore;
   final bool isBiometricEnabled;
   final bool isAutoLockEnabled;
-  final List<BankAccountModel> bankAccounts;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final String? token;
@@ -45,7 +42,6 @@ class UserModel {
     this.cicScore,
     this.isBiometricEnabled = false,
     this.isAutoLockEnabled = true,
-    this.bankAccounts = const [],
     this.createdAt,
     this.updatedAt,
     this.token,
@@ -75,7 +71,6 @@ class UserModel {
     int? cicScore,
     bool? isBiometricEnabled,
     bool? isAutoLockEnabled,
-    List<BankAccountModel>? bankAccounts,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? token,
@@ -100,7 +95,6 @@ class UserModel {
       cicScore: cicScore ?? this.cicScore,
       isBiometricEnabled: isBiometricEnabled ?? this.isBiometricEnabled,
       isAutoLockEnabled: isAutoLockEnabled ?? this.isAutoLockEnabled,
-      bankAccounts: bankAccounts ?? this.bankAccounts,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       token: token ?? this.token,
@@ -115,16 +109,6 @@ class UserModel {
 
     DateTime? parseDate(String key) =>
         json[key] == null ? null : DateTime.tryParse(json[key] as String);
-
-    List<BankAccountModel> parseBankAccounts(dynamic rawList) {
-      if (rawList is List) {
-        return rawList
-            .whereType<Map<String, dynamic>>()
-            .map((item) => BankAccountModel.fromJson(item))
-            .toList();
-      }
-      return const [];
-    }
 
     return UserModel(
       userId: parsedUserId,
@@ -162,9 +146,6 @@ class UserModel {
                   json['isAutoLockEnabled'])
               as bool? ??
           true,
-      bankAccounts: parseBankAccounts(
-        json['bank_accounts'] ?? json['bankAccounts'],
-      ),
       createdAt: parseDate('created_at'),
       updatedAt: parseDate('updated_at'),
       token: json['token'] as String?,
@@ -191,7 +172,6 @@ class UserModel {
     'cic_score': cicScore,
     'is_biometric_enabled': isBiometricEnabled,
     'auto_lock_enabled': isAutoLockEnabled,
-    'bank_accounts': bankAccounts.map((a) => a.toJson()).toList(),
     'created_at': createdAt?.toIso8601String(),
     'updated_at': updatedAt?.toIso8601String(),
     'token': token,

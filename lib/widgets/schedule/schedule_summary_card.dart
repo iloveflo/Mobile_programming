@@ -53,14 +53,17 @@ class ScheduleSummaryCard extends StatelessWidget {
         children: [
           // Dòng 1: Tiêu đề & Nút thao tác nhanh
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Nghĩa vụ thanh toán tháng này',
-                style: TextStyle(
-                  fontSize: 13.0,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white70,
+              const Expanded(
+                child: Text(
+                  'Nghĩa vụ thanh toán tháng này',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13.0,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white70,
+                  ),
                 ),
               ),
               Row(
@@ -113,7 +116,7 @@ class ScheduleSummaryCard extends StatelessWidget {
               ),
               const SizedBox(width: 8.0),
               _buildBadge(
-                label: 'Sắp đến hạn',
+                label: 'Chưa đến hạn',
                 count: upcomingCount,
                 backgroundColor: upcomingCount > 0
                     ? AppColors.warning.withValues(alpha: 0.9)

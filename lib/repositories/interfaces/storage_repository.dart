@@ -31,6 +31,12 @@ abstract class StorageRepository {
     int expiresInSeconds = 600,
   });
 
+  /// Lấy danh sách tệp đã tải lên trên R2 (lọc theo folder nếu cần)
+  Future<List<Map<String, dynamic>>> listUploadedFiles({String? folder});
+
+  /// Chủ động xóa tệp khỏi Cloudflare R2 và CSDL
+  Future<void> deleteFile(String fileKey);
+
   /// Hàm điều phối trọn gói toàn bộ chu trình 4 bước (Tiện ích cấp cao)
   Future<UploadResultModel> uploadImageFile({
     required List<int> bytes,

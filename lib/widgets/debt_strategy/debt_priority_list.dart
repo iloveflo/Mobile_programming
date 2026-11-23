@@ -32,25 +32,34 @@ class DebtPriorityList extends StatelessWidget {
         _buildMetricSummaryGrid(),
         const SizedBox(height: 20),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'THỨ TỰ ƯU TIÊN (${plan.items.length} KHOẢN VAY)',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
-                letterSpacing: 0.5,
+            Expanded(
+              child: Text(
+                'THỨ TỰ ƯU TIÊN (${plan.items.length} KHOẢN VAY)',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
-            Text(
-              plan.strategyType == DebtStrategyType.avalanche
-                  ? 'Ưu tiên Lãi suất cao trước'
-                  : 'Ưu tiên Dư nợ nhỏ trước',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                plan.strategyType == DebtStrategyType.avalanche
+                    ? 'Ưu tiên Lãi suất cao trước'
+                    : 'Ưu tiên Dư nợ nhỏ trước',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
               ),
             ),
           ],
@@ -263,20 +272,27 @@ class DebtPriorityList extends StatelessWidget {
           const Divider(height: 1, color: AppColors.border),
           const SizedBox(height: 10),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildItemSubDetail(
-                'Dư nợ hiện tại',
-                _formatCurrency(item.currentBalance),
+              Expanded(
+                child: _buildItemSubDetail(
+                  'Dư nợ hiện tại',
+                  _formatCurrency(item.currentBalance),
+                ),
               ),
-              _buildItemSubDetail(
-                'Lãi suất',
-                '${(item.interestRate * 100).toStringAsFixed(1)}%/năm',
-                isHighlighted: true,
+              const SizedBox(width: 6),
+              Expanded(
+                child: _buildItemSubDetail(
+                  'Lãi suất',
+                  '${(item.interestRate * 100).toStringAsFixed(1)}%/năm',
+                  isHighlighted: true,
+                ),
               ),
-              _buildItemSubDetail(
-                'Tất toán trong',
-                '~${item.estimatedMonthsToPayoff} tháng',
+              const SizedBox(width: 6),
+              Expanded(
+                child: _buildItemSubDetail(
+                  'Tất toán trong',
+                  '~${item.estimatedMonthsToPayoff} tháng',
+                ),
               ),
             ],
           ),

@@ -19,20 +19,36 @@ class LoanDocumentModel {
     this.updatedAt,
   });
 
-  factory LoanDocumentModel.fromJson(Map<String, dynamic> json) {
+  factory LoanDocumentModel.fromJson(Map<String, dynamic> rawJson) {
+    final dynamic nested = rawJson['data'];
+    final Map<String, dynamic> json = nested is Map<String, dynamic>
+        ? nested
+        : (nested is Map ? Map<String, dynamic>.from(nested) : rawJson);
+
+    int parseInt(dynamic val, [int fallback = 0]) {
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? fallback;
+      return fallback;
+    }
+
+    DateTime? parseDate(dynamic val) {
+      if (val == null) return null;
+      if (val is DateTime) return val;
+      return DateTime.tryParse(val.toString());
+    }
+
     return LoanDocumentModel(
-      id: json['document_id'] as int,
-      loanId: json['loan_id'] as int,
-      documentType: json['document_type'] as String,
-      fileUrl: json['file_url'] as String,
-      ocrStatus: json['ocr_status'] as String? ?? 'PENDING',
+      id: parseInt(json['document_id'] ?? json['id']),
+      loanId: parseInt(json['loan_id'] ?? json['loanId']),
+      documentType:
+          (json['document_type'] ?? json['documentType'] ?? 'CONTRACT')
+              .toString(),
+      fileUrl: (json['file_url'] ?? json['fileUrl'] ?? '').toString(),
+      ocrStatus: (json['ocr_status'] ?? json['ocrStatus'] ?? 'PENDING')
+          .toString(),
       ocrResult: (json['ocr_result'] as Map?)?.cast<String, dynamic>(),
-      createdAt: json['created_at'] == null
-          ? null
-          : DateTime.parse(json['created_at'] as String),
-      updatedAt: json['updated_at'] == null
-          ? null
-          : DateTime.parse(json['updated_at'] as String),
+      createdAt: parseDate(json['created_at'] ?? json['createdAt']),
+      updatedAt: parseDate(json['updated_at'] ?? json['updatedAt']),
     );
   }
 

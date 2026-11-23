@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import '../models/auth_token_model.dart';
 import '../models/user_model.dart';
@@ -138,5 +139,32 @@ class SessionStorageService {
         file.deleteSync();
       }
     } catch (_) {}
+  }
+
+  /// Lấy hoặc tạo mới mã định danh duy nhất cho thiết bị hiện tại (không bị xóa khi đăng xuất)
+  String getOrCreateDeviceId() {
+    try {
+      final dirPath =
+          customDirectory?.path ??
+          '${Directory.systemTemp.path}/fincredit_storage';
+      final dir = Directory(dirPath);
+      if (!dir.existsSync()) {
+        dir.createSync(recursive: true);
+      }
+      final file = File('${dir.path}/device_id.txt');
+      if (file.existsSync()) {
+        final existing = file.readAsStringSync().trim();
+        if (existing.isNotEmpty) return existing;
+      }
+      final rng = Random();
+      final bytes = List<int>.generate(4, (_) => rng.nextInt(256));
+      final generated = bytes
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join();
+      file.writeAsStringSync(generated, flush: true);
+      return generated;
+    } catch (_) {
+      return 'default';
+    }
   }
 }

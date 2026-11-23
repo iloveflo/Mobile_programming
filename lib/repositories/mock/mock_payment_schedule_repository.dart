@@ -58,8 +58,122 @@ class MockPaymentScheduleRepository implements PaymentScheduleRepository {
 
     // Sắp xếp thứ tự tăng dần của ngày đến hạn (due_date) theo Mục 5.1 Bước 6
     schedules.sort((a, b) => a.dueDate.compareTo(b.dueDate));
-
     return schedules;
+  }
+
+  @override
+  Future<SchedulePageResult> getPaymentSchedulesPage({
+    int? userId,
+    int? loanId,
+    String status = 'ALL',
+    String period = 'ALL',
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final all = await getPaymentSchedules(userId: userId, loanId: loanId);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    int overdueCount = 0;
+    int upcomingCount = 0;
+    int paidCount = 0;
+    double currentMonthDueAmount = 0.0;
+
+    for (final s in all) {
+      final dueDay = DateTime(s.dueDate.year, s.dueDate.month, s.dueDate.day);
+      if (s.status == 'PAID') {
+        paidCount++;
+      } else {
+        if (s.dueDate.month == now.month && s.dueDate.year == now.year) {
+          currentMonthDueAmount += s.totalAmount;
+        }
+        if (s.status == 'OVERDUE' || dueDay.isBefore(today)) {
+          overdueCount++;
+        } else {
+          upcomingCount++;
+        }
+      }
+    }
+
+    final summary = ScheduleSummaryModel(
+      upcomingCount: upcomingCount,
+      overdueCount: overdueCount,
+      paidCount: paidCount,
+      totalCount: all.length,
+      currentMonthDueAmount: currentMonthDueAmount,
+    );
+
+    DateTime? minDate;
+    switch (period.toUpperCase()) {
+      case '1M':
+        minDate = DateTime(today.year, today.month - 1, today.day);
+        break;
+      case '3M':
+        minDate = DateTime(today.year, today.month - 3, today.day);
+        break;
+      case '6M':
+        minDate = DateTime(today.year, today.month - 6, today.day);
+        break;
+      case '1Y':
+        minDate = DateTime(today.year - 1, today.month, today.day);
+        break;
+      default:
+        minDate = null;
+    }
+
+    final filtered = all.where((s) {
+      final dueDay = DateTime(s.dueDate.year, s.dueDate.month, s.dueDate.day);
+      bool matchesStatus = true;
+      switch (status.toUpperCase()) {
+        case 'PAID':
+          matchesStatus = s.status == 'PAID';
+          break;
+        case 'OVERDUE':
+          matchesStatus =
+              s.status == 'OVERDUE' ||
+              (s.status != 'PAID' && dueDay.isBefore(today));
+          break;
+        case 'UPCOMING':
+          matchesStatus =
+              s.status != 'PAID' &&
+              s.status != 'OVERDUE' &&
+              !dueDay.isBefore(today);
+          break;
+        case 'ALL':
+        default:
+          matchesStatus = true;
+      }
+      if (!matchesStatus) return false;
+      if (minDate != null) {
+        if (dueDay.isBefore(minDate)) return false;
+      }
+      return true;
+    }).toList();
+
+    if (status.toUpperCase() == 'PAID') {
+      filtered.sort((a, b) => b.dueDate.compareTo(a.dueDate));
+    }
+
+    final safePage = page < 1 ? 1 : page;
+    final safeLimit = limit < 1 ? 20 : limit;
+    final start = (safePage - 1) * safeLimit;
+    final paged = start >= filtered.length
+        ? <PaymentScheduleModel>[]
+        : filtered.sublist(
+            start,
+            (start + safeLimit) > filtered.length
+                ? filtered.length
+                : start + safeLimit,
+          );
+
+    return SchedulePageResult(
+      items: paged,
+      page: safePage,
+      limit: safeLimit,
+      total: filtered.length,
+      hasMore: start + paged.length < filtered.length,
+      summary: summary,
+    );
   }
 
   @override
@@ -232,6 +346,28 @@ class MockPaymentScheduleRepository implements PaymentScheduleRepository {
     });
 
     return results;
+  }
+
+  @override
+  Future<void> deleteNotification(int notificationId, {int? userId}) async {
+    if (shouldSimulateDatabaseError) {
+      throw Exception('Sự cố cơ sở dữ liệu khi xóa thông báo.');
+    }
+    final targetUserId = userId ?? 1;
+    NotificationMockData.notificationsDatabase.removeWhere(
+      (n) => n.id == notificationId && n.userId == targetUserId,
+    );
+  }
+
+  @override
+  Future<void> clearNotifications({int? userId}) async {
+    if (shouldSimulateDatabaseError) {
+      throw Exception('Sự cố cơ sở dữ liệu khi xóa toàn bộ thông báo.');
+    }
+    final targetUserId = userId ?? 1;
+    NotificationMockData.notificationsDatabase.removeWhere(
+      (n) => n.userId == targetUserId,
+    );
   }
 
   @override

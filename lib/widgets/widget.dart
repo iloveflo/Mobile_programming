@@ -21,6 +21,7 @@ export 'common/app_colors.dart';
 export 'common/app_document_viewer_modal.dart';
 export 'common/app_snack_bar.dart';
 export 'common/app_text_field.dart';
+export 'common/connection_error_view.dart';
 export 'common/custom_bottom_nav_bar.dart';
 export 'common/quick_chip_selector.dart';
 
@@ -77,7 +78,6 @@ export 'schedule/schedule_empty_state.dart';
 export 'schedule/schedule_summary_card.dart';
 
 // Profile & Account
-export 'profile/bank_accounts_sheet.dart';
 export 'profile/change_password_sheet.dart';
 export 'profile/edit_contact_sheet.dart';
 export 'profile/edit_income_sheet.dart';

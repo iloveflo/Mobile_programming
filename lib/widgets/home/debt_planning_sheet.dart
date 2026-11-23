@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../layout/responsive_layout.dart';
 import '../../routes/app_router.dart';
 import '../../screens/main_shell_screen.dart';
 import '../widget.dart';
@@ -115,7 +116,7 @@ class DebtPlanningSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return ResponsiveBottomSheetBody(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,

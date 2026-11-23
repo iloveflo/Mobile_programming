@@ -23,20 +23,73 @@ class CreditProfileModel {
     this.updatedAt,
   });
 
-  factory CreditProfileModel.fromJson(Map<String, dynamic> json) {
+  factory CreditProfileModel.fromJson(Map<String, dynamic> rawJson) {
+    final dynamic nested = rawJson['data'];
+    final Map<String, dynamic> json = nested is Map<String, dynamic>
+        ? nested
+        : (nested is Map ? Map<String, dynamic>.from(nested) : rawJson);
+
+    int parseInt(dynamic val, [int fallback = 0]) {
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? fallback;
+      return fallback;
+    }
+
+    int? parseNullableInt(dynamic val) {
+      if (val == null) return null;
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val);
+      return null;
+    }
+
+    double? parseDouble(dynamic val) {
+      if (val == null) return null;
+      if (val is num) return val.toDouble();
+      if (val is String) return double.tryParse(val);
+      return null;
+    }
+
+    DateTime? parseDate(dynamic val) {
+      if (val == null) return null;
+      if (val is DateTime) return val.toLocal();
+      return DateTime.tryParse(val.toString())?.toLocal();
+    }
+
+    final bool isBackendDto =
+        json.containsKey('risk_tier') || json.containsKey('calculated_at');
+    double? normalizeRatio(double? v) =>
+        (v != null && (isBackendDto || v > 1.5)) ? v / 100.0 : v;
+
     return CreditProfileModel(
-      id: json['profile_id'] as int,
-      userId: json['user_id'] as int,
-      creditScore: json['credit_score'] as int?,
-      dtiRatio: (json['dti_ratio'] as num?)?.toDouble(),
-      ltvRatio: (json['ltv_ratio'] as num?)?.toDouble(),
-      creditUtilization: (json['credit_utilization'] as num?)?.toDouble(),
-      onTimePaymentRate: (json['on_time_payment_rate'] as num?)?.toDouble(),
-      activeLoanCount: json['active_loan_count'] as int? ?? 0,
-      riskLevel: json['risk_level'] as String?,
-      updatedAt: json['updated_at'] == null
-          ? null
-          : DateTime.parse(json['updated_at'] as String),
+      id: parseInt(json['profile_id'] ?? json['id']),
+      userId: parseInt(json['user_id'] ?? json['userId']),
+      creditScore: parseNullableInt(
+        json['credit_score'] ?? json['creditScore'],
+      ),
+      dtiRatio: normalizeRatio(
+        parseDouble(json['dti_ratio'] ?? json['dtiRatio']),
+      ),
+      ltvRatio: normalizeRatio(
+        parseDouble(json['ltv_ratio'] ?? json['ltvRatio']),
+      ),
+      creditUtilization: parseDouble(
+        json['credit_utilization'] ??
+            json['creditUtilization'] ??
+            json['credit_utilization_ratio'],
+      ),
+      onTimePaymentRate: parseDouble(
+        json['on_time_payment_rate'] ??
+            json['onTimePaymentRate'] ??
+            json['payment_history_score'],
+      ),
+      activeLoanCount: parseInt(
+        json['active_loan_count'] ?? json['activeLoanCount'],
+      ),
+      riskLevel: (json['risk_level'] ?? json['risk_tier'] ?? json['riskLevel'])
+          ?.toString(),
+      updatedAt: parseDate(
+        json['updated_at'] ?? json['calculated_at'] ?? json['updatedAt'],
+      ),
     );
   }
 

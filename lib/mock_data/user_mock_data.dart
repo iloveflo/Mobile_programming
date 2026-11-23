@@ -1,4 +1,3 @@
-import '../models/bank_account_model.dart';
 import '../models/user_model.dart';
 
 class UserMockData {
@@ -22,22 +21,6 @@ class UserMockData {
       cicScore: 745,
       isBiometricEnabled: true,
       isAutoLockEnabled: true,
-      bankAccounts: const [
-        BankAccountModel(
-          id: 'acc_1',
-          bankName: 'Techcombank',
-          accountNumber: '190382918888',
-          accountHolderName: 'NGUYEN VAN DEV',
-          isDefaultDisbursal: true,
-        ),
-        BankAccountModel(
-          id: 'acc_2',
-          bankName: 'Vietcombank',
-          accountNumber: '007100129999',
-          accountHolderName: 'NGUYEN VAN DEV',
-          isAutoDebit: true,
-        ),
-      ],
       createdAt: DateTime(2026, 1, 5, 9),
       updatedAt: DateTime(2026, 9, 1, 8),
       token: 'mock_token_123',

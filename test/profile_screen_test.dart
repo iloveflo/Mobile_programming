@@ -41,10 +41,6 @@ void main() {
           find.text('Hồ sơ năng lực tài chính & Thu nhập'),
           findsOneWidget,
         );
-        expect(
-          find.text('Tài khoản thụ hưởng & Nhận giải ngân'),
-          findsOneWidget,
-        );
         expect(find.text('Hồ sơ tín nhiệm tín dụng CIC'), findsOneWidget);
         expect(find.text('Hành động & Bảo mật hồ sơ'), findsOneWidget);
 
@@ -77,7 +73,6 @@ void main() {
             ekycTier: null,
             membershipTier: 'STANDARD',
             cicScore: null,
-            bankAccounts: [],
           ),
         );
 
@@ -99,10 +94,6 @@ void main() {
         // Thẻ định danh pháp lý & hồ sơ chưa điền
         expect(find.text('Chưa cập nhật CCCD'), findsOneWidget);
         expect(find.text('Chưa cập nhật địa chỉ'), findsOneWidget);
-        expect(
-          find.text('Chưa liên kết tài khoản nhận giải ngân'),
-          findsOneWidget,
-        );
         expect(find.text('Chưa có báo cáo'), findsOneWidget);
 
         // Không còn sót bất kỳ dữ liệu hardcode giả lập nào

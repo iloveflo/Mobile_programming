@@ -1,5 +1,4 @@
 import '../../models/auth_token_model.dart';
-import '../../models/bank_account_model.dart';
 import '../../models/session_model.dart';
 import '../../models/user_model.dart';
 
@@ -99,6 +98,9 @@ abstract class AuthRepository {
   /// Yêu cầu gửi lại mã OTP tới số điện thoại/email
   Future<void> resendOtp();
 
+  /// Yêu cầu gửi mã OTP khôi phục mật khẩu tới Email hoặc SĐT đã đăng ký
+  Future<void> requestForgotPasswordOtp(String identifier);
+
   /// Đặt mật khẩu mới sau khi đã xác thực OTP thành công (Quên mật khẩu)
   Future<void> resetPassword({required String newPassword});
 
@@ -126,23 +128,20 @@ abstract class AuthRepository {
     bool? isAutoLockEnabled,
   });
 
-  /// Lấy danh sách tài khoản ngân hàng liên kết của người dùng
-  Future<List<BankAccountModel>> getBankAccounts();
-
-  /// Thêm mới tài khoản ngân hàng liên kết
-  Future<BankAccountModel> addBankAccount(Map<String, dynamic> accountData);
-
-  /// Xóa tài khoản ngân hàng liên kết theo mã định danh
-  Future<void> deleteBankAccount(String accountId);
-
   /// Xuất báo cáo tóm tắt hồ sơ năng lực tài chính dưới dạng tệp PDF
   Future<String> exportFinancialProfilePdf();
+
+  /// Tải trực tiếp dữ liệu nhị phân PDF hồ sơ năng lực tài chính về thiết bị (không đẩy lên R2)
+  Future<List<int>> downloadFinancialProfilePdfBytes();
 
   /// Gửi yêu cầu xác thực / cập nhật định danh điện tử eKYC C06
   Future<UserModel> verifyEkyc({
     required String idCardNumber,
     required String frontCardUrl,
     required String backCardUrl,
+    String? fullName,
+    String? dateOfBirth,
+    String? address,
   });
 
   /// Đăng xuất, hủy phiên làm việc hiện tại

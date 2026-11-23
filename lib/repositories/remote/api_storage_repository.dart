@@ -2,11 +2,30 @@ import '../../core/network/api_client.dart';
 import '../../models/storage_upload_model.dart';
 import '../interfaces/storage_repository.dart';
 
+class _CachedPresignedViewUrl {
+  final String url;
+  final DateTime expiresAt;
+
+  const _CachedPresignedViewUrl({required this.url, required this.expiresAt});
+
+  bool get isValid => DateTime.now().isBefore(expiresAt);
+}
+
 /// Triển khai thực tế của StorageRepository kết nối Backend Express và Cloudflare R2
 class ApiStorageRepository implements StorageRepository {
   final ApiClient client;
+  final Map<String, _CachedPresignedViewUrl> _viewUrlCache = {};
+  final Map<String, Future<String>> _inFlightViewUrls = {};
 
   ApiStorageRepository({required this.client});
+
+  String _cacheKey(String fileKey) => '${client.authToken ?? ''}|$fileKey';
+
+  /// Xóa bộ nhớ đệm Presigned View URL trong RAM
+  void clearViewUrlCache() {
+    _viewUrlCache.clear();
+    _inFlightViewUrls.clear();
+  }
 
   @override
   Future<PresignedUploadUrlModel> getPresignedUploadUrl({
@@ -84,6 +103,40 @@ class ApiStorageRepository implements StorageRepository {
     required String fileKey,
     int expiresInSeconds = 600,
   }) async {
+    if (fileKey.startsWith('http://') || fileKey.startsWith('https://')) {
+      return fileKey;
+    }
+
+    final key = _cacheKey(fileKey);
+    final cached = _viewUrlCache[key];
+    if (cached != null && cached.isValid) {
+      return cached.url;
+    }
+    _viewUrlCache.remove(key);
+
+    final inFlight = _inFlightViewUrls[key];
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final future = _fetchAndCacheViewUrl(
+      cacheKey: key,
+      fileKey: fileKey,
+      expiresInSeconds: expiresInSeconds,
+    );
+    _inFlightViewUrls[key] = future;
+    try {
+      return await future;
+    } finally {
+      _inFlightViewUrls.remove(key);
+    }
+  }
+
+  Future<String> _fetchAndCacheViewUrl({
+    required String cacheKey,
+    required String fileKey,
+    required int expiresInSeconds,
+  }) async {
     final response = await client.get(
       '/api/storage/view-url',
       queryParams: {
@@ -93,8 +146,27 @@ class ApiStorageRepository implements StorageRepository {
     );
 
     if (response is Map<String, dynamic>) {
-      final viewUrl = response['view_url'] ?? response['url'];
-      if (viewUrl != null) return viewUrl.toString();
+      final viewUrl =
+          response['view_url'] ??
+          (response['data'] is Map ? response['data']['view_url'] : null) ??
+          response['url'];
+      if (viewUrl != null) {
+        final urlStr = viewUrl.toString();
+        if (urlStr.startsWith('http://') || urlStr.startsWith('https://')) {
+          final bufferSeconds = expiresInSeconds > 90
+              ? 60
+              : (expiresInSeconds ~/ 4);
+          final ttlSeconds = expiresInSeconds - bufferSeconds;
+          if (ttlSeconds > 0) {
+            _viewUrlCache.removeWhere((_, entry) => !entry.isValid);
+            _viewUrlCache[cacheKey] = _CachedPresignedViewUrl(
+              url: urlStr,
+              expiresAt: DateTime.now().add(Duration(seconds: ttlSeconds)),
+            );
+          }
+        }
+        return urlStr;
+      }
     }
     return fileKey;
   }
@@ -147,5 +219,27 @@ class ApiStorageRepository implements StorageRepository {
         e.toString().replaceAll('Exception: ', ''),
       );
     }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> listUploadedFiles({String? folder}) async {
+    final response = await client.get(
+      '/api/storage/files',
+      queryParams: folder != null ? {'folder': folder} : null,
+    );
+    final list = response is List
+        ? response
+        : (response is Map<String, dynamic>
+              ? (response['data'] as List? ?? [])
+              : []);
+    return list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+  }
+
+  @override
+  Future<void> deleteFile(String fileKey) async {
+    _viewUrlCache.remove(_cacheKey(fileKey));
+    await client.delete(
+      '/api/storage/file?file_key=${Uri.encodeComponent(fileKey)}',
+    );
   }
 }

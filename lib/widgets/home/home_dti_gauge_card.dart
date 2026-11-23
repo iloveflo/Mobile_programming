@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../controllers/loan_controller.dart';
+import '../../models/credit_profile_model.dart';
 import '../../models/user_model.dart';
 import '../widget.dart';
 
@@ -8,12 +9,14 @@ import '../widget.dart';
 class HomeDtiGaugeCard extends StatelessWidget {
   final UserModel? user;
   final LoanController loanController;
+  final CreditProfileModel? creditProfile;
   final VoidCallback onTap;
 
   const HomeDtiGaugeCard({
     super.key,
     required this.user,
     required this.loanController,
+    this.creditProfile,
     required this.onTap,
   });
 
@@ -32,8 +35,18 @@ class HomeDtiGaugeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double income = user?.monthlyIncome ?? 0.0;
-    final double commitment = loanController.totalMonthlyCommitment;
-    final double dtiPercent = income > 0 ? (commitment / income) * 100 : 0.0;
+    final double? backendDti =
+        (creditProfile != null &&
+            creditProfile!.dtiRatio != null &&
+            (user == null || creditProfile!.userId == user!.userId))
+        ? creditProfile!.dtiRatio
+        : null;
+    final double commitment = (backendDti != null && income > 0)
+        ? (backendDti * income)
+        : loanController.totalMonthlyCommitment;
+    final double dtiPercent = backendDti != null
+        ? (backendDti * 100.0)
+        : (income > 0 ? (commitment / income) * 100 : 0.0);
 
     final String statusLabel;
     final Color statusColor;
@@ -99,26 +112,32 @@ class HomeDtiGaugeCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
-                  children: [
-                    Text(
-                      'Chỉ số gánh nặng nợ (DTI)',
-                      style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                const Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'Chỉ số gánh nặng nợ (DTI)',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 4.0),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 18.0,
-                      color: AppColors.textSecondary,
-                    ),
-                  ],
+                      SizedBox(width: 4.0),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18.0,
+                        color: AppColors.textSecondary,
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8.0),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8.0,
@@ -181,22 +200,27 @@ class HomeDtiGaugeCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6.0),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '0% (An toàn)',
-                  style: TextStyle(fontSize: 10.0, color: Color(0xFF16A34A)),
-                ),
-                Text(
-                  '40% (Ngưỡng)',
-                  style: TextStyle(fontSize: 10.0, color: Color(0xFF0891B2)),
-                ),
-                Text(
-                  '100% (Rủi ro)',
-                  style: TextStyle(fontSize: 10.0, color: Color(0xFFDC2626)),
-                ),
-              ],
+            const SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                spacing: 8.0,
+                runSpacing: 4.0,
+                alignment: WrapAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '0% (An toàn)',
+                    style: TextStyle(fontSize: 10.0, color: Color(0xFF16A34A)),
+                  ),
+                  Text(
+                    '40% (Ngưỡng)',
+                    style: TextStyle(fontSize: 10.0, color: Color(0xFF0891B2)),
+                  ),
+                  Text(
+                    '100% (Rủi ro)',
+                    style: TextStyle(fontSize: 10.0, color: Color(0xFFDC2626)),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 10.0),
             Text(

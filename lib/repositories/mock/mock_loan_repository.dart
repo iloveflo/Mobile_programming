@@ -408,6 +408,12 @@ class MockLoanRepository implements LoanRepository {
   }
 
   @override
+  Future<void> deleteCollateral(int assetId) async {
+    await _simulateDelay(200, 400);
+    _assets.removeWhere((a) => a.id == assetId);
+  }
+
+  @override
   Future<Map<String, dynamic>> scanDocumentOcr(String imagePath) async {
     // Giả lập quét OCR xử lý AI từ 1000 - 1500ms
     await _simulateDelay(1000, 1500);

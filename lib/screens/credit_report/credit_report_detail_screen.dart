@@ -49,6 +49,65 @@ class _CreditReportDetailScreenState extends State<CreditReportDetailScreen> {
     }
   }
 
+  Future<void> _handleDeleteCurrentReport() async {
+    final report = _controller.selectedReport;
+    if (report == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        title: const Text(
+          'Xóa báo cáo tín dụng?',
+          style: TextStyle(fontSize: 17.0, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'Bạn có chắc muốn xóa báo cáo kỳ ${report.reportPeriod ?? ''} để lập lại dữ liệu mới nhất không?',
+          style: const TextStyle(
+            fontSize: 14.0,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            child: const Text('Xóa báo cáo'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+    final success = await _controller.deleteReport(
+      report.id,
+      userId: _authController.currentUser?.userId,
+    );
+    if (!mounted) return;
+    if (success) {
+      AppSnackBar.showSuccess(
+        context,
+        'Đã xóa báo cáo kỳ ${report.reportPeriod ?? ''}.',
+      );
+      Navigator.pop(context);
+    } else {
+      AppSnackBar.showError(
+        context,
+        _controller.errorMessage ?? 'Không thể xóa báo cáo.',
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -72,6 +131,24 @@ class _CreditReportDetailScreenState extends State<CreditReportDetailScreen> {
             color: AppColors.textPrimary,
           ),
         ),
+        actions: [
+          ListenableBuilder(
+            listenable: _controller,
+            builder: (context, _) {
+              if (_controller.selectedReport == null) {
+                return const SizedBox.shrink();
+              }
+              return IconButton(
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.error,
+                ),
+                tooltip: 'Xóa báo cáo kỳ này',
+                onPressed: _handleDeleteCurrentReport,
+              );
+            },
+          ),
+        ],
       ),
       body: ListenableBuilder(
         listenable: _controller,

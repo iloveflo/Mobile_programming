@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../controllers/loan_controller.dart';
+import '../../layout/responsive_layout.dart';
 import '../../models/loan_model.dart';
 import '../widget.dart';
 
@@ -69,7 +70,7 @@ class _EarlyPayoffModalState extends State<EarlyPayoffModal> {
     final double penaltyAmount = principal * penaltyRate;
     final double totalPayoff = principal + accruedInterest + penaltyAmount;
 
-    return Padding(
+    return ResponsiveBottomSheetBody(
       padding: const EdgeInsets.all(20.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -83,15 +84,18 @@ class _EarlyPayoffModalState extends State<EarlyPayoffModal> {
                 size: 24.0,
               ),
               const SizedBox(width: 8.0),
-              const Text(
-                'Tất toán khoản vay trước hạn',
-                style: TextStyle(
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Tất toán khoản vay trước hạn',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
-              const Spacer(),
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.pop(context),
@@ -114,84 +118,116 @@ class _EarlyPayoffModalState extends State<EarlyPayoffModal> {
             child: Column(
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Dư nợ gốc còn lại:',
-                      style: TextStyle(
-                        fontSize: 13.0,
-                        color: AppColors.textSecondary,
+                    const Expanded(
+                      child: Text(
+                        'Dư nợ gốc còn lại:',
+                        style: TextStyle(
+                          fontSize: 13.0,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
-                    Text(
-                      _formatCurrency(principal),
-                      style: const TextStyle(
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.bold,
+                    const SizedBox(width: 8.0),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          _formatCurrency(principal),
+                          style: const TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8.0),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Lãi phát sinh kỳ này:',
-                      style: TextStyle(
-                        fontSize: 13.0,
-                        color: AppColors.textSecondary,
+                    const Expanded(
+                      child: Text(
+                        'Lãi phát sinh kỳ này:',
+                        style: TextStyle(
+                          fontSize: 13.0,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
-                    Text(
-                      _formatCurrency(accruedInterest),
-                      style: const TextStyle(
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                    const SizedBox(width: 8.0),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          _formatCurrency(accruedInterest),
+                          style: const TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8.0),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Phí phạt trả sớm (${(penaltyRate * 100).toStringAsFixed(1)}%):',
-                      style: const TextStyle(
-                        fontSize: 13.0,
-                        color: AppColors.textSecondary,
+                    Expanded(
+                      child: Text(
+                        'Phí phạt trả sớm (${(penaltyRate * 100).toStringAsFixed(1)}%):',
+                        style: const TextStyle(
+                          fontSize: 13.0,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
-                    Text(
-                      _formatCurrency(penaltyAmount),
-                      style: const TextStyle(
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.warning,
+                    const SizedBox(width: 8.0),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          _formatCurrency(penaltyAmount),
+                          style: const TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.warning,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const Divider(height: 20.0, color: AppColors.border),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Tổng tiền cần thanh toán:',
-                      style: TextStyle(
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
+                    const Expanded(
+                      child: Text(
+                        'Tổng tiền cần thanh toán:',
+                        style: TextStyle(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
-                    Text(
-                      _formatCurrency(totalPayoff),
-                      style: const TextStyle(
-                        fontSize: 18.0,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
+                    const SizedBox(width: 8.0),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          _formatCurrency(totalPayoff),
+                          style: const TextStyle(
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ),
                     ),
                   ],

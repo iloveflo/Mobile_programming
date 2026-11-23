@@ -60,17 +60,21 @@ class HomeHeroCard extends StatelessWidget {
         children: [
           // Tiêu đề & Nút Ẩn/Hiện con mắt (Tối ưu với ValueNotifier)
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'TỔNG DƯ NỢ HIỆN TẠI',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                  color: Color(0xFFBFDBFE),
+              const Expanded(
+                child: Text(
+                  'TỔNG DƯ NỢ HIỆN TẠI',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: Color(0xFFBFDBFE),
+                  ),
                 ),
               ),
+              const SizedBox(width: 8.0),
               ValueListenableBuilder<bool>(
                 valueListenable: isBalanceHidden,
                 builder: (context, isHidden, _) {
@@ -128,16 +132,20 @@ class HomeHeroCard extends StatelessWidget {
 
           // Thanh tiến độ trả nợ tổng thể
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Tiến độ danh mục: Đã trả $percentInt%',
-                style: const TextStyle(
-                  fontSize: 12.0,
-                  color: Color(0xFFE0E7FF),
-                  fontWeight: FontWeight.w500,
+              Expanded(
+                child: Text(
+                  'Tiến độ danh mục: Đã trả $percentInt%',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12.0,
+                    color: Color(0xFFE0E7FF),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8.0),
               // Chip Điểm CIC mô phỏng
               Container(
                 padding: const EdgeInsets.symmetric(

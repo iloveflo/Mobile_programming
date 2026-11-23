@@ -6,6 +6,7 @@ import '../../models/notification_preference_model.dart';
 import '../../models/session_model.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
+import '../../services/biometric_auth_service.dart';
 import '../../services/cache_service.dart';
 import '../../widgets/widget.dart';
 
@@ -111,14 +112,31 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   }
 
   Future<void> _handleToggleBiometric(bool val) async {
+    if (val) {
+      final bioResult = await sl<BiometricAuthService>()
+          .authenticateFingerprint(
+            reason:
+                'Quét vân tay để bật đăng nhập nhanh trên thiết bị Android này',
+          );
+      if (!mounted) return;
+      if (!bioResult.isSuccess) {
+        AppSnackBar.showError(
+          context,
+          bioResult.errorMessage ??
+              'Không thể kích hoạt vân tay. Vui lòng kiểm tra cảm biến vân tay của thiết bị.',
+        );
+        return;
+      }
+    }
+
     final success = await _authController.setBiometricEnabled(val);
     if (!mounted) return;
     if (success) {
       AppSnackBar.showSuccess(
         context,
         val
-            ? 'Đã bật xác thực sinh trắc học thành công!'
-            : 'Đã tắt xác thực sinh trắc học.',
+            ? 'Đã bật xác thực vân tay thành công!'
+            : 'Đã tắt xác thực vân tay.',
       );
     } else if (_authController.errorMessage != null) {
       AppSnackBar.showError(context, _authController.errorMessage!);
@@ -315,6 +333,22 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         listenable: Listenable.merge([_authController, _scheduleController]),
         builder: (context, _) {
           final sessions = _authController.activeSessions;
+          if (_authController.currentUser == null ||
+              (_scheduleController.errorMessage != null &&
+                  _scheduleController.preference == null &&
+                  sessions.isEmpty)) {
+            return ConnectionErrorView(
+              message:
+                  _scheduleController.errorMessage ??
+                  _authController.errorMessage,
+              onRetry: () {
+                _authController.loadSessions();
+                _scheduleController.loadNotificationPreference(
+                  userId: _authController.currentUser?.userId,
+                );
+              },
+            );
+          }
 
           // Tính toán điểm sức khỏe bảo mật tài khoản dựa trên sinh trắc học
           final int score = _authController.biometricEnabled ? 95 : 75;
@@ -354,26 +388,32 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Row(
-                          children: [
-                            Icon(
-                              Icons.security_rounded,
-                              color: Colors.white,
-                              size: 22.0,
-                            ),
-                            SizedBox(width: 8.0),
-                            Text(
-                              'Sức khỏe bảo mật tài khoản',
-                              style: TextStyle(
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w600,
+                        const Expanded(
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.security_rounded,
                                 color: Colors.white,
+                                size: 22.0,
                               ),
-                            ),
-                          ],
+                              SizedBox(width: 8.0),
+                              Expanded(
+                                child: Text(
+                                  'Sức khỏe bảo mật tài khoản',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8.0),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10.0,
@@ -398,25 +438,38 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          '$score',
-                          style: const TextStyle(
-                            fontSize: 36.0,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '$score',
+                                  style: const TextStyle(
+                                    fontSize: 36.0,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const Text(
+                                  ' / 100 Điểm',
+                                  style: TextStyle(
+                                    fontSize: 16.0,
+                                    color: Color(0xFFBFDBFE),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        const Text(
-                          ' / 100 Điểm',
-                          style: TextStyle(
-                            fontSize: 16.0,
-                            color: Color(0xFFBFDBFE),
+                        const SizedBox(width: 8.0),
+                        const Flexible(
+                          child: SecurityBadge(
+                            title: 'CHUẨN CIC',
+                            protocol: 'TLS 1.3',
                           ),
-                        ),
-                        const Spacer(),
-                        const SecurityBadge(
-                          title: 'CHUẨN CIC',
-                          protocol: 'TLS 1.3',
                         ),
                       ],
                     ),
@@ -447,7 +500,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                       activeThumbColor: AppColors.primary,
                       activeTrackColor: AppColors.primarySoft,
                       title: const Text(
-                        'Sinh trắc học (Vân tay / Face ID)',
+                        'Sinh trắc học (Vân tay)',
                         style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w600,
@@ -491,9 +544,11 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
               // 3. Nhóm: Quản lý Phiên đăng nhập thiết bị
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildSectionHeader('Phiên đăng nhập thiết bị'),
+                  Expanded(
+                    child: _buildSectionHeader('Phiên đăng nhập thiết bị'),
+                  ),
+                  const SizedBox(width: 8.0),
                   Padding(
                     padding: const EdgeInsets.only(right: 4.0, bottom: 8.0),
                     child: Text(
@@ -783,7 +838,15 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   }
 
   Widget _buildSessionTile(SessionModel session) {
+    final rawName = session.deviceName.replaceAll(
+      RegExp(r'\s*\([0-9a-fA-F]{6,12}\)$'),
+      '',
+    );
+    final cleanDeviceName = rawName
+        .replaceAll('Android Device', 'Thiết bị Android')
+        .replaceAll('iOS Device', 'Thiết bị iOS');
     return ListTile(
+      titleAlignment: ListTileTitleAlignment.center,
       leading: CircleAvatar(
         backgroundColor: session.isCurrent
             ? AppColors.success.withValues(alpha: 0.12)
@@ -801,7 +864,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         children: [
           Flexible(
             child: Text(
-              session.deviceName,
+              cleanDeviceName,
               style: const TextStyle(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w600,

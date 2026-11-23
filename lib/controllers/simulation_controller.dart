@@ -519,14 +519,39 @@ class SimulationController extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteSimulation(int simulationId) async {
+  /// Khôi phục ngữ cảnh khoản vay và loại kịch bản từ một bản ghi đã lưu.
+  /// Trả về `true` nếu tìm thấy khoản vay tương ứng trong danh sách khả dụng.
+  bool applySavedSimulation(SimulationModel sim) {
+    final matchingLoans = _validLoans.where((l) => l.id == sim.loanId);
+    final hasMatchingLoan = matchingLoans.isNotEmpty;
+    if (hasMatchingLoan) {
+      _selectedLoan = matchingLoans.first;
+      _syncDefaultInputsForSelectedLoan();
+    }
+
+    _selectedScenario = sim.type;
+    if (sim.type == SimulationScenarioType.extraPayment &&
+        sim.extraPayment > 0) {
+      _extraPayment = sim.extraPayment;
+    }
+
+    _calculateSimulation();
+    notifyListeners();
+    return hasMatchingLoan;
+  }
+
+  Future<bool> deleteSimulation(int simulationId) async {
+    _errorMessage = null;
     try {
       await _simulationRepository.deleteSimulation(simulationId);
       _savedSimulations.removeWhere((s) => s.id == simulationId);
       notifyListeners();
+      return true;
     } catch (e) {
-      _errorMessage = 'Không thể xóa kịch bản: $e';
+      _errorMessage =
+          'Không thể xóa kịch bản: ${e.toString().replaceAll('Exception: ', '')}';
       notifyListeners();
+      return false;
     }
   }
 }

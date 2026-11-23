@@ -51,11 +51,26 @@ class ApiSimulationRepository implements SimulationRepository {
       if (res is List) {
         return res
             .map(
-              (item) => SimulationModel.fromJson(item as Map<String, dynamic>),
+              (item) => SimulationModel.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
             )
             .toList();
+      } else if (res is Map<String, dynamic>) {
+        final rawList = res['data'] is List
+            ? res['data'] as List
+            : (res['simulations'] is List ? res['simulations'] as List : null);
+        if (rawList != null) {
+          return rawList
+              .map(
+                (item) => SimulationModel.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .toList();
+        }
       }
-      return [];
+      return <SimulationModel>[];
     });
   }
 
@@ -63,7 +78,15 @@ class ApiSimulationRepository implements SimulationRepository {
   Future<SimulationModel> saveSimulation(SimulationModel simulation) async {
     return _handleApiCall<SimulationModel>(() async {
       final res = await client.post('/simulations', body: simulation.toJson());
-      return SimulationModel.fromJson(res as Map<String, dynamic>);
+      if (res is Map<String, dynamic>) {
+        final data = res['data'] is Map<String, dynamic>
+            ? res['data'] as Map<String, dynamic>
+            : (res['data'] is Map
+                  ? Map<String, dynamic>.from(res['data'] as Map)
+                  : res);
+        return SimulationModel.fromJson(data);
+      }
+      throw Exception('Phản hồi dữ liệu mô phỏng không hợp lệ.');
     });
   }
 

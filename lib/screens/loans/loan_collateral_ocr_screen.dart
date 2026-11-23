@@ -1,10 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
+import '../../controllers/auth_controller.dart';
 import '../../controllers/loan_controller.dart';
 import '../../models/collateral_model.dart';
+import '../../repositories/interfaces/storage_repository.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
+import '../../services/collateral_scanner_service.dart';
 import '../../services/image_upload_service.dart';
+import '../../services/loan_contract_scanner_service.dart';
 import '../../widgets/widget.dart';
 
 /// Màn hình L02-04: Quản lý Tài sản bảo đảm & Bóc tách hợp đồng bằng OCR (LoanCollateralOcrScreen)
@@ -24,17 +30,37 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
   final LoanController _loanController = sl<LoanController>();
 
   Map<String, dynamic>? _ocrResult;
-  String? _uploadedFileKey;
+  String? _localImagePath;
   bool _isScanning = false;
-  String _selectedDocumentType = 'Hợp đồng tín dụng Techcombank';
+  bool _hasConnectionError = false;
+  String? _connectionErrorMessage;
+  String _selectedDocumentCategory =
+      LoanContractScannerService.categoryLoanContract;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loanController.fetchCollaterals(widget.loanId);
+      _loadInitialData();
     });
+  }
+
+  Future<void> _loadInitialData() async {
+    if (_hasConnectionError) {
+      setState(() {
+        _hasConnectionError = false;
+        _connectionErrorMessage = null;
+      });
+    }
+    await _loanController.fetchCollaterals(widget.loanId);
+    if (!mounted) return;
+    if (_loanController.errorMessage != null) {
+      setState(() {
+        _hasConnectionError = true;
+        _connectionErrorMessage = _loanController.errorMessage;
+      });
+    }
   }
 
   @override
@@ -70,61 +96,79 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
 
   Future<void> _handleScanOcr() async {
     final imageUploadService = sl<ImageUploadService>();
+    final contractScanner = sl<LoanContractScannerService>();
 
     // 1. Cho phép người dùng chụp ảnh hợp đồng từ Camera hoặc chọn từ Thư viện
-    // 2. Tự động nén và tải lên Private Bucket trên Cloudflare R2 theo luồng Presigned URL
-    final uploadResult = await imageUploadService.pickAndUploadImage(
+    final pickedFile = await imageUploadService.pickImageOnly(
       context,
-      folder: 'contracts/ocr',
-      filePrefix: 'contract_scan',
-      isPublic: false,
       title: 'Chụp hoặc chọn ảnh hợp đồng',
     );
-
-    if (uploadResult == null) {
-      return;
-    }
-
-    if (!uploadResult.isSuccess) {
-      if (mounted) {
-        AppSnackBar.showError(
-          context,
-          uploadResult.errorMessage ??
-              'Không thể tải ảnh hợp đồng lên máy chủ.',
-        );
-      }
-      return;
-    }
+    if (pickedFile == null) return;
 
     setState(() {
       _isScanning = true;
     });
 
-    // 3. Gửi fileKey / URL của hợp đồng đã lưu trên R2 sang Backend OCR để bóc tách dữ liệu
-    final result = await _loanController.processOcr(
-      uploadResult.fileKey ?? 'contract_scan.jpg',
-    );
+    try {
+      // 2. Quét OCR ngay trên thiết bị bằng Google ML Kit (chưa tải lên R2 cho đến khi tạo khoản vay thành công)
+      LoanContractScanResult? localScan;
+      try {
+        localScan = await contractScanner.scanContractImage(
+          pickedFile.path,
+          documentCategory: _selectedDocumentCategory,
+        );
+      } catch (_) {}
 
-    if (mounted) {
+      final Map<String, dynamic>? mergedResult =
+          (localScan != null && localScan.isValid)
+          ? {
+              ...localScan.toPrefilledMap(),
+              'local_contract_image_path': pickedFile.path,
+            }
+          : null;
+
+      if (!mounted) return;
+      if (mergedResult == null) {
+        setState(() {
+          _isScanning = false;
+        });
+        AppSnackBar.showError(
+          context,
+          'Không nhận diện được thông tin hợp đồng từ ảnh. Vui lòng chụp lại rõ nét hơn.',
+        );
+        return;
+      }
+
       setState(() {
         _isScanning = false;
-        _ocrResult = result;
-        _uploadedFileKey = uploadResult.fileKey;
+        _ocrResult = mergedResult;
+        _localImagePath = pickedFile.path;
       });
-      if (result != null) {
-        AppSnackBar.showSuccess(
+      AppSnackBar.showSuccess(
+        context,
+        'Đã bóc tách thông tin hợp đồng thành công!',
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isScanning = false;
+        });
+        AppSnackBar.showError(
           context,
-          'Tải lên chứng từ & bóc tách hợp đồng thành công!',
+          'Lỗi khi quét hợp đồng: ${e.toString().replaceAll('Exception: ', '')}',
         );
       }
     }
   }
 
   void _showAddCollateralDialog() {
-    AddCollateralDialog.show(
+    QuickAddCollateralSheet.show(
       context,
       loanController: _loanController,
       loanId: widget.loanId,
+      onCollateralAdded: (_) {
+        _loanController.fetchCollaterals(widget.loanId);
+      },
     );
   }
 
@@ -186,10 +230,28 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
       listenable: _loanController,
       builder: (context, _) {
         final collaterals = _loanController.collaterals;
+        if (_hasConnectionError && !_loanController.isLoading) {
+          return ConnectionErrorView(
+            message: _connectionErrorMessage,
+            onRetry: _loadInitialData,
+          );
+        }
         final totalCollateralVal = _loanController.totalCollateralValue > 0
             ? _loanController.totalCollateralValue
             : collaterals.fold(0.0, (sum, c) => sum + c.value);
-        final double ltv = _loanController.portfolioLtvRatio;
+        double outstandingForLtv = _loanController.portfolioSecuredDebt;
+        double ltv = _loanController.portfolioLtvRatio;
+        if (widget.loanId != null) {
+          final targetLoan = _loanController.loans
+              .where((l) => l.id.toString() == widget.loanId)
+              .firstOrNull;
+          if (targetLoan != null) {
+            outstandingForLtv = targetLoan.outstandingAmount;
+            ltv = totalCollateralVal > 0
+                ? (outstandingForLtv / totalCollateralVal).clamp(0.0, 2.0)
+                : 0.0;
+          }
+        }
 
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
@@ -199,23 +261,28 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
               // Thanh LTV tổng thể
               LtvIndicatorBar(
                 ltvRatio: ltv,
-                outstandingAmount: _loanController.totalRemainingPrincipal,
+                outstandingAmount: outstandingForLtv,
                 collateralValue: totalCollateralVal,
+                debtLabel: widget.loanId == null ? 'Dư nợ có TSBĐ' : 'Dư nợ',
               ),
               const SizedBox(height: 18.0),
 
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'DANH SÁCH TÀI SẢN BẢO ĐẢM',
-                    style: TextStyle(
-                      fontSize: 12.0,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
-                      letterSpacing: 0.8,
+                  const Expanded(
+                    child: Text(
+                      'DANH SÁCH TÀI SẢN BẢO ĐẢM',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.0,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                        letterSpacing: 0.8,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8.0),
                   TextButton.icon(
                     onPressed: _showAddCollateralDialog,
                     icon: const Icon(Icons.add, size: 16.0),
@@ -355,433 +422,668 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
                   ],
                 ),
               ),
+              IconButton(
+                tooltip: 'Xóa tài sản bảo đảm',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _handleDeleteCollateral(item),
+                icon: const Icon(
+                  Icons.delete_forever_outlined,
+                  color: AppColors.error,
+                  size: 20.0,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10.0),
           const Divider(height: 1.0, color: AppColors.border),
           const SizedBox(height: 8.0),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  side: const BorderSide(color: AppColors.border),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10.0,
-                    vertical: 4.0,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                ),
-                onPressed: () => _handleUploadCollateralDocument(item),
-                icon: const Icon(
-                  Icons.upload_file_outlined,
-                  size: 14.0,
-                  color: AppColors.textSecondary,
-                ),
-                label: const Text(
-                  'Tải giấy tờ',
-                  style: TextStyle(
-                    fontSize: 11.0,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-              if (item.hasLegalDocument) ...[
-                const SizedBox(width: 8.0),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: AppColors.primarySoft,
-                    foregroundColor: AppColors.primary,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10.0,
-                      vertical: 4.0,
+          SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8.0,
+              runSpacing: 6.0,
+              children: [
+                if (!item.hasLegalDocument) ...[
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      side: const BorderSide(color: AppColors.border),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10.0,
+                        vertical: 4.0,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
+                    onPressed: () => _handleUploadCollateralDocument(item),
+                    icon: const Icon(
+                      Icons.upload_file_outlined,
+                      size: 14.0,
+                      color: AppColors.textSecondary,
                     ),
-                  ),
-                  onPressed: () {
-                    AppDocumentViewerModal.show(
-                      context,
-                      title: 'Giấy tờ pháp lý: ${item.name}',
-                      fileKey: item.legalDocumentUrl!,
-                      documentType: 'Giấy chứng nhận tài sản bảo đảm',
-                      ocrDetails: {
-                        'asset_name': item.name,
-                        'loai_tai_san': item.typeDisplay,
-                        'valuation_amount': item.value,
-                        'ngay_dinh_gia': item.valuationDateFormatted,
-                      },
-                    );
-                  },
-                  icon: const Icon(Icons.visibility_outlined, size: 14.0),
-                  label: const Text(
-                    'Xem giấy tờ pháp lý',
-                    style: TextStyle(
-                      fontSize: 11.0,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ] else ...[
-                const SizedBox(width: 8.0),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8.0,
-                    vertical: 5.0,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(6.0),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.remove_circle_outline,
-                        size: 13.0,
+                    label: const Text(
+                      'Tải giấy tờ',
+                      style: TextStyle(
+                        fontSize: 11.0,
                         color: AppColors.textSecondary,
                       ),
-                      SizedBox(width: 4.0),
-                      Text(
-                        'Chưa có giấy tờ',
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _handleUploadCollateralDocument(CollateralModel item) async {
-    final imageUploadService = sl<ImageUploadService>();
-    final result = await imageUploadService.pickAndUploadImage(
-      context,
-      folder: 'collaterals',
-      filePrefix: 'collateral_${item.id}',
-      isPublic: false,
-      title: 'Tải giấy tờ pháp lý tài sản',
-      metadata: {'collateral_id': item.id, 'name': item.name},
-    );
-    if (!mounted) return;
-    if (result != null && result.isSuccess) {
-      AppSnackBar.showSuccess(
-        context,
-        'Tải lên giấy tờ tài sản "${item.name}" thành công!',
-      );
-    }
-  }
-
-  // ================= TAB 2: QUÉT & BÓC TÁCH OCR =================
-  Widget _buildOcrTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Banner giới thiệu công nghệ
-          Container(
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16.0),
-            ),
-            child: const Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Color(0xFF334155),
-                  child: Icon(
-                    Icons.auto_awesome,
-                    color: Color(0xFF38BDF8),
-                    size: 22.0,
-                  ),
-                ),
-                SizedBox(width: 12.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'AI Document OCR Scanner',
-                        style: TextStyle(
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(height: 2.0),
-                      Text(
-                        'Tự động nhận diện hợp đồng tín dụng ngân hàng, bóc tách dư nợ, lãi suất và lịch trả nợ.',
-                        style: TextStyle(
-                          fontSize: 11.0,
-                          color: Color(0xFF94A3B8),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16.0),
-
-          // Chọn mẫu tài liệu mô phỏng
-          Container(
-            padding: const EdgeInsets.all(14.0),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(14.0),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Chọn tài liệu hợp đồng quét mẫu:',
-                  style: TextStyle(
-                    fontSize: 13.0,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8.0),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedDocumentType,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12.0,
-                      vertical: 10.0,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                      borderSide: const BorderSide(color: AppColors.border),
                     ),
                   ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'Hợp đồng tín dụng Techcombank',
-                      child: Text(
-                        'Hợp đồng tín dụng Techcombank (Mua nhà)',
-                        style: TextStyle(fontSize: 13.0),
-                      ),
-                    ),
-                    DropdownMenuItem(
-                      value: 'Hợp đồng vay tiêu dùng MBBank',
-                      child: Text(
-                        'Hợp đồng tiêu dùng MBBank (Mua xe)',
-                        style: TextStyle(fontSize: 13.0),
-                      ),
-                    ),
-                    DropdownMenuItem(
-                      value: 'Sao kê thẻ tín dụng VIB',
-                      child: Text(
-                        'Sao kê thẻ tín dụng VIB Super Card',
-                        style: TextStyle(fontSize: 13.0),
-                      ),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _selectedDocumentType = val);
-                    }
-                  },
-                ),
-                const SizedBox(height: 14.0),
-                AppPrimaryButton(
-                  label: 'Bắt đầu quét & bóc tách AI',
-                  isLoading: _isScanning,
-                  onPressed: _handleScanOcr,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18.0),
-
-          // Kết quả bóc tách OCR
-          if (_ocrResult != null) ...[
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16.0),
-                border: Border.all(color: AppColors.primaryLight, width: 1.5),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(
-                            Icons.verified_rounded,
-                            color: AppColors.success,
-                            size: 20.0,
-                          ),
-                          SizedBox(width: 6.0),
-                          Text(
-                            'Kết quả bóc tách',
-                            style: TextStyle(
-                              fontSize: 14.0,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8.0,
-                          vertical: 3.0,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        child: Text(
-                          'Độ tin cậy: ${((_ocrResult!['confidence_score'] ?? 0.96) * 100).round()}%',
-                          style: const TextStyle(
-                            fontSize: 11.0,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.success,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12.0),
-                  const Divider(color: AppColors.border, height: 1),
-                  const SizedBox(height: 10.0),
-
-                  _buildReviewRow(
-                    'Mã hợp đồng',
-                    _ocrResult!['contract_number']?.toString() ?? 'HD-2026/089',
-                  ),
-                  _buildReviewRow(
-                    'Tên khoản vay',
-                    _ocrResult!['loan_name']?.toString() ??
-                        'Vay mua căn hộ Masteri',
-                  ),
-                  _buildReviewRow(
-                    'Tổ chức cấp tín dụng',
-                    _ocrResult!['lender_name']?.toString() ?? 'Techcombank',
-                  ),
-                  _buildReviewRow(
-                    'Số tiền giải ngân',
-                    _formatCurrency(
-                      _ocrResult!['principal_amount'] ?? 1500000000,
-                    ),
-                    isHighlight: true,
-                  ),
-                  _buildReviewRow(
-                    'Lãi suất năm',
-                    '${_ocrResult!['interest_rate'] ?? 9.2}% / năm',
-                  ),
-                  _buildReviewRow(
-                    'Kỳ hạn vay',
-                    '${_ocrResult!['tenor_months'] ?? 120} tháng',
-                  ),
-                  _buildReviewRow(
-                    'Ngày ký kết',
-                    _ocrResult!['start_date']?.toString() ?? '15/09/2026',
-                  ),
-
-                  const SizedBox(height: 16.0),
                   Container(
-                    padding: const EdgeInsets.all(10.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 5.0,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppColors.primarySoft,
-                      borderRadius: BorderRadius.circular(8.0),
+                      color: AppColors.error.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(6.0),
                     ),
                     child: const Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.info_outline,
-                          size: 16.0,
-                          color: AppColors.primary,
+                          Icons.gpp_bad_outlined,
+                          size: 13.0,
+                          color: AppColors.error,
                         ),
-                        SizedBox(width: 8.0),
-                        Expanded(
+                        SizedBox(width: 4.0),
+                        Flexible(
                           child: Text(
-                            'Vui lòng kiểm tra lại thông tin trước khi áp dụng vào biểu mẫu tạo khoản vay.',
+                            'Chưa đủ thẩm quyền thế chấp',
                             style: TextStyle(
-                              fontSize: 11.0,
-                              color: AppColors.primary,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.error,
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 14.0),
-
-                  // Nút xem bản scan hợp đồng trên R2
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.primary),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
+                ] else ...[
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      backgroundColor: AppColors.primarySoft,
+                      foregroundColor: AppColors.primary,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10.0,
+                        vertical: 4.0,
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                     ),
                     onPressed: () {
                       AppDocumentViewerModal.show(
                         context,
-                        title: _selectedDocumentType,
-                        fileKey:
-                            _uploadedFileKey ??
-                            'contracts/loan_contract_techcombank.jpg',
-                        documentType: 'Bản scan hợp đồng tín dụng bóc tách',
-                        ocrDetails: _ocrResult,
+                        title: 'Giấy tờ pháp lý: ${item.name}',
+                        fileKey: item.legalDocumentUrl!,
+                        documentType: 'Giấy chứng nhận tài sản bảo đảm',
+                        ocrDetails: {
+                          'asset_name': item.name,
+                          'loai_tai_san': item.typeDisplay,
+                          'valuation_amount': item.value,
+                          'ngay_dinh_gia': item.valuationDateFormatted,
+                        },
                       );
                     },
-                    icon: const Icon(Icons.visibility_outlined, size: 18.0),
+                    icon: const Icon(Icons.visibility_outlined, size: 14.0),
                     label: const Text(
-                      'Xem bản scan hợp đồng gốc',
+                      'Xem giấy tờ',
                       style: TextStyle(
-                        fontSize: 13.0,
+                        fontSize: 11.0,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12.0),
-
-                  // Nút chuyển dữ liệu sang Form
-                  AppPrimaryButton(
-                    label: 'Điền tự động vào Form tạo khoản vay',
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        AppRouter.loanForm,
-                        arguments: {'prefilled': _ocrResult},
-                      );
-                    },
+                  const SizedBox(width: 4.0),
+                  IconButton(
+                    tooltip: 'Xóa giấy tờ khỏi R2',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _handleDeleteCollateralDocument(item),
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      size: 18.0,
+                      color: AppColors.error,
+                    ),
                   ),
                 ],
-              ),
+              ],
             ),
-          ],
-          const SizedBox(height: 30.0),
+          ),
         ],
       ),
+    );
+  }
+
+  Future<void> _handleDeleteCollateral(CollateralModel item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa tài sản bảo đảm?'),
+        content: Text(
+          'Bạn có chắc muốn xóa tài sản "${item.name}"? Nếu tài sản không đang thế chấp cho khoản vay hiệu lực, cả ảnh giấy tờ trên R2 cũng sẽ bị xóa.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Xóa tài sản'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final ok = await _loanController.deleteCollateral(item.id);
+    if (!mounted) return;
+    if (ok) {
+      AppSnackBar.showSuccess(
+        context,
+        'Đã xóa tài sản "${item.name}" và dọn sạch giấy tờ trên R2.',
+      );
+    } else {
+      AppSnackBar.showError(
+        context,
+        _loanController.errorMessage ?? 'Không thể xóa tài sản này.',
+      );
+    }
+  }
+
+  Future<void> _handleDeleteCollateralDocument(CollateralModel item) async {
+    final docKey = item.legalDocumentUrl;
+    if (docKey == null || docKey.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa giấy tờ tài sản?'),
+        content: Text(
+          'Bạn có chắc muốn xóa giấy tờ pháp lý của "${item.name}" khỏi Cloudflare R2?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await sl<StorageRepository>().deleteFile(docKey);
+      await _loanController.fetchCollaterals(widget.loanId);
+      if (!mounted) return;
+      AppSnackBar.showSuccess(context, 'Đã xóa giấy tờ khỏi R2 thành công!');
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackBar.showError(
+        context,
+        'Không thể xóa giấy tờ: ${e.toString().replaceAll('Exception: ', '')}',
+      );
+    }
+  }
+
+  Future<void> _handleUploadCollateralDocument(CollateralModel item) async {
+    final user = sl.isRegistered<AuthController>()
+        ? sl<AuthController>().currentUser
+        : null;
+    if (user == null ||
+        !user.isEkycVerified ||
+        user.idCardNumber == null ||
+        user.idCardNumber!.trim().length != 12) {
+      AppSnackBar.showError(
+        context,
+        'Vui lòng xác thực định danh eKYC CCCD ở Hồ sơ cá nhân trước khi tải giấy tờ tài sản.',
+      );
+      return;
+    }
+
+    final imageUploadService = sl<ImageUploadService>();
+    final picked = await imageUploadService.pickImageOnly(
+      context,
+      title: 'Chụp / Chọn giấy tờ pháp lý: ${item.name}',
+    );
+    if (picked == null || !mounted) return;
+
+    try {
+      await CollateralScannerService().scanAndVerify(
+        picked.path,
+        assetType: item.type,
+        expectedIdCardNumber: user.idCardNumber!,
+        expectedOwnerName: user.fullName,
+      );
+
+      final result = await imageUploadService.uploadPickedFile(
+        picked,
+        folder: 'legal-documents',
+        filePrefix: 'asset_${item.id}',
+        isPublic: false,
+        metadata: {'asset_id': item.id, 'name': item.name},
+      );
+      if (!mounted) return;
+      if (result.isSuccess) {
+        await _loanController.fetchCollaterals(widget.loanId);
+        if (!mounted) return;
+        AppSnackBar.showSuccess(
+          context,
+          'Kiểm định & tải lên giấy tờ "${item.name}" thành công!',
+        );
+      } else if (result.errorMessage != null) {
+        AppSnackBar.showError(context, result.errorMessage!);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackBar.showError(
+        context,
+        e.toString().replaceAll('Exception: ', ''),
+      );
+    }
+  }
+
+  // ================= TAB 2: QUÉT & BÓC TÁCH OCR =================
+  Widget _buildOcrTab() {
+    return ListenableBuilder(
+      listenable: _loanController,
+      builder: (context, _) {
+        if (_hasConnectionError && !_loanController.isLoading) {
+          return ConnectionErrorView(
+            message: _connectionErrorMessage,
+            onRetry: _loadInitialData,
+          );
+        }
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Banner giới thiệu công nghệ
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16.0),
+                ),
+                child: const Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Color(0xFF334155),
+                      child: Icon(
+                        Icons.auto_awesome,
+                        color: Color(0xFF38BDF8),
+                        size: 22.0,
+                      ),
+                    ),
+                    SizedBox(width: 12.0),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'AI Document OCR Scanner',
+                            style: TextStyle(
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 2.0),
+                          Text(
+                            'Tự động nhận diện hợp đồng tín dụng ngân hàng, bóc tách dư nợ, lãi suất và lịch trả nợ.',
+                            style: TextStyle(
+                              fontSize: 11.0,
+                              color: Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16.0),
+
+              // Chọn mẫu tài liệu mô phỏng
+              Container(
+                padding: const EdgeInsets.all(14.0),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(14.0),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Chọn loại chứng từ cần bóc tách:',
+                      style: TextStyle(
+                        fontSize: 13.0,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8.0),
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      initialValue: _selectedDocumentCategory,
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 10.0,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value:
+                              LoanContractScannerService.categoryLoanContract,
+                          child: Text(
+                            'Hợp đồng tín dụng / Vay vốn ngân hàng',
+                            style: TextStyle(fontSize: 13.0),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: LoanContractScannerService
+                              .categoryCreditCardStatement,
+                          child: Text(
+                            'Sao kê / Hợp đồng thẻ tín dụng',
+                            style: TextStyle(fontSize: 13.0),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() => _selectedDocumentCategory = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 14.0),
+                    AppPrimaryButton(
+                      label: 'Bắt đầu quét & bóc tách AI',
+                      isLoading: _isScanning,
+                      onPressed: _handleScanOcr,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18.0),
+
+              // Kết quả bóc tách OCR
+              if (_ocrResult != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(16.0),
+                    border: Border.all(
+                      color: AppColors.primaryLight,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.verified_rounded,
+                                color: AppColors.success,
+                                size: 20.0,
+                              ),
+                              SizedBox(width: 6.0),
+                              Text(
+                                'Kết quả bóc tách',
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                              vertical: 3.0,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            child: Text(
+                              'Độ tin cậy: ${((_ocrResult!['confidence_score'] ?? 0.96) * 100).round()}%',
+                              style: const TextStyle(
+                                fontSize: 11.0,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.success,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12.0),
+                      const Divider(color: AppColors.border, height: 1),
+                      const SizedBox(height: 10.0),
+
+                      _buildReviewRow(
+                        'Mã hợp đồng',
+                        _ocrResult!['contract_number']?.toString() ??
+                            'Chưa nhận diện được',
+                      ),
+                      _buildReviewRow(
+                        'Tên khoản vay',
+                        _ocrResult!['loan_name']?.toString() ??
+                            'Chưa nhận diện được',
+                      ),
+                      _buildReviewRow(
+                        'Tổ chức cấp tín dụng',
+                        (_ocrResult!['lender_name'] ?? _ocrResult!['lender'])
+                                ?.toString() ??
+                            'Chưa nhận diện được',
+                      ),
+                      _buildReviewRow(
+                        'Số tiền giải ngân',
+                        _ocrResult!['principal_amount'] is num
+                            ? _formatCurrency(
+                                _ocrResult!['principal_amount'] as num,
+                              )
+                            : 'Chưa nhận diện được',
+                        isHighlight: _ocrResult!['principal_amount'] is num,
+                      ),
+                      _buildReviewRow(
+                        'Lãi suất năm',
+                        _ocrResult!['interest_rate'] != null
+                            ? '${_ocrResult!['interest_rate']}% / năm'
+                            : 'Chưa nhận diện được',
+                      ),
+                      _buildReviewRow(
+                        'Kỳ hạn vay',
+                        (_ocrResult!['tenor_months'] ??
+                                    _ocrResult!['term_months']) !=
+                                null
+                            ? '${_ocrResult!['tenor_months'] ?? _ocrResult!['term_months']} tháng'
+                            : 'Chưa nhận diện được',
+                      ),
+                      _buildReviewRow(
+                        'Ngày ký kết',
+                        _ocrResult!['start_date']?.toString() ??
+                            'Chưa nhận diện được',
+                      ),
+                      if (_ocrResult!['collateral_hint'] != null)
+                        _buildReviewRow(
+                          'Tài sản bảo đảm gợi ý',
+                          _ocrResult!['collateral_hint'].toString(),
+                        ),
+
+                      const SizedBox(height: 16.0),
+                      Container(
+                        padding: const EdgeInsets.all(10.0),
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySoft,
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 16.0,
+                              color: AppColors.primary,
+                            ),
+                            SizedBox(width: 8.0),
+                            Expanded(
+                              child: Text(
+                                'Vui lòng kiểm tra lại thông tin trước khi áp dụng vào biểu mẫu tạo khoản vay.',
+                                style: TextStyle(
+                                  fontSize: 11.0,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14.0),
+
+                      // Nút xem bản scan hợp đồng gốc (ảnh nội bộ trên thiết bị, chưa tải lên R2)
+                      if (_localImagePath != null) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppColors.primary),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12.0,
+                                horizontal: 14.0,
+                              ),
+                            ),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => Dialog(
+                                  insetPadding: const EdgeInsets.all(16.0),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16.0),
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          16.0,
+                                          12.0,
+                                          8.0,
+                                          8.0,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Expanded(
+                                              child: Text(
+                                                'Bản scan hợp đồng gốc',
+                                                style: TextStyle(
+                                                  fontSize: 15.0,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppColors.textPrimary,
+                                                ),
+                                              ),
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.close),
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Flexible(
+                                        child: Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            12.0,
+                                            0.0,
+                                            12.0,
+                                            12.0,
+                                          ),
+                                          child: InteractiveViewer(
+                                            child: Image.file(
+                                              File(_localImagePath!),
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.visibility_outlined,
+                              size: 18.0,
+                            ),
+                            label: const Text(
+                              'Xem bản scan hợp đồng gốc',
+                              style: TextStyle(
+                                fontSize: 13.0,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12.0),
+                      ],
+
+                      // Nút chuyển dữ liệu sang Form
+                      AppPrimaryButton(
+                        label: 'Điền tự động vào Form tạo khoản vay',
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRouter.loanForm,
+                            arguments: {'prefilled': _ocrResult},
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 30.0),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -793,21 +1095,29 @@ class _LoanCollateralOcrScreenState extends State<LoanCollateralOcrScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13.0,
-              color: AppColors.textSecondary,
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13.0,
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13.0,
-              fontWeight: FontWeight.w700,
-              color: isHighlight ? AppColors.primary : AppColors.textPrimary,
+          const SizedBox(width: 12.0),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 13.0,
+                fontWeight: FontWeight.w700,
+                color: isHighlight ? AppColors.primary : AppColors.textPrimary,
+              ),
             ),
           ),
         ],

@@ -122,15 +122,19 @@ class _DevStatePanelState extends State<DevStatePanel> {
                       color: AppColors.primary,
                     ),
                     const SizedBox(width: 8.0),
-                    const Text(
-                      'Dev / QA State Panel',
-                      style: TextStyle(
-                        fontSize: 13.0,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
+                    const Expanded(
+                      child: Text(
+                        'Dev / QA State Panel',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13.0,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8.0),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8.0,

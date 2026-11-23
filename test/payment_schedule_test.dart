@@ -64,7 +64,7 @@ void main() {
         id: 3,
         loanId: 101,
         installmentNumber: 3,
-        dueDate: DateTime(2026, 11, 15),
+        dueDate: DateTime(2027, 11, 15),
         principalAmount: 2000000.0,
         interestAmount: 220000.0,
         feeAmount: 0.0,
@@ -604,6 +604,31 @@ void main() {
         expect(find.textContaining('Kỳ 1'), findsOneWidget);
         expect(find.textContaining('Kỳ 2'), findsOneWidget);
         expect(find.textContaining('Kỳ 3'), findsOneWidget);
+      },
+    );
+
+    test(
+      '11. Phân trang (loadSchedules + loadMoreSchedules) và lọc thời gian hoạt động chính xác',
+      () async {
+        await controller.loadSchedules(userId: 1, pageSize: 2);
+        expect(controller.schedules.length, 2);
+        expect(controller.hasMore, isTrue);
+        expect(controller.totalMatching, 3);
+        // Summary vẫn phản ánh đủ toàn bộ 3 kỳ (1 paid, 1 overdue, 1 upcoming)
+        expect(controller.paidCount, 1);
+        expect(controller.overdueCount, 1);
+        expect(controller.upcomingCount, 1);
+
+        await controller.loadMoreSchedules(userId: 1, pageSize: 2);
+        expect(controller.schedules.length, 3);
+        expect(controller.hasMore, isFalse);
+
+        // Lọc theo trạng thái & khoảng thời gian
+        controller.setFilter('PAID', userId: 1);
+        await Future<void>.delayed(Duration.zero);
+        expect(controller.filteredSchedules.length, 1);
+        expect(controller.filteredSchedules.first.status, 'PAID');
+        expect(controller.isEmptyState, isFalse);
       },
     );
   });

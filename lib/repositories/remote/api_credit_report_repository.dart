@@ -68,17 +68,24 @@ class ApiCreditReportRepository implements CreditReportRepository {
       if (res is List) {
         return res
             .map(
-              (item) =>
-                  CreditReportModel.fromJson(item as Map<String, dynamic>),
+              (item) => CreditReportModel.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
             )
             .toList();
-      } else if (res is Map<String, dynamic> && res['reports'] is List) {
-        return (res['reports'] as List)
-            .map(
-              (item) =>
-                  CreditReportModel.fromJson(item as Map<String, dynamic>),
-            )
-            .toList();
+      } else if (res is Map<String, dynamic>) {
+        final rawList = res['data'] is List
+            ? res['data'] as List
+            : (res['reports'] is List ? res['reports'] as List : null);
+        if (rawList != null) {
+          return rawList
+              .map(
+                (item) => CreditReportModel.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .toList();
+        }
       }
       return <CreditReportModel>[];
     });
@@ -127,5 +134,12 @@ class ApiCreditReportRepository implements CreditReportRepository {
       }
       throw Exception('Phản hồi dữ liệu báo cáo không đúng định dạng.');
     });
+  }
+
+  @override
+  Future<void> deleteReport(int reportId, {int? userId}) async {
+    await _handleApiCall<dynamic>(
+      () => client.delete('/credit-reports/$reportId'),
+    );
   }
 }

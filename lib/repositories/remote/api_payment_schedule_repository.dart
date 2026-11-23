@@ -66,19 +66,111 @@ class ApiPaymentScheduleRepository implements PaymentScheduleRepository {
       if (res is List) {
         return res
             .map(
-              (item) =>
-                  PaymentScheduleModel.fromJson(item as Map<String, dynamic>),
+              (item) => PaymentScheduleModel.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
             )
             .toList();
-      } else if (res is Map<String, dynamic> && res['schedules'] is List) {
-        return (res['schedules'] as List)
-            .map(
-              (item) =>
-                  PaymentScheduleModel.fromJson(item as Map<String, dynamic>),
-            )
-            .toList();
+      } else if (res is Map<String, dynamic>) {
+        final rawList = res['data'] is List
+            ? res['data'] as List
+            : (res['schedules'] is List ? res['schedules'] as List : null);
+        if (rawList != null) {
+          return rawList
+              .map(
+                (item) => PaymentScheduleModel.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .toList();
+        }
       }
       return <PaymentScheduleModel>[];
+    });
+  }
+
+  @override
+  Future<SchedulePageResult> getPaymentSchedulesPage({
+    int? userId,
+    int? loanId,
+    String status = 'ALL',
+    String period = 'ALL',
+    int page = 1,
+    int limit = 20,
+  }) async {
+    return await _handleApiCall<SchedulePageResult>(() async {
+      final queryParams = <String, String>{
+        'status': status,
+        'period': period,
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
+      if (userId != null) queryParams['user_id'] = userId.toString();
+      if (loanId != null) queryParams['loan_id'] = loanId.toString();
+
+      final res = await client.get(
+        '/payment-schedules',
+        queryParams: queryParams,
+      );
+
+      if (res is Map<String, dynamic>) {
+        final payload = res['data'] is Map
+            ? Map<String, dynamic>.from(res['data'] as Map)
+            : res;
+        final rawList = payload['data'] is List
+            ? payload['data'] as List
+            : (payload['schedules'] is List
+                  ? payload['schedules'] as List
+                  : const []);
+        final items = rawList
+            .map(
+              (item) => PaymentScheduleModel.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
+            .toList();
+        final pagination = payload['pagination'] is Map
+            ? Map<String, dynamic>.from(payload['pagination'] as Map)
+            : const <String, dynamic>{};
+        final summaryMap = payload['summary'] is Map
+            ? Map<String, dynamic>.from(payload['summary'] as Map)
+            : const <String, dynamic>{};
+        return SchedulePageResult(
+          items: items,
+          page: (pagination['page'] as num?)?.toInt() ?? page,
+          limit: (pagination['limit'] as num?)?.toInt() ?? limit,
+          total: (pagination['total'] as num?)?.toInt() ?? items.length,
+          hasMore: pagination['has_more'] == true,
+          summary: ScheduleSummaryModel.fromJson(summaryMap),
+        );
+      }
+
+      if (res is List) {
+        final items = res
+            .map(
+              (item) => PaymentScheduleModel.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
+            .toList();
+        return SchedulePageResult(
+          items: items,
+          page: 1,
+          limit: limit,
+          total: items.length,
+          hasMore: false,
+          summary: ScheduleSummaryModel(totalCount: items.length),
+        );
+      }
+
+      return SchedulePageResult(
+        items: const [],
+        page: page,
+        limit: limit,
+        total: 0,
+        hasMore: false,
+        summary: const ScheduleSummaryModel(),
+      );
     });
   }
 
@@ -200,15 +292,14 @@ class ApiPaymentScheduleRepository implements PaymentScheduleRepository {
       final res = await client.get('/notifications', queryParams: queryParams);
       if (res == null) return <NotificationModel>[];
 
-      if (res is List) {
-        return res
-            .map(
-              (item) =>
-                  NotificationModel.fromJson(item as Map<String, dynamic>),
-            )
-            .toList();
-      } else if (res is Map<String, dynamic> && res['notifications'] is List) {
-        return (res['notifications'] as List)
+      final dynamic rawList = res is List
+          ? res
+          : (res is Map<String, dynamic>
+                ? (res['data'] ?? res['notifications'])
+                : null);
+
+      if (rawList is List) {
+        return rawList
             .map(
               (item) =>
                   NotificationModel.fromJson(item as Map<String, dynamic>),
@@ -216,6 +307,20 @@ class ApiPaymentScheduleRepository implements PaymentScheduleRepository {
             .toList();
       }
       return <NotificationModel>[];
+    });
+  }
+
+  @override
+  Future<void> deleteNotification(int notificationId, {int? userId}) async {
+    return await _handleApiCall<void>(() async {
+      await client.delete('/notifications/$notificationId');
+    });
+  }
+
+  @override
+  Future<void> clearNotifications({int? userId}) async {
+    return await _handleApiCall<void>(() async {
+      await client.delete('/notifications');
     });
   }
 

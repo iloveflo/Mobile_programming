@@ -57,20 +57,50 @@ class DebtStrategyModel {
 
   DebtStrategyType get type => DebtStrategyType.fromCode(strategyType);
 
-  factory DebtStrategyModel.fromJson(Map<String, dynamic> json) {
+  factory DebtStrategyModel.fromJson(Map<String, dynamic> rawJson) {
+    final dynamic nested = rawJson['data'];
+    final Map<String, dynamic> json = nested is Map<String, dynamic>
+        ? nested
+        : (nested is Map ? Map<String, dynamic>.from(nested) : rawJson);
+
+    int parseInt(dynamic val, [int fallback = 0]) {
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? fallback;
+      return fallback;
+    }
+
+    int? parseNullableInt(dynamic val) {
+      if (val == null) return null;
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val);
+      return null;
+    }
+
+    double? parseDouble(dynamic val, [double? fallback]) {
+      if (val == null) return fallback;
+      if (val is num) return val.toDouble();
+      if (val is String) return double.tryParse(val) ?? fallback;
+      return fallback;
+    }
+
+    DateTime? parseDate(dynamic val) {
+      if (val == null) return null;
+      if (val is DateTime) return val;
+      return DateTime.tryParse(val.toString());
+    }
+
     return DebtStrategyModel(
-      id: json['strategy_id'] as int? ?? json['id'] as int? ?? 0,
-      userId: json['user_id'] as int? ?? 1,
+      id: parseInt(json['strategy_id'] ?? json['id']),
+      userId: parseInt(json['user_id'] ?? json['userId'], 1),
       strategyType:
           (json['strategy_type'] as String?)?.toUpperCase() ?? 'AVALANCHE',
-      extraPayment: (json['extra_payment'] as num?)?.toDouble() ?? 0,
-      estimatedInterestSaved: (json['estimated_interest_saved'] as num?)
-          ?.toDouble(),
-      estimatedMonthsSaved: json['estimated_months_saved'] as int?,
+      extraPayment: parseDouble(json['extra_payment'], 0.0) ?? 0.0,
+      estimatedInterestSaved: parseDouble(json['estimated_interest_saved']),
+      estimatedMonthsSaved: parseNullableInt(
+        json['estimated_months_saved'] ?? json['time_saved_months'],
+      ),
       status: (json['status'] as String?)?.toUpperCase() ?? 'ACTIVE',
-      createdAt: json['created_at'] == null
-          ? null
-          : DateTime.tryParse(json['created_at'] as String),
+      createdAt: parseDate(json['created_at']),
     );
   }
 

@@ -87,34 +87,42 @@ class CreditReportDetailView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    _formatPeriod(report.reportPeriod),
-                    style: const TextStyle(
-                      fontSize: 18.0,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10.0,
-                      vertical: 4.0,
-                    ),
-                    decoration: BoxDecoration(
-                      color: riskColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20.0),
-                      border: Border.all(
-                        color: riskColor.withValues(alpha: 0.3),
+                  Expanded(
+                    child: Text(
+                      _formatPeriod(report.reportPeriod),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                    child: Text(
-                      _resolveRiskLabel(report.riskLevel),
-                      style: TextStyle(
-                        fontSize: 12.0,
-                        fontWeight: FontWeight.w700,
-                        color: riskColor,
+                  ),
+                  const SizedBox(width: 8.0),
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10.0,
+                        vertical: 4.0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: riskColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20.0),
+                        border: Border.all(
+                          color: riskColor.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Text(
+                        _resolveRiskLabel(report.riskLevel),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.0,
+                          fontWeight: FontWeight.w700,
+                          color: riskColor,
+                        ),
                       ),
                     ),
                   ),
@@ -129,11 +137,13 @@ class CreditReportDetailView extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 6.0),
-                  Text(
-                    'Thời điểm tạo ảnh chụp: ${_formatDateTime(report.generatedAt)}',
-                    style: const TextStyle(
-                      fontSize: 12.0,
-                      color: AppColors.textSecondary,
+                  Expanded(
+                    child: Text(
+                      'Thời điểm tạo ảnh chụp: ${_formatDateTime(report.generatedAt)}',
+                      style: const TextStyle(
+                        fontSize: 12.0,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ),
                 ],
@@ -192,29 +202,32 @@ class CreditReportDetailView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    score > 0 ? '$score' : 'N/A',
-                    style: const TextStyle(
-                      fontSize: 48.0,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.primary,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      score > 0 ? '$score' : 'N/A',
+                      style: const TextStyle(
+                        fontSize: 48.0,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6.0),
-                  const Text(
-                    '/ 850',
-                    style: TextStyle(
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
+                    const SizedBox(width: 6.0),
+                    const Text(
+                      '/ 850',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: 6.0),
               Text(

@@ -50,12 +50,26 @@ class ApiDebtStrategyRepository implements DebtStrategyRepository {
       if (res is List) {
         return res
             .map(
-              (item) =>
-                  DebtStrategyModel.fromJson(item as Map<String, dynamic>),
+              (item) => DebtStrategyModel.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
             )
             .toList();
+      } else if (res is Map<String, dynamic>) {
+        final rawList = res['data'] is List
+            ? res['data'] as List
+            : (res['strategies'] is List ? res['strategies'] as List : null);
+        if (rawList != null) {
+          return rawList
+              .map(
+                (item) => DebtStrategyModel.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .toList();
+        }
       }
-      return [];
+      return <DebtStrategyModel>[];
     });
   }
 
@@ -71,7 +85,12 @@ class ApiDebtStrategyRepository implements DebtStrategyRepository {
           queryParams: queryParams,
         );
         if (res is Map<String, dynamic>) {
-          return DebtStrategyModel.fromJson(res);
+          final data = res['data'] is Map<String, dynamic>
+              ? res['data'] as Map<String, dynamic>
+              : (res['data'] is Map
+                    ? Map<String, dynamic>.from(res['data'] as Map)
+                    : res);
+          return DebtStrategyModel.fromJson(data);
         }
       } on Exception {
         return null;
@@ -102,7 +121,15 @@ class ApiDebtStrategyRepository implements DebtStrategyRepository {
       }
 
       final res = await client.post('/debt-strategies/apply', body: payload);
-      return DebtStrategyModel.fromJson(res as Map<String, dynamic>);
+      if (res is Map<String, dynamic>) {
+        final data = res['data'] is Map<String, dynamic>
+            ? res['data'] as Map<String, dynamic>
+            : (res['data'] is Map
+                  ? Map<String, dynamic>.from(res['data'] as Map)
+                  : res);
+        return DebtStrategyModel.fromJson(data);
+      }
+      throw Exception('Phản hồi kế hoạch trả nợ không hợp lệ.');
     });
   }
 

@@ -80,21 +80,27 @@ class CreditMetricCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8.0,
-                    vertical: 4.0,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(6.0),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                      fontSize: 11.0,
-                      fontWeight: FontWeight.w700,
-                      color: statusColor,
+                const SizedBox(width: 8.0),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 145.0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 4.0,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6.0),
+                    ),
+                    child: Text(
+                      status,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11.0,
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
+                      ),
                     ),
                   ),
                 ),
@@ -118,12 +124,14 @@ class CreditMetricCard extends StatelessWidget {
                     color: AppColors.warning,
                   ),
                   const SizedBox(width: 6.0),
-                  const Text(
-                    'Chưa thể tính (Thiếu dữ liệu đầu vào)',
-                    style: TextStyle(
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.warning,
+                  const Expanded(
+                    child: Text(
+                      'Chưa thể tính (Thiếu dữ liệu đầu vào)',
+                      style: TextStyle(
+                        fontSize: 14.0,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.warning,
+                      ),
                     ),
                   ),
                 ],
@@ -174,12 +182,14 @@ class CreditMetricCard extends StatelessWidget {
                         color: AppColors.primary,
                       ),
                       const SizedBox(width: 6.0),
-                      Text(
-                        missingHint ?? 'Bổ sung thông tin ngay',
-                        style: const TextStyle(
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
+                      Flexible(
+                        child: Text(
+                          missingHint ?? 'Bổ sung thông tin ngay',
+                          style: const TextStyle(
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
                     ],

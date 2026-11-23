@@ -25,21 +25,69 @@ class PaymentScheduleModel {
     this.createdAt,
   });
 
-  factory PaymentScheduleModel.fromJson(Map<String, dynamic> json) {
+  factory PaymentScheduleModel.fromJson(Map<String, dynamic> rawJson) {
+    final dynamic nested = rawJson['data'];
+    final Map<String, dynamic> json = nested is Map<String, dynamic>
+        ? nested
+        : (nested is Map ? Map<String, dynamic>.from(nested) : rawJson);
+
+    int parseInt(dynamic val, [int fallback = 0]) {
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? fallback;
+      return fallback;
+    }
+
+    double parseDouble(dynamic val, [double fallback = 0.0]) {
+      if (val == null) return fallback;
+      if (val is num) return val.toDouble();
+      if (val is String) return double.tryParse(val) ?? fallback;
+      return fallback;
+    }
+
+    DateTime parseDate(dynamic val) {
+      if (val is DateTime) return val;
+      if (val is String) {
+        final parsed = DateTime.tryParse(val);
+        if (parsed != null) return parsed;
+      }
+      return DateTime.now();
+    }
+
+    DateTime? parseNullableDate(dynamic val) {
+      if (val == null) return null;
+      if (val is DateTime) return val;
+      return DateTime.tryParse(val.toString());
+    }
+
     return PaymentScheduleModel(
-      id: json['schedule_id'] as int,
-      loanId: json['loan_id'] as int,
-      installmentNumber: json['installment_number'] as int,
-      dueDate: DateTime.parse(json['due_date'] as String),
-      principalAmount: (json['principal_amount'] as num).toDouble(),
-      interestAmount: (json['interest_amount'] as num).toDouble(),
-      feeAmount: (json['fee_amount'] as num).toDouble(),
-      totalAmount: (json['total_amount'] as num).toDouble(),
-      remainingBalance: (json['remaining_balance'] as num).toDouble(),
-      status: json['status'] as String,
-      createdAt: json['created_at'] == null
-          ? null
-          : DateTime.parse(json['created_at'] as String),
+      id: parseInt(json['schedule_id'] ?? json['id']),
+      loanId: parseInt(json['loan_id'] ?? json['loanId']),
+      installmentNumber: parseInt(
+        json['installment_number'] ??
+            json['period_number'] ??
+            json['installmentNumber'],
+        1,
+      ),
+      dueDate: parseDate(json['due_date'] ?? json['dueDate']),
+      principalAmount: parseDouble(
+        json['principal_amount'] ??
+            json['principal_due'] ??
+            json['principalAmount'],
+      ),
+      interestAmount: parseDouble(
+        json['interest_amount'] ??
+            json['interest_due'] ??
+            json['interestAmount'],
+      ),
+      feeAmount: parseDouble(json['fee_amount'] ?? json['feeAmount']),
+      totalAmount: parseDouble(
+        json['total_amount'] ?? json['total_due'] ?? json['totalAmount'],
+      ),
+      remainingBalance: parseDouble(
+        json['remaining_balance'] ?? json['remainingBalance'],
+      ),
+      status: (json['status'] ?? 'UNPAID').toString(),
+      createdAt: parseNullableDate(json['created_at'] ?? json['createdAt']),
     );
   }
 

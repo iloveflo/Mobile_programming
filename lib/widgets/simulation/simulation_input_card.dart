@@ -89,23 +89,33 @@ class SimulationInputCard extends StatelessWidget {
         children: [
           // 1. Bộ chọn khoản vay cơ sở
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'KHOẢN VAY CƠ SỞ',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                  letterSpacing: 0.5,
+              const Expanded(
+                child: Text(
+                  'KHOẢN VAY CƠ SỞ',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
-              Text(
-                'Dư nợ: ${_formatCurrency(selectedLoan.outstandingAmount)}',
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
+              const SizedBox(width: 8),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'Dư nợ: ${_formatCurrency(selectedLoan.outstandingAmount)}',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -119,34 +129,47 @@ class SimulationInputCard extends StatelessWidget {
               border: Border.all(color: AppColors.border),
             ),
             child: DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                value: selectedLoan.id,
-                isExpanded: true,
-                icon: const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: AppColors.primary,
-                ),
-                items: availableLoans.map((l) {
-                  return DropdownMenuItem<int>(
-                    value: l.id,
-                    child: Text(
-                      '${l.name} (${l.lender ?? "TCTD"})',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+              child: () {
+                final seenIds = <int>{};
+                final uniqueLoans = availableLoans
+                    .where((l) => seenIds.add(l.id))
+                    .toList();
+                final bool hasSelected = uniqueLoans.any(
+                  (l) => l.id == selectedLoan.id,
+                );
+                final int? dropdownValue = hasSelected
+                    ? selectedLoan.id
+                    : (uniqueLoans.isNotEmpty ? uniqueLoans.first.id : null);
+
+                return DropdownButton<int>(
+                  value: dropdownValue,
+                  isExpanded: true,
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.primary,
+                  ),
+                  items: uniqueLoans.map((l) {
+                    return DropdownMenuItem<int>(
+                      value: l.id,
+                      child: Text(
+                        '${l.name} (${l.lender ?? "TCTD"})',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                }).toList(),
-                onChanged: (id) {
-                  if (id != null) {
-                    final found = availableLoans.firstWhere((l) => l.id == id);
-                    onLoanChanged(found);
-                  }
-                },
-              ),
+                    );
+                  }).toList(),
+                  onChanged: (id) {
+                    if (id != null) {
+                      final found = uniqueLoans.firstWhere((l) => l.id == id);
+                      onLoanChanged(found);
+                    }
+                  },
+                );
+              }(),
             ),
           ),
 
@@ -201,12 +224,16 @@ class SimulationInputCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Số tiền muốn trả thêm',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                const Expanded(
+                  child: Text(
+                    'Số tiền muốn trả thêm',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Text(
                   _formatCurrency(extraPayment),
                   style: const TextStyle(
@@ -231,34 +258,39 @@ class SimulationInputCard extends StatelessWidget {
               activeColor: AppColors.primary,
               onChanged: onExtraPaymentChanged,
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildQuickChip(
-                  '5 triệu',
-                  5000000,
-                  extraPayment,
-                  onExtraPaymentChanged,
-                ),
-                _buildQuickChip(
-                  '10 triệu',
-                  10000000,
-                  extraPayment,
-                  onExtraPaymentChanged,
-                ),
-                _buildQuickChip(
-                  '20 triệu',
-                  20000000,
-                  extraPayment,
-                  onExtraPaymentChanged,
-                ),
-                _buildQuickChip(
-                  '50 triệu',
-                  50000000,
-                  extraPayment,
-                  onExtraPaymentChanged,
-                ),
-              ],
+            SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                alignment: WrapAlignment.spaceBetween,
+                children: [
+                  _buildQuickChip(
+                    '5 triệu',
+                    5000000,
+                    extraPayment,
+                    onExtraPaymentChanged,
+                  ),
+                  _buildQuickChip(
+                    '10 triệu',
+                    10000000,
+                    extraPayment,
+                    onExtraPaymentChanged,
+                  ),
+                  _buildQuickChip(
+                    '20 triệu',
+                    20000000,
+                    extraPayment,
+                    onExtraPaymentChanged,
+                  ),
+                  _buildQuickChip(
+                    '50 triệu',
+                    50000000,
+                    extraPayment,
+                    onExtraPaymentChanged,
+                  ),
+                ],
+              ),
             ),
           ],
         );

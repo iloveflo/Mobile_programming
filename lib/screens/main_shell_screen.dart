@@ -2,8 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/credit_profile_controller.dart';
+import '../controllers/loan_controller.dart';
+import '../controllers/payment_schedule_controller.dart';
+import '../core/config/app_env.dart';
+import '../core/network/api_client.dart';
 import '../routes/app_router.dart';
 import '../service_locator.dart';
+import '../services/biometric_auth_service.dart';
+import '../services/local_notification_service.dart';
+import '../services/push_notification_service.dart';
+import '../services/realtime_service.dart';
 import '../widgets/widget.dart';
 import 'credit/credit_health_screen.dart';
 import 'home/home_screen.dart';
@@ -51,6 +60,7 @@ class _MainShellScreenState extends State<MainShellScreen>
   late int _currentIndex;
   bool _isBottomBarVisible = true;
   bool _argumentsInitialized = false;
+  bool _isRealtimeDisconnected = false;
   DateTime? _pausedTime;
   bool _isLocked = false;
 
@@ -76,6 +86,21 @@ class _MainShellScreenState extends State<MainShellScreen>
         _currentIndex = index;
         _isBottomBarVisible = true;
       });
+      if (index == 3 && sl.isRegistered<CreditProfileController>()) {
+        final creditCtrl = sl<CreditProfileController>();
+        final hasLoans =
+            sl.isRegistered<LoanController>() &&
+            sl<LoanController>().loans.isNotEmpty;
+        if (!creditCtrl.isLoading &&
+            (creditCtrl.exceptionCode == 'EX-04' ||
+                creditCtrl.exceptionCode == 'EX-03' ||
+                (creditCtrl.isEmptyState && hasLoans))) {
+          final userId = sl.isRegistered<AuthController>()
+              ? sl<AuthController>().currentUser?.userId
+              : null;
+          creditCtrl.loadCreditProfile(userId: userId);
+        }
+      }
     }
   }
 
@@ -96,10 +121,74 @@ class _MainShellScreenState extends State<MainShellScreen>
       ProfileScreen(),
       AppSettingsScreen(),
     ];
+
+    _setupRealtimeConnection();
+  }
+
+  void _setupRealtimeConnection() {
+    if (AppEnv.useMock ||
+        !sl.isRegistered<RealtimeService>() ||
+        !sl.isRegistered<ApiClient>()) {
+      return;
+    }
+    final token = sl<ApiClient>().authToken;
+    if (token == null || token.isEmpty) return;
+
+    final realtime = sl<RealtimeService>();
+    realtime.onConnectionStateChanged = (connected) {
+      if (!mounted) return;
+      if (_isRealtimeDisconnected == connected) {
+        setState(() {
+          _isRealtimeDisconnected = !connected;
+        });
+      }
+    };
+    realtime.onNotificationReceived = (title, message) {
+      if (!mounted) return;
+      final text = message.isNotEmpty ? '$title: $message' : title;
+      AppSnackBar.showInfo(context, text);
+
+      final pushEnabled = sl.isRegistered<PaymentScheduleController>()
+          ? (sl<PaymentScheduleController>().preference?.pushEnabled ?? true)
+          : true;
+      if (pushEnabled) {
+        LocalNotificationService.showLocalNotification(
+          id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+          title: title,
+          body: message.isNotEmpty ? message : title,
+          tabIndex: 2,
+        );
+      }
+    };
+    realtime.onSessionRevoked = () async {
+      if (!mounted) return;
+      if (sl.isRegistered<AuthController>()) {
+        await sl<AuthController>().logout();
+      }
+      if (!mounted) return;
+      AppSnackBar.showError(
+        context,
+        'Phiên đăng nhập trên thiết bị này đã bị thu hồi.',
+      );
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRouter.login,
+        (route) => false,
+      );
+    };
+    realtime.connect(accessToken: token);
+    PushNotificationService.instance.registerDeviceToken(sl<ApiClient>());
   }
 
   @override
   void dispose() {
+    if (sl.isRegistered<RealtimeService>()) {
+      final realtime = sl<RealtimeService>();
+      realtime.onNotificationReceived = null;
+      realtime.onSessionRevoked = null;
+      realtime.onConnectionStateChanged = null;
+      realtime.disconnect();
+    }
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -179,6 +268,25 @@ class _MainShellScreenState extends State<MainShellScreen>
                 onPressed: () async {
                   if (sl.isRegistered<AuthController>()) {
                     final authCtrl = sl<AuthController>();
+                    if (authCtrl.isBiometricEnabled &&
+                        sl.isRegistered<BiometricAuthService>()) {
+                      final bioResult = await sl<BiometricAuthService>()
+                          .authenticateFingerprint(
+                            reason:
+                                'Quét vân tay để mở khóa ứng dụng FinCredit',
+                          );
+                      if (!bioResult.isSuccess) {
+                        if (mounted) {
+                          AppSnackBar.showError(
+                            context,
+                            bioResult.errorMessage ??
+                                'Xác thực vân tay không thành công.',
+                          );
+                        }
+                        return;
+                      }
+                    }
+
                     final ok = await authCtrl.checkSession();
                     if (ok) {
                       if (dialogCtx.mounted) {
@@ -262,7 +370,46 @@ class _MainShellScreenState extends State<MainShellScreen>
       child: Scaffold(
         extendBody:
             true, // Cho phép nội dung cuộn tràn xuống tạo trải nghiệm tràn viền
-        body: IndexedStack(index: _currentIndex, children: _screens),
+        body: Column(
+          children: [
+            if (_isRealtimeDisconnected)
+              const Material(
+                color: AppColors.error,
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 8.0,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.cloud_off_rounded,
+                          color: Colors.white,
+                          size: 16.0,
+                        ),
+                        SizedBox(width: 8.0),
+                        Expanded(
+                          child: Text(
+                            'Mất kết nối máy chủ — Đang thử kết nối lại...',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            Expanded(
+              child: IndexedStack(index: _currentIndex, children: _screens),
+            ),
+          ],
+        ),
         bottomNavigationBar: CustomBottomNavBar(
           currentIndex: _currentIndex,
           isVisible: _isBottomBarVisible,

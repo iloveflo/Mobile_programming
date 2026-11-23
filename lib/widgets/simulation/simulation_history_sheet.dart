@@ -7,11 +7,13 @@ import '../common/app_colors.dart';
 class SimulationHistorySheet extends StatelessWidget {
   final List<SimulationModel> simulations;
   final ValueChanged<int> onDelete;
+  final ValueChanged<SimulationModel>? onSelect;
 
   const SimulationHistorySheet({
     super.key,
     required this.simulations,
     required this.onDelete,
+    this.onSelect,
   });
 
   String _formatCurrency(double amount) {
@@ -117,70 +119,77 @@ class SimulationHistorySheet extends StatelessWidget {
   }
 
   Widget _buildSimulationItem(SimulationModel sim) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.background,
+    return Material(
+      color: AppColors.background,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.primarySoft,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.bookmark_outline_rounded,
-              color: AppColors.primary,
-              size: 20,
-            ),
+        onTap: onSelect != null ? () => onSelect!(sim) : null,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  sim.scenarioName ?? sim.type.title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Tiết kiệm lãi: ${_formatCurrency(sim.estimatedInterestSaved)} • Giảm ${sim.monthsReduced} kỳ',
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    color: AppColors.success,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: const Icon(
+                  Icons.bookmark_outline_rounded,
+                  color: AppColors.primary,
+                  size: 20,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  'Ngày lưu: ${_formatDate(sim.createdAt)}',
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    color: AppColors.textSecondary,
-                  ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sim.scenarioName ?? sim.type.title,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tiết kiệm lãi: ${_formatCurrency(sim.estimatedInterestSaved)} • Giảm ${sim.monthsReduced} kỳ',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Ngày lưu: ${_formatDate(sim.createdAt)}',
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+                onPressed: () => onDelete(sim.id),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(
-              Icons.delete_outline_rounded,
-              color: AppColors.textSecondary,
-              size: 20,
-            ),
-            onPressed: () => onDelete(sim.id),
-          ),
-        ],
+        ),
       ),
     );
   }

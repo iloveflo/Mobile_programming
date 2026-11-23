@@ -20,19 +20,26 @@ class NotificationPreferenceModel {
   });
 
   factory NotificationPreferenceModel.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic val, [int fallback = 0]) {
+      if (val is int) return val;
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? fallback;
+      return fallback;
+    }
+
     return NotificationPreferenceModel(
-      id: json['preference_id'] as int,
-      userId: json['user_id'] as int,
+      id: parseInt(json['preference_id'] ?? json['id']),
+      userId: parseInt(json['user_id'] ?? json['userId']),
       pushEnabled: json['push_enabled'] as bool? ?? true,
       emailEnabled: json['email_enabled'] as bool? ?? true,
       balanceFluctuationEnabled:
           json['balance_fluctuation_enabled'] as bool? ?? true,
       monthlyStatementEnabled:
           json['monthly_statement_enabled'] as bool? ?? true,
-      reminderDays: json['reminder_days'] as int? ?? 3,
+      reminderDays: parseInt(json['reminder_days'], 3),
       updatedAt: json['updated_at'] == null
           ? null
-          : DateTime.parse(json['updated_at'] as String),
+          : DateTime.tryParse(json['updated_at'].toString()),
     );
   }
 

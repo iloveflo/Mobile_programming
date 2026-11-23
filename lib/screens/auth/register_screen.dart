@@ -396,8 +396,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 20.0),
 
                     // Footer đăng nhập nếu đã có tài khoản
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         const Text(
                           'Đã có tài khoản? ',

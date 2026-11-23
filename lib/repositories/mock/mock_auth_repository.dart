@@ -4,7 +4,6 @@ import 'dart:math';
 import '../../mock_data/refresh_token_mock_data.dart';
 import '../../mock_data/user_mock_data.dart';
 import '../../models/auth_token_model.dart';
-import '../../models/bank_account_model.dart';
 import '../../models/session_model.dart';
 import '../../models/user_model.dart';
 import '../../services/session_storage_service.dart';
@@ -327,6 +326,12 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> requestForgotPasswordOtp(String identifier) async {
+    await _simulateDelay();
+    _failedOtpAttempts = 0;
+  }
+
+  @override
   Future<void> resendOtp() async {
     await _simulateDelay();
     // Giả lập reset bộ đếm thử lại cho mã OTP mới
@@ -513,50 +518,6 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<List<BankAccountModel>> getBankAccounts() async {
-    await _simulateDelay();
-    return _currentUser?.bankAccounts ?? [];
-  }
-
-  @override
-  Future<BankAccountModel> addBankAccount(
-    Map<String, dynamic> accountData,
-  ) async {
-    await _simulateDelay();
-    final newAccount = BankAccountModel.fromJson(accountData);
-    final user = _currentUser ?? UserMockData.usersDatabase.first;
-    final updatedList = List<BankAccountModel>.from(user.bankAccounts)
-      ..removeWhere((a) => a.id == newAccount.id)
-      ..add(newAccount);
-
-    _currentUser = user.copyWith(bankAccounts: updatedList);
-    final index = UserMockData.usersDatabase.indexWhere(
-      (u) => u.userId == user.userId,
-    );
-    if (index != -1) {
-      UserMockData.usersDatabase[index] = _currentUser!;
-    }
-    return newAccount;
-  }
-
-  @override
-  Future<void> deleteBankAccount(String accountId) async {
-    await _simulateDelay();
-    if (_currentUser != null) {
-      final updatedList = _currentUser!.bankAccounts
-          .where((a) => a.id != accountId)
-          .toList();
-      _currentUser = _currentUser!.copyWith(bankAccounts: updatedList);
-      final index = UserMockData.usersDatabase.indexWhere(
-        (u) => u.userId == _currentUser!.userId,
-      );
-      if (index != -1) {
-        UserMockData.usersDatabase[index] = _currentUser!;
-      }
-    }
-  }
-
-  @override
   Future<String> exportFinancialProfilePdf() async {
     await _simulateDelay(500, 1000);
     final user = _currentUser ?? UserMockData.usersDatabase.first;
@@ -564,10 +525,19 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<List<int>> downloadFinancialProfilePdfBytes() async {
+    await _simulateDelay(300, 600);
+    return '%PDF-1.4\n%Mock FinCredit Financial Profile\n'.codeUnits;
+  }
+
+  @override
   Future<UserModel> verifyEkyc({
     required String idCardNumber,
     required String frontCardUrl,
     required String backCardUrl,
+    String? fullName,
+    String? dateOfBirth,
+    String? address,
   }) async {
     await _simulateDelay(600, 1200);
     final base = _currentUser ?? UserMockData.usersDatabase.first;
@@ -575,6 +545,11 @@ class MockAuthRepository implements AuthRepository {
       isEkycVerified: true,
       ekycTier: 'C06',
       idCardNumber: idCardNumber,
+      fullName: fullName ?? base.fullName,
+      dateOfBirth: dateOfBirth != null
+          ? (DateTime.tryParse(dateOfBirth) ?? base.dateOfBirth)
+          : base.dateOfBirth,
+      address: address ?? base.address,
       updatedAt: DateTime.now(),
     );
 

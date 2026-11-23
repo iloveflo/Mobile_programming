@@ -26,20 +26,40 @@ class NotificationModel {
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
-    DateTime? parseDate(String key) =>
-        json[key] == null ? null : DateTime.parse(json[key] as String);
+    int parseInt(dynamic val, [int fallback = 0]) {
+      if (val is int) return val;
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? fallback;
+      return fallback;
+    }
+
+    int? parseNullableInt(dynamic val) {
+      if (val == null) return null;
+      if (val is int) return val;
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val);
+      return null;
+    }
+
+    DateTime? parseDate(String key) {
+      final raw = json[key];
+      if (raw == null) return null;
+      if (raw is DateTime) return raw;
+      return DateTime.tryParse(raw.toString());
+    }
 
     return NotificationModel(
-      id: json['notification_id'] as int,
-      userId: json['user_id'] as int,
-      scheduleId: json['schedule_id'] as int?,
-      type: json['notification_type'] as String,
-      channel: json['channel'] as String,
-      title: json['title'] as String,
-      message: json['message'] as String,
+      id: parseInt(json['notification_id'] ?? json['id']),
+      userId: parseInt(json['user_id'] ?? json['userId']),
+      scheduleId: parseNullableInt(json['schedule_id'] ?? json['scheduleId']),
+      type: (json['notification_type'] ?? json['type'] ?? 'PAYMENT_REMINDER')
+          .toString(),
+      channel: (json['channel'] ?? 'PUSH').toString(),
+      title: (json['title'] ?? '').toString(),
+      message: (json['message'] ?? '').toString(),
       scheduledAt: parseDate('scheduled_at'),
       sentAt: parseDate('sent_at'),
-      status: json['status'] as String,
+      status: (json['status'] ?? 'PENDING').toString(),
       createdAt: parseDate('created_at'),
     );
   }

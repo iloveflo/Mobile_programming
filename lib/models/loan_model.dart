@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 
 /// Trạng thái lọc khoản vay
@@ -30,6 +29,8 @@ class LoanModel {
   final double outstandingAmount; // Dư nợ còn lại
   final double earlyPaymentFeeRate; // Phí trả nợ trước hạn (ví dụ 0.02 = 2%)
   final String status; // ACTIVE, CLOSED, OVERDUE
+  final DateTime? nextPaymentDate;
+  final double? nextPaymentAmount;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -49,6 +50,8 @@ class LoanModel {
     required this.outstandingAmount,
     required this.earlyPaymentFeeRate,
     required this.status,
+    this.nextPaymentDate,
+    this.nextPaymentAmount,
     this.createdAt,
     this.updatedAt,
   });
@@ -210,8 +213,8 @@ class LoanModel {
   bool get isSettled => status.toUpperCase() == 'SETTLED';
   bool get isOverdue => status.toUpperCase() == 'OVERDUE';
 
-  /// Điều kiện xóa cứng: Chỉ cho phép xóa hoàn toàn khi chưa có bất kỳ giao dịch thanh toán nào
-  bool get canHardDelete => paidAmount <= 0.0;
+  /// Điều kiện xóa: Chỉ cho phép xóa khi chưa phát sinh thanh toán hoặc khoản vay đã đóng/tất toán
+  bool get canHardDelete => paidAmount <= 0.0 || isClosed;
 
   /// Tính tỷ lệ LTV (%) theo giá trị định giá của tài sản đảm bảo
   double calculateLtv(double collateralValuation) {
@@ -221,6 +224,7 @@ class LoanModel {
 
   /// Ngày thanh toán kỳ tiếp theo
   DateTime get nextDueDate {
+    if (nextPaymentDate != null) return nextPaymentDate!;
     final now = DateTime.now();
     DateTime due = DateTime(now.year, now.month, startDate.day);
     if (due.isBefore(now)) {
@@ -229,21 +233,26 @@ class LoanModel {
     return due;
   }
 
-  /// Ước tính số tiền thanh toán kỳ tháng tới
+  /// Ước tính số tiền thanh toán kỳ tháng tới (khớp công thức lịch phân kỳ Backend: gốc chia đều + lãi theo kỳ)
   double get monthlyInstallmentEstimate {
     if (isClosed || outstandingAmount <= 0) return 0.0;
     if (termMonths <= 0) return 0.0;
 
     final double monthlyRate = interestRate / 12.0;
+    final int remainingMonths = principalAmount > 0
+        ? (outstandingAmount / (principalAmount / termMonths)).ceil().clamp(
+            1,
+            termMonths,
+          )
+        : termMonths;
 
     if (interestMethod == 'REDUCING_BALANCE') {
-      if (monthlyRate == 0) return outstandingAmount / termMonths;
-      // Công thức EMI: P * r * (1+r)^n / ((1+r)^n - 1)
-      final num factor = pow(1.0 + monthlyRate, termMonths);
-      return outstandingAmount * (monthlyRate * factor) / (factor - 1.0);
+      final double monthlyPrincipal = outstandingAmount / remainingMonths;
+      final double monthlyInterest = outstandingAmount * monthlyRate;
+      return monthlyPrincipal + monthlyInterest;
     } else {
       // Dư nợ gốc ban đầu: Gốc chia đều + Lãi tính theo gốc ban đầu
-      final double monthlyPrincipal = principalAmount / termMonths;
+      final double monthlyPrincipal = outstandingAmount / remainingMonths;
       final double monthlyInterest = principalAmount * monthlyRate;
       return monthlyPrincipal + monthlyInterest;
     }
@@ -303,14 +312,16 @@ class LoanModel {
       return DateTime.tryParse(val.toString());
     }
 
+    int parseInt(dynamic val, [int fallback = 1]) {
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? fallback;
+      return fallback;
+    }
+
     return LoanModel(
-      id: json['loan_id'] is num
-          ? (json['loan_id'] as num).toInt()
-          : int.tryParse(json['id']?.toString() ?? '1') ?? 1,
-      userId: json['user_id'] is num ? (json['user_id'] as num).toInt() : 1,
-      loanTypeId: json['loan_type_id'] is num
-          ? (json['loan_type_id'] as num).toInt()
-          : int.tryParse(json['loanTypeId']?.toString() ?? '1') ?? 1,
+      id: parseInt(json['loan_id'] ?? json['id'], 1),
+      userId: parseInt(json['user_id'] ?? json['userId'], 1),
+      loanTypeId: parseInt(json['loan_type_id'] ?? json['loanTypeId'], 1),
       loanType: json['loan_type']?.toString() ?? json['loanType']?.toString(),
       name: (json['loan_name'] ?? json['name'] ?? 'Khoản vay') as String,
       lender: json['lender_name'] ?? json['lender'] as String?,
@@ -318,17 +329,19 @@ class LoanModel {
           (json['principal_amount'] ?? json['principalAmount'] as num?)
               ?.toDouble() ??
           0.0,
-      interestRate:
-          (json['interest_rate'] ?? json['interestRate'] as num?)?.toDouble() ??
-          0.0,
+      interestRate: (() {
+        final raw =
+            (json['interest_rate'] ?? json['interestRate'] as num?)
+                ?.toDouble() ??
+            0.0;
+        return raw > 1.0 ? raw / 100.0 : raw;
+      })(),
       interestMethod:
           (json['interest_method'] ??
                   json['interestMethod'] ??
                   'REDUCING_BALANCE')
               as String,
-      termMonths: json['term_months'] is num
-          ? (json['term_months'] as num).toInt()
-          : int.tryParse(json['termMonths']?.toString() ?? '12') ?? 12,
+      termMonths: parseInt(json['term_months'] ?? json['termMonths'], 12),
       startDate:
           parseDate(json['start_date'] ?? json['startDate']) ?? DateTime.now(),
       endDate: parseDate(json['end_date'] ?? json['endDate']),
@@ -342,6 +355,12 @@ class LoanModel {
               ?.toDouble() ??
           0.02,
       status: (json['status'] ?? 'ACTIVE') as String,
+      nextPaymentDate: parseDate(
+        json['next_payment_date'] ?? json['nextPaymentDate'],
+      ),
+      nextPaymentAmount:
+          (json['next_payment_amount'] ?? json['nextPaymentAmount'] as num?)
+              ?.toDouble(),
       createdAt: parseDate(json['created_at'] ?? json['createdAt']),
       updatedAt: parseDate(json['updated_at'] ?? json['updatedAt']),
     );

@@ -78,25 +78,55 @@ class SimulationModel {
   SimulationScenarioType get type =>
       SimulationScenarioType.fromCode(scenarioType);
 
-  factory SimulationModel.fromJson(Map<String, dynamic> json) {
+  factory SimulationModel.fromJson(Map<String, dynamic> rawJson) {
+    final dynamic nested = rawJson['data'];
+    final Map<String, dynamic> json = nested is Map<String, dynamic>
+        ? nested
+        : (nested is Map ? Map<String, dynamic>.from(nested) : rawJson);
+
+    int parseInt(dynamic val, [int fallback = 0]) {
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? fallback;
+      return fallback;
+    }
+
+    double parseDouble(dynamic val, [double fallback = 0.0]) {
+      if (val == null) return fallback;
+      if (val is num) return val.toDouble();
+      if (val is String) return double.tryParse(val) ?? fallback;
+      return fallback;
+    }
+
+    DateTime? parseDate(dynamic val) {
+      if (val == null) return null;
+      if (val is DateTime) return val;
+      return DateTime.tryParse(val.toString());
+    }
+
     return SimulationModel(
-      id: json['simulation_id'] as int? ?? json['id'] as int? ?? 0,
-      userId: json['user_id'] as int? ?? 1,
-      loanId: json['loan_id'] as int? ?? 0,
-      extraPayment: (json['extra_payment'] as num?)?.toDouble() ?? 0,
-      earlyPaymentFee: (json['early_payment_fee'] as num?)?.toDouble() ?? 0,
-      estimatedInterest: (json['estimated_interest'] as num?)?.toDouble() ?? 0,
-      estimatedInterestSaved:
-          (json['estimated_interest_saved'] as num?)?.toDouble() ?? 0,
-      monthsReduced: json['months_reduced'] as int? ?? 0,
-      totalSaving: (json['total_saving'] as num?)?.toDouble() ?? 0,
+      id: parseInt(json['simulation_id'] ?? json['id']),
+      userId: parseInt(json['user_id'] ?? json['userId'], 1),
+      loanId: parseInt(json['loan_id'] ?? json['loanId']),
+      extraPayment: parseDouble(
+        json['extra_payment'] ?? json['extra_monthly_payment'],
+      ),
+      earlyPaymentFee: parseDouble(json['early_payment_fee']),
+      estimatedInterest: parseDouble(json['estimated_interest']),
+      estimatedInterestSaved: parseDouble(
+        json['estimated_interest_saved'] ?? json['saved_interest'],
+      ),
+      monthsReduced: parseInt(
+        json['months_reduced'] ?? json['time_saved_months'],
+      ),
+      totalSaving: parseDouble(json['total_saving']),
       scenarioType:
-          (json['scenario_type'] as String?)?.toUpperCase() ?? 'EXTRA_PAYMENT',
-      scenarioName: json['scenario_name'] as String?,
-      status: json['status'] as String? ?? 'SIMULATION_REFERENCE',
-      createdAt: json['created_at'] == null
-          ? null
-          : DateTime.tryParse(json['created_at'] as String),
+          (json['scenario_type'] ?? json['simulation_type'])
+              ?.toString()
+              .toUpperCase() ??
+          'EXTRA_PAYMENT',
+      scenarioName: json['scenario_name']?.toString(),
+      status: json['status']?.toString() ?? 'SIMULATION_REFERENCE',
+      createdAt: parseDate(json['created_at']),
     );
   }
 

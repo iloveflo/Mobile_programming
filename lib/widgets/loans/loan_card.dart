@@ -112,7 +112,6 @@ class LoanCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
@@ -126,21 +125,26 @@ class LoanCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8.0),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8.0,
-                vertical: 3.0,
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(6.0),
-              ),
-              child: Text(
-                loan.loanTypeDisplayName,
-                style: const TextStyle(
-                  fontSize: 10.5,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 140.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 3.0,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(6.0),
+                ),
+                child: Text(
+                  loan.loanTypeDisplayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -150,51 +154,63 @@ class LoanCard extends StatelessWidget {
 
         // Hàng số tiền: Dư nợ & Gốc ban đầu
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Dư nợ còn lại',
-                  style: TextStyle(
-                    fontSize: 12.0,
-                    color: AppColors.textSecondary,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Dư nợ còn lại',
+                    style: TextStyle(
+                      fontSize: 12.0,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4.0),
-                Text(
-                  _formatCurrency(loan.outstandingAmount),
-                  style: const TextStyle(
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+                  const SizedBox(height: 4.0),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _formatCurrency(loan.outstandingAmount),
+                      style: const TextStyle(
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Text(
-                  'Gốc ban đầu',
-                  style: TextStyle(
-                    fontSize: 12.0,
-                    color: AppColors.textSecondary,
+            const SizedBox(width: 12.0),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text(
+                    'Gốc ban đầu',
+                    style: TextStyle(
+                      fontSize: 12.0,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4.0),
-                Text(
-                  _formatCurrency(loan.principalAmount),
-                  style: const TextStyle(
-                    fontSize: 14.0,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+                  const SizedBox(height: 4.0),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      _formatCurrency(loan.principalAmount),
+                      style: const TextStyle(
+                        fontSize: 14.0,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -242,57 +258,71 @@ class LoanCard extends StatelessWidget {
               border: Border.all(color: const Color(0xFFBFDBFE), width: 1.0),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.event_note_rounded,
-                      size: 16.0,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(width: 6.0),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Kỳ tới',
-                          style: TextStyle(
-                            fontSize: 10.0,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        Text(
-                          _formatDate(loan.nextDueDate),
-                          style: const TextStyle(
-                            fontSize: 12.0,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text(
-                      'Ước tính (gốc + lãi)',
-                      style: TextStyle(
-                        fontSize: 10.0,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    Text(
-                      _formatCurrency(loan.monthlyInstallmentEstimate),
-                      style: const TextStyle(
-                        fontSize: 13.0,
-                        fontWeight: FontWeight.w700,
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.event_note_rounded,
+                        size: 16.0,
                         color: AppColors.primary,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6.0),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Kỳ tới',
+                              style: TextStyle(
+                                fontSize: 10.0,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            Text(
+                              _formatDate(loan.nextDueDate),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12.0,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'Ước tính (gốc + lãi)',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10.0,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          _formatCurrency(loan.monthlyInstallmentEstimate),
+                          style: const TextStyle(
+                            fontSize: 13.0,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -323,53 +353,65 @@ class LoanCard extends StatelessWidget {
         const SizedBox(height: 12.0),
 
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Dư nợ sao kê',
-                  style: TextStyle(
-                    fontSize: 12.0,
-                    color: AppColors.textSecondary,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Dư nợ sao kê',
+                    style: TextStyle(
+                      fontSize: 12.0,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4.0),
-                Text(
-                  _formatCurrency(loan.outstandingAmount),
-                  style: TextStyle(
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.w800,
-                    color: isHighUsage
-                        ? AppColors.error
-                        : const Color(0xFF6B21A8),
+                  const SizedBox(height: 4.0),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _formatCurrency(loan.outstandingAmount),
+                      style: TextStyle(
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.w800,
+                        color: isHighUsage
+                            ? AppColors.error
+                            : const Color(0xFF6B21A8),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Text(
-                  'Hạn mức thẻ',
-                  style: TextStyle(
-                    fontSize: 12.0,
-                    color: AppColors.textSecondary,
+            const SizedBox(width: 12.0),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text(
+                    'Hạn mức thẻ',
+                    style: TextStyle(
+                      fontSize: 12.0,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4.0),
-                Text(
-                  _formatCurrency(loan.principalAmount),
-                  style: const TextStyle(
-                    fontSize: 14.0,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+                  const SizedBox(height: 4.0),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      _formatCurrency(loan.principalAmount),
+                      style: const TextStyle(
+                        fontSize: 14.0,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -413,57 +455,71 @@ class LoanCard extends StatelessWidget {
             border: Border.all(color: const Color(0xFFF5D0FE), width: 1.0),
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.payment_rounded,
-                    size: 16.0,
-                    color: Color(0xFF7C3AED),
-                  ),
-                  const SizedBox(width: 6.0),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Hạn trả',
-                        style: TextStyle(
-                          fontSize: 10.0,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      Text(
-                        _formatDate(loan.nextDueDate),
-                        style: const TextStyle(
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const Text(
-                    'Tối thiểu dự kiến (5%)',
-                    style: TextStyle(
-                      fontSize: 10.0,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  Text(
-                    _formatCurrency(loan.outstandingAmount * 0.05),
-                    style: const TextStyle(
-                      fontSize: 13.0,
-                      fontWeight: FontWeight.w700,
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.payment_rounded,
+                      size: 16.0,
                       color: Color(0xFF7C3AED),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 6.0),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Hạn trả',
+                            style: TextStyle(
+                              fontSize: 10.0,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            _formatDate(loan.nextDueDate),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12.0,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8.0),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text(
+                      'Tối thiểu dự kiến (5%)',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10.0,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        _formatCurrency(loan.outstandingAmount * 0.05),
+                        style: const TextStyle(
+                          fontSize: 13.0,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF7C3AED),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

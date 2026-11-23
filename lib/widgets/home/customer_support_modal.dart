@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../layout/responsive_layout.dart';
 import '../widget.dart';
 
 /// Modal BottomSheet hỗ trợ khách hàng 24/7 (Hotline, Email tư vấn)
@@ -10,6 +11,7 @@ class CustomerSupportModal extends StatelessWidget {
   static Future<void> show(BuildContext context) {
     return showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
@@ -19,7 +21,7 @@ class CustomerSupportModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return ResponsiveBottomSheetBody(
       padding: const EdgeInsets.all(20.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -33,15 +35,18 @@ class CustomerSupportModal extends StatelessWidget {
                 size: 26.0,
               ),
               const SizedBox(width: 10.0),
-              const Text(
-                'Hỗ trợ khách hàng 24/7',
-                style: TextStyle(
-                  fontSize: 17.0,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Hỗ trợ khách hàng 24/7',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 17.0,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
-              const Spacer(),
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.pop(context),
@@ -72,12 +77,16 @@ class CustomerSupportModal extends StatelessWidget {
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    Text(
-                      '1900 6868 (Miễn phí)',
-                      style: TextStyle(
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                    Expanded(
+                      child: Text(
+                        '1900 6868 (Miễn phí)',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ],
@@ -98,12 +107,16 @@ class CustomerSupportModal extends StatelessWidget {
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    Text(
-                      'support@fincredit.vn',
-                      style: TextStyle(
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                    Expanded(
+                      child: Text(
+                        'support@fincredit.vn',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ],
