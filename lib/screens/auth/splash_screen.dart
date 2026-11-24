@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../controllers/auth_controller.dart';
+import '../../core/config/app_env.dart';
+import '../../core/network/api_client.dart';
 import '../../layout/responsive_layout.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
@@ -29,6 +31,11 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _bootstrapApp() async {
+    // Kiểm tra nhanh /health khi khởi động ở prod để chuyển tức thì sang Render nếu Coolify đang sập
+    if (!AppEnv.useMock && AppEnv.hasFallback && sl.isRegistered<ApiClient>()) {
+      await sl<ApiClient>().ensureHealthyEndpoint();
+    }
+
     bool hasValidSession = false;
     try {
       hasValidSession = await _authController.checkSession();

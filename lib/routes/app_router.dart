@@ -22,6 +22,9 @@ import '../screens/main_shell_screen.dart';
 abstract final class AppRouter {
   AppRouter._();
 
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+
   /// M01: Màn hình khởi động Splash
   static const String splash = '/';
 

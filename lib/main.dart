@@ -24,6 +24,7 @@ class FinCreditApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: AppRouter.navigatorKey,
       title: 'FinCredit',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

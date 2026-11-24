@@ -8,6 +8,7 @@ import '../models/session_model.dart';
 import '../models/user_model.dart';
 import '../services/push_notification_service.dart';
 import '../services/realtime_service.dart';
+import '../services/session_storage_service.dart';
 import '../repositories/interfaces/auth_repository.dart';
 import '../widgets/dev/dev_state_panel.dart';
 import 'credit_profile_controller.dart';
@@ -35,6 +36,8 @@ class AuthController extends ChangeNotifier {
   bool _rememberMe = true;
   bool _biometricEnabled = true;
   bool _autoLockEnabled = true;
+  String? _lastLoginIdentifier;
+  String? _lastLoginPassword;
 
   // ================= Trạng thái OTP & Khóa tài khoản =================
   int _otpCountdown = 105; // 105 giây ~ 01:45
@@ -102,6 +105,19 @@ class AuthController extends ChangeNotifier {
 
   Future<bool> setBiometricEnabled(bool value) async {
     _biometricEnabled = value;
+    if (GetIt.I.isRegistered<SessionStorageService>()) {
+      final sessionStorage = GetIt.I<SessionStorageService>();
+      if (value) {
+        if (_lastLoginIdentifier != null && _lastLoginPassword != null) {
+          await sessionStorage.saveBiometricCredentials(
+            identifier: _lastLoginIdentifier!,
+            password: _lastLoginPassword!,
+          );
+        }
+      } else {
+        await sessionStorage.clearBiometricCredentials();
+      }
+    }
     if (_currentUser != null) {
       _currentUser = _currentUser!.copyWith(isBiometricEnabled: value);
       notifyListeners();
@@ -325,6 +341,15 @@ class AuthController extends ChangeNotifier {
       _currentUser = user;
       _biometricEnabled = user.isBiometricEnabled;
       _autoLockEnabled = user.isAutoLockEnabled;
+      _lastLoginIdentifier = identifier.trim();
+      _lastLoginPassword = password;
+      if (user.isBiometricEnabled &&
+          GetIt.I.isRegistered<SessionStorageService>()) {
+        await GetIt.I<SessionStorageService>().saveBiometricCredentials(
+          identifier: identifier.trim(),
+          password: password,
+        );
+      }
       _failedOtpAttempts = 0;
       await loadSessions();
 

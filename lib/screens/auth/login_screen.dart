@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../controllers/auth_controller.dart';
+import '../../core/config/app_env.dart';
+import '../../core/network/api_client.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
 import '../../services/biometric_auth_service.dart';
@@ -28,6 +32,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final savedId = sl<SessionStorageService>().getLastIdentifierSync();
     if (savedId != null && savedId.isNotEmpty) {
       _identifierController.text = savedId;
+    }
+    // Nếu đang ở máy chủ dự phòng Render, tự kiểm tra ngầm xem Coolify đã phục hồi chưa để quay về
+    if (!AppEnv.useMock &&
+        AppEnv.hasFallback &&
+        AppEnv.isUsingFallback &&
+        sl.isRegistered<ApiClient>()) {
+      unawaited(sl<ApiClient>().ensureHealthyEndpoint());
     }
   }
 
@@ -297,14 +308,16 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 2. Kiểm tra dữ liệu phiên đã lưu trên thiết bị
+    // 2. Kiểm tra dữ liệu phiên hoặc thông tin liên kết sinh trắc học đã lưu trên thiết bị
     final sessionStorage = sl<SessionStorageService>();
     final savedToken = await sessionStorage.getSavedToken();
     final savedUser = await sessionStorage.getSavedUser();
+    final biometricCreds = await sessionStorage.getBiometricCredentials();
 
     if (!mounted) return;
 
-    if (savedToken == null || savedToken.isExpired) {
+    final hasValidToken = savedToken != null && !savedToken.isExpired;
+    if (!hasValidToken && biometricCreds == null) {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -348,7 +361,11 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     // 3. Kích hoạt cảm biến vân tay phần cứng Android (BiometricPrompt)
-    final accountLabel = savedUser?.fullName ?? savedUser?.email ?? 'FinCredit';
+    final accountLabel =
+        savedUser?.fullName ??
+        savedUser?.email ??
+        biometricCreds?.identifier ??
+        'FinCredit';
     final bioResult = await sl<BiometricAuthService>().authenticateFingerprint(
       reason: 'Quét vân tay để đăng nhập tài khoản $accountLabel',
     );
@@ -362,16 +379,47 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final success = await _authController.checkSession();
-    if (!mounted) return;
-    if (success) {
-      Navigator.pushReplacementNamed(context, AppRouter.home);
-    } else {
+    if (hasValidToken) {
+      final success = await _authController.checkSession();
+      if (!mounted) return;
+      if (success) {
+        Navigator.pushReplacementNamed(context, AppRouter.home);
+        return;
+      }
+    }
+
+    if (biometricCreds != null) {
+      final result = await _authController.login(
+        biometricCreds.identifier,
+        biometricCreds.password,
+        rememberMe: _authController.rememberMe,
+      );
+      if (!mounted) return;
+      if (result == AuthResultState.success) {
+        Navigator.pushReplacementNamed(context, AppRouter.home);
+        return;
+      }
+      if (result == AuthResultState.invalid) {
+        await sessionStorage.clearBiometricCredentials();
+        if (!mounted) return;
+        AppSnackBar.showError(
+          context,
+          'Thông tin đăng nhập đã thay đổi. Vui lòng đăng nhập lại bằng mật khẩu.',
+        );
+        return;
+      }
       AppSnackBar.showError(
         context,
-        'Phiên làm việc đã hết hạn. Vui lòng nhập lại mật khẩu.',
+        _authController.errorMessage ??
+            'Đăng nhập sinh trắc học không thành công.',
       );
+      return;
     }
+
+    AppSnackBar.showError(
+      context,
+      'Phiên làm việc đã hết hạn. Vui lòng nhập lại mật khẩu.',
+    );
   }
 
   @override

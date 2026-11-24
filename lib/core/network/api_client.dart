@@ -26,19 +26,49 @@ class ApiException implements Exception {
 /// HTTP Client trung tâm phục vụ kết nối RESTful API của FinCredit
 /// Sử dụng HttpClient chuẩn từ Dart SDK, sẵn sàng hoạt động mà không cần cài thêm dependencies.
 class ApiClient {
-  final String baseUrl;
+  String? _overrideBaseUrl;
+  final String? _initialOverridePrimaryUrl;
+  final String? _overrideFallbackBaseUrl;
   final HttpClient _httpClient;
   final Duration timeout;
+  final int serverFailureThreshold;
+  final Future<bool> Function(Uri healthUri, Duration probeTimeout)?
+  healthChecker;
   String? _authToken;
+
+  int _consecutiveServerFailures = 0;
+  bool _isFailingOver = false;
 
   ApiClient({
     String? baseUrl,
+    String? fallbackBaseUrl,
     HttpClient? httpClient,
     this.timeout = const Duration(seconds: 15),
-  }) : baseUrl = baseUrl ?? AppEnv.baseUrl,
+    this.serverFailureThreshold = 3,
+    this.healthChecker,
+  }) : _overrideBaseUrl = baseUrl,
+       _initialOverridePrimaryUrl = baseUrl,
+       _overrideFallbackBaseUrl = fallbackBaseUrl,
        _httpClient =
            httpClient ??
            (HttpClient()..connectionTimeout = const Duration(seconds: 10));
+
+  /// Base URL hiện tại (tự động chuyển sang Render khi failover kích hoạt)
+  String get baseUrl => _overrideBaseUrl ?? AppEnv.baseUrl;
+
+  String? get _effectiveFallbackUrl => _initialOverridePrimaryUrl != null
+      ? _overrideFallbackBaseUrl
+      : AppEnv.fallbackBaseUrl;
+
+  String get _effectivePrimaryUrl =>
+      _initialOverridePrimaryUrl ?? AppEnv.primaryBaseUrl;
+
+  bool get _isOnFallback => _initialOverridePrimaryUrl != null
+      ? (_overrideFallbackBaseUrl != null &&
+            _overrideBaseUrl == _overrideFallbackBaseUrl)
+      : AppEnv.isUsingFallback;
+
+  int get consecutiveServerFailures => _consecutiveServerFailures;
 
   /// Token xác thực Bearer hiện tại
   String? get authToken => _authToken;
@@ -56,6 +86,87 @@ class ApiClient {
   /// Callback tự động làm mới Access Token khi gặp mã lỗi HTTP 401
   Future<bool> Function()? onRefreshToken;
   Future<bool>? _refreshFuture;
+
+  /// Callback kích hoạt khi máy chủ chính sập đủ ngưỡng (đá về Login & chuyển Render)
+  Future<void> Function()? onServerFailover;
+
+  void _switchToFallbackUrl() {
+    if (_initialOverridePrimaryUrl != null) {
+      if (_overrideFallbackBaseUrl != null) {
+        _overrideBaseUrl = _overrideFallbackBaseUrl;
+      }
+    } else {
+      AppEnv.switchToFallback();
+    }
+  }
+
+  void _resetToPrimaryUrl() {
+    if (_initialOverridePrimaryUrl != null) {
+      _overrideBaseUrl = _initialOverridePrimaryUrl;
+    } else {
+      AppEnv.resetToPrimary();
+    }
+  }
+
+  bool _isServerDownError(Object error) {
+    if (error is SocketException ||
+        error is TimeoutException ||
+        error is HandshakeException) {
+      return true;
+    }
+    if (error is ApiException) {
+      return error.statusCode == 502 ||
+          error.statusCode == 503 ||
+          error.statusCode == 504;
+    }
+    return false;
+  }
+
+  Future<bool> _checkHealth(Uri healthUri, Duration probeTimeout) async {
+    if (healthChecker != null) {
+      try {
+        return await healthChecker!(healthUri, probeTimeout);
+      } catch (_) {
+        return false;
+      }
+    }
+    try {
+      final request = await _httpClient.getUrl(healthUri).timeout(probeTimeout);
+      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+      final response = await request.close().timeout(probeTimeout);
+      await response.drain<void>();
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Kiểm tra `/health` lúc khởi động app hoặc khi quay về Login:
+  /// ưu tiên quay về Coolify nếu đã phục hồi, ngược lại chuyển sang Render nếu Coolify sập
+  Future<void> ensureHealthyEndpoint() async {
+    final fallback = _effectiveFallbackUrl;
+    if (fallback == null) return;
+
+    final primary = _effectivePrimaryUrl;
+    final primaryOk = await _checkHealth(
+      AppEnv.healthUriFor(primary),
+      const Duration(seconds: 4),
+    );
+    if (primaryOk) {
+      _resetToPrimaryUrl();
+      _consecutiveServerFailures = 0;
+      return;
+    }
+
+    final fallbackOk = await _checkHealth(
+      AppEnv.healthUriFor(fallback),
+      const Duration(seconds: 15),
+    );
+    if (fallbackOk) {
+      _switchToFallbackUrl();
+      _consecutiveServerFailures = 0;
+    }
+  }
 
   /// Chuẩn hóa và tạo URI hoàn chỉnh từ baseUrl + endpoint
   Uri _buildUri(String endpoint, [Map<String, dynamic>? queryParams]) {
@@ -162,12 +273,15 @@ class ApiClient {
   }
 
   /// Thực thi HTTP request với cơ chế Auto Token Refresh Interceptor khi gặp 401
+  /// và cơ chế Failover (tức thì ở màn Login / đếm ngưỡng khi đang dùng app)
   Future<dynamic> _executeWithRetry(
     String endpoint,
     Future<dynamic> Function() action,
   ) async {
     try {
-      return await action();
+      final result = await action();
+      _consecutiveServerFailures = 0;
+      return result;
     } on ApiException catch (e) {
       final isAuthEndpoint =
           endpoint.contains('login') ||
@@ -175,21 +289,106 @@ class ApiClient {
           endpoint.contains('refresh') ||
           endpoint.contains('session');
       if (e.statusCode == 401 && !isAuthEndpoint && onRefreshToken != null) {
+        _consecutiveServerFailures = 0;
         final bool isInitiator = _refreshFuture == null;
         _refreshFuture ??= onRefreshToken!();
         try {
           final success = await _refreshFuture!;
           if (success) {
-            return await action();
+            final retried = await action();
+            _consecutiveServerFailures = 0;
+            return retried;
           }
         } finally {
           if (isInitiator) {
             _refreshFuture = null;
           }
         }
+        rethrow;
+      }
+
+      if (_isServerDownError(e)) {
+        final fallbackResult = await _handleServerDown(endpoint, action);
+        if (fallbackResult.$1) return fallbackResult.$2;
+      } else {
+        _consecutiveServerFailures = 0;
+      }
+      rethrow;
+    } catch (e) {
+      if (_isServerDownError(e)) {
+        final fallbackResult = await _handleServerDown(endpoint, action);
+        if (fallbackResult.$1) return fallbackResult.$2;
       }
       rethrow;
     }
+  }
+
+  Future<(bool, dynamic)> _handleServerDown(
+    String endpoint,
+    Future<dynamic> Function() action,
+  ) async {
+    final fallback = _effectiveFallbackUrl;
+    if (fallback == null) {
+      return (false, null);
+    }
+
+    final bool switchingToFallback = !_isOnFallback;
+    final String targetUrl = switchingToFallback
+        ? fallback
+        : _effectivePrimaryUrl;
+
+    final isInstantFailoverEndpoint =
+        endpoint.contains('/auth/login') ||
+        endpoint.contains('/auth/register') ||
+        endpoint.contains('/auth/check-session');
+
+    if (isInstantFailoverEndpoint) {
+      final targetOk = await _checkHealth(
+        AppEnv.healthUriFor(targetUrl),
+        const Duration(seconds: 20),
+      );
+      if (targetOk) {
+        if (switchingToFallback) {
+          _switchToFallbackUrl();
+        } else {
+          _resetToPrimaryUrl();
+        }
+        _consecutiveServerFailures = 0;
+        final retried = await action();
+        return (true, retried);
+      }
+      return (false, null);
+    }
+
+    if (endpoint.contains('/auth/logout')) {
+      return (false, null);
+    }
+
+    _consecutiveServerFailures++;
+    if (_consecutiveServerFailures >= serverFailureThreshold &&
+        !_isFailingOver) {
+      _isFailingOver = true;
+      try {
+        final targetOk = await _checkHealth(
+          AppEnv.healthUriFor(targetUrl),
+          const Duration(seconds: 15),
+        );
+        if (targetOk) {
+          if (switchingToFallback) {
+            _switchToFallbackUrl();
+          } else {
+            _resetToPrimaryUrl();
+          }
+          _consecutiveServerFailures = 0;
+          if (onServerFailover != null) {
+            await onServerFailover!();
+          }
+        }
+      } finally {
+        _isFailingOver = false;
+      }
+    }
+    return (false, null);
   }
 
   // ================= CÁC PHƯƠNG THỨC HTTP CHUẨN =================

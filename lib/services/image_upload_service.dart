@@ -139,12 +139,24 @@ class ImageUploadService {
   }) async {
     final source = await showSourceSelector(context, title: title);
     if (source == null) return null;
-    return await picker.pickImage(
-      source: source,
-      maxWidth: maxWidth,
-      maxHeight: maxHeight,
-      imageQuality: imageQuality,
-    );
+    try {
+      return await picker.pickImage(
+        source: source,
+        maxWidth: maxWidth,
+        maxHeight: maxHeight,
+        imageQuality: imageQuality,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        final msg = e.toString().contains('denied')
+            ? 'Ứng dụng chưa được cấp quyền truy cập Camera hoặc Thư viện ảnh.'
+            : 'Không thể mở Camera/Thư viện ảnh: ${e.toString().replaceAll('Exception: ', '')}';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), backgroundColor: AppColors.error),
+        );
+      }
+      return null;
+    }
   }
 
   /// Tải dữ liệu XFile lên Cloudflare R2 sau khi đã kiểm tra/quét hợp lệ

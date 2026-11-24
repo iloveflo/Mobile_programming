@@ -29,6 +29,17 @@ class SessionStorageService {
     return File('${dir.path}/auth_session.json');
   }
 
+  File get _biometricFile {
+    final dirPath =
+        customDirectory?.path ??
+        '${Directory.systemTemp.path}/fincredit_storage';
+    final dir = Directory(dirPath);
+    if (!dir.existsSync()) {
+      dir.createSync(recursive: true);
+    }
+    return File('${dir.path}/biometric_binding.json');
+  }
+
   void _ensureInitialized() {
     if (_isInitialized) return;
     _isInitialized = true;
@@ -135,6 +146,57 @@ class SessionStorageService {
 
     try {
       final file = _sessionFile;
+      if (file.existsSync()) {
+        file.deleteSync();
+      }
+    } catch (_) {}
+  }
+
+  /// Lưu thông tin liên kết đăng nhập sinh trắc học trên thiết bị (không bị xóa khi đăng xuất)
+  Future<void> saveBiometricCredentials({
+    required String identifier,
+    required String password,
+  }) async {
+    if (identifier.trim().isEmpty || password.isEmpty) return;
+    try {
+      final payload = jsonEncode({
+        'identifier': identifier.trim(),
+        'password': password,
+      });
+      final encoded = base64Encode(utf8.encode(payload));
+      _biometricFile.writeAsStringSync(encoded, flush: true);
+    } catch (_) {}
+  }
+
+  /// Lấy thông tin liên kết sinh trắc học đã lưu trên thiết bị (nếu có)
+  Future<({String identifier, String password})?>
+  getBiometricCredentials() async {
+    return getBiometricCredentialsSync();
+  }
+
+  ({String identifier, String password})? getBiometricCredentialsSync() {
+    try {
+      final file = _biometricFile;
+      if (!file.existsSync()) return null;
+      final raw = file.readAsStringSync().trim();
+      if (raw.isEmpty) return null;
+      final decodedJson = utf8.decode(base64Decode(raw));
+      final decoded = jsonDecode(decodedJson);
+      if (decoded is Map<String, dynamic>) {
+        final identifier = (decoded['identifier'] ?? '').toString().trim();
+        final password = (decoded['password'] ?? '').toString();
+        if (identifier.isNotEmpty && password.isNotEmpty) {
+          return (identifier: identifier, password: password);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Xóa thông tin liên kết sinh trắc học khi người dùng tắt tính năng hoặc đổi mật khẩu
+  Future<void> clearBiometricCredentials() async {
+    try {
+      final file = _biometricFile;
       if (file.existsSync()) {
         file.deleteSync();
       }

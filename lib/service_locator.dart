@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart' show ScaffoldMessenger, SnackBar, Text;
 import 'package:get_it/get_it.dart';
 
 import 'controllers/auth_controller.dart';
@@ -12,6 +13,7 @@ import 'controllers/payment_schedule_controller.dart';
 import 'controllers/simulation_controller.dart';
 import 'core/config/app_env.dart';
 import 'core/network/api_client.dart';
+import 'routes/app_router.dart';
 import 'models/auth_token_model.dart';
 import 'repositories/interfaces/auth_repository.dart';
 import 'repositories/interfaces/credit_profile_repository.dart';
@@ -72,7 +74,7 @@ void setupServiceLocator({bool? isMock}) {
   // 1. TẦNG CORE, NETWORK & STORAGE
   // =========================================================================
   _registerLazySingletonIfNot<ApiClient>(() {
-    final client = ApiClient(baseUrl: AppEnv.baseUrl);
+    final client = ApiClient();
     client.onRefreshToken = () async {
       try {
         final sessionStorage = sl<SessionStorageService>();
@@ -100,6 +102,27 @@ void setupServiceLocator({bool? isMock}) {
         }
       } catch (_) {}
       return false;
+    };
+    client.onServerFailover = () async {
+      if (sl.isRegistered<RealtimeService>()) {
+        sl<RealtimeService>().disconnect();
+      }
+      if (sl.isRegistered<AuthController>()) {
+        await sl<AuthController>().logout();
+      }
+      final navState = AppRouter.navigatorKey.currentState;
+      if (navState != null) {
+        navState.pushNamedAndRemoveUntil(AppRouter.login, (_) => false);
+        final ctx = AppRouter.navigatorKey.currentContext;
+        if (ctx != null && ctx.mounted) {
+          final msg = AppEnv.isUsingFallback
+              ? 'Máy chủ chính tạm ngưng kết nối. Đã chuyển sang máy chủ dự phòng, vui lòng đăng nhập lại.'
+              : 'Máy chủ dự phòng tạm ngưng kết nối. Đã chuyển về máy chủ chính, vui lòng đăng nhập lại.';
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            SnackBar(content: Text(msg), duration: const Duration(seconds: 5)),
+          );
+        }
+      }
     };
     return client;
   });
