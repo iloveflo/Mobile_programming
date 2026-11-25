@@ -65,8 +65,22 @@ class MainActivity : FlutterFragmentActivity() {
         }
     }
 
+    private fun ensureNotificationChannel(manager: NotificationManager) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                notifChannelId,
+                "Nhắc nợ & Cảnh báo FinCredit",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Thông báo kỳ thanh toán quá hạn, nhắc nợ và biến động tín dụng"
+            }
+            manager.createNotificationChannel(channel)
+        }
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        ensureNotificationChannel(getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
         notificationChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "fincredit/notifications")
         notificationChannel?.setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -111,16 +125,7 @@ class MainActivity : FlutterFragmentActivity() {
                             }
 
                             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                val channel = NotificationChannel(
-                                    notifChannelId,
-                                    "Nhắc nợ & Cảnh báo FinCredit",
-                                    NotificationManager.IMPORTANCE_HIGH
-                                ).apply {
-                                    description = "Thông báo kỳ thanh toán quá hạn, nhắc nợ và biến động tín dụng"
-                                }
-                                manager.createNotificationChannel(channel)
-                            }
+                            ensureNotificationChannel(manager)
                             val launchIntent = Intent(this, MainActivity::class.java).apply {
                                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
                                 putExtra("fromNotification", true)

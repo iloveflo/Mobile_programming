@@ -125,6 +125,26 @@ class _MainShellScreenState extends State<MainShellScreen>
     _setupRealtimeConnection();
   }
 
+  Future<void> _recoverSessionAndData() async {
+    if (!mounted) return;
+    if (sl.isRegistered<AuthController>()) {
+      await sl<AuthController>().restoreProfileIfNeeded();
+    }
+    if (!mounted) return;
+    final uid = sl.isRegistered<AuthController>()
+        ? sl<AuthController>().currentUser?.userId
+        : null;
+    await Future.wait([
+      if (sl.isRegistered<LoanController>()) sl<LoanController>().fetchLoans(),
+      if (sl.isRegistered<PaymentScheduleController>()) ...[
+        sl<PaymentScheduleController>().loadSchedules(userId: uid),
+        sl<PaymentScheduleController>().loadNotifications(userId: uid),
+      ],
+      if (sl.isRegistered<CreditProfileController>())
+        sl<CreditProfileController>().loadCreditProfile(userId: uid),
+    ]);
+  }
+
   void _setupRealtimeConnection() {
     if (AppEnv.useMock ||
         !sl.isRegistered<RealtimeService>() ||
@@ -137,10 +157,14 @@ class _MainShellScreenState extends State<MainShellScreen>
     final realtime = sl<RealtimeService>();
     realtime.onConnectionStateChanged = (connected) {
       if (!mounted) return;
+      final wasDisconnected = _isRealtimeDisconnected;
       if (_isRealtimeDisconnected == connected) {
         setState(() {
           _isRealtimeDisconnected = !connected;
         });
+      }
+      if (connected && wasDisconnected) {
+        _recoverSessionAndData();
       }
     };
     realtime.onNotificationReceived = (title, message) {

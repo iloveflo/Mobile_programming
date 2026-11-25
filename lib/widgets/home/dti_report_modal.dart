@@ -135,7 +135,7 @@ class DtiReportModal extends StatelessWidget {
         ? (backendDti * 100.0)
         : (income > 0 ? (commitment / income) * 100 : 0.0);
     final double netCashFlow = income - commitment;
-    final activeLoans = loanController.loans
+    final activeLoans = loanController.allLoans
         .where((l) => l.isActive || l.isOverdue)
         .toList();
 

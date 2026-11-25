@@ -9,6 +9,8 @@ class ConnectionErrorView extends StatelessWidget {
   final String? message;
   final String actionLabel;
   final VoidCallback onRetry;
+  final IconData icon;
+  final Color iconColor;
 
   const ConnectionErrorView({
     super.key,
@@ -16,21 +18,21 @@ class ConnectionErrorView extends StatelessWidget {
     this.message,
     this.actionLabel = 'Thử lại ngay',
     required this.onRetry,
+    this.icon = Icons.cloud_off_rounded,
+    this.iconColor = AppColors.error,
   });
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 100.0),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.cloud_off_rounded,
-              size: 52.0,
-              color: AppColors.error,
-            ),
+            Icon(icon, size: 52.0, color: iconColor),
             const SizedBox(height: 14.0),
             Text(
               title ?? 'Sự cố kết nối hệ thống',

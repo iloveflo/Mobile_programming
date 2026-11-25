@@ -23,6 +23,9 @@ import 'package:my_first_app/screens/loans/loan_detail_screen.dart';
 import 'package:my_first_app/screens/loans/loan_form_screen.dart';
 import 'package:my_first_app/screens/loans/loan_list_screen.dart';
 import 'package:my_first_app/screens/main_shell_screen.dart';
+import 'package:my_first_app/widgets/common/connection_error_view.dart';
+import 'package:my_first_app/widgets/credit_report/credit_report_empty_state.dart';
+import 'package:my_first_app/widgets/schedule/schedule_empty_state.dart';
 import 'package:my_first_app/screens/profile/profile_screen.dart';
 import 'package:my_first_app/screens/schedule/payment_schedule_screen.dart';
 import 'package:my_first_app/screens/settings/app_settings_screen.dart';
@@ -500,6 +503,33 @@ void main() {
 
       testWidgets('MainShellScreen [${profile.name}]', (tester) async {
         await _pumpAtProfile(tester, profile, const MainShellScreen());
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('ScheduleEmptyState [${profile.name}]', (tester) async {
+        await _pumpAtProfile(
+          tester,
+          profile,
+          Scaffold(body: ScheduleEmptyState(onAddLoan: () {})),
+        );
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('CreditReportEmptyState [${profile.name}]', (tester) async {
+        await _pumpAtProfile(
+          tester,
+          profile,
+          Scaffold(body: CreditReportEmptyState(onGenerateFirstReport: () {})),
+        );
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('ConnectionErrorView [${profile.name}]', (tester) async {
+        await _pumpAtProfile(
+          tester,
+          profile,
+          Scaffold(body: ConnectionErrorView(onRetry: () {})),
+        );
         expect(tester.takeException(), isNull);
       });
     }

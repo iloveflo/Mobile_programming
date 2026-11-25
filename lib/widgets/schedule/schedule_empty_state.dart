@@ -11,8 +11,9 @@ class ScheduleEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 100.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

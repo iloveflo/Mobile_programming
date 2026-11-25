@@ -45,6 +45,23 @@ class AccountUnverifiedException implements Exception {
   String toString() => message;
 }
 
+/// Lỗi yêu cầu xác thực OTP khi đăng nhập lần đầu trên thiết bị mới
+class NewDeviceOtpRequiredException implements Exception {
+  final String email;
+  final String? phone;
+  final String message;
+
+  const NewDeviceOtpRequiredException(
+    this.email, {
+    this.phone,
+    this.message =
+        'Phát hiện đăng nhập trên thiết bị mới. Vui lòng nhập mã OTP để xác thực.',
+  });
+
+  @override
+  String toString() => message;
+}
+
 /// Lỗi liên quan đến mã xác thực OTP (mã không đúng, hết hạn hoặc quá số lần thử)
 class OtpException implements Exception {
   final String message;

@@ -215,6 +215,24 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         break;
 
+      case AuthResultState.newDeviceOtpRequired:
+        AppSnackBar.showInfo(
+          context,
+          'Phát hiện đăng nhập trên thiết bị mới. Vui lòng nhập mã OTP.',
+        );
+        Navigator.pushNamed(
+          context,
+          AppRouter.otp,
+          arguments: {
+            'email':
+                _authController.pendingEmail ??
+                _identifierController.text.trim(),
+            'phone': _authController.pendingPhone ?? '',
+            'flow': OtpFlow.loginDevice,
+          },
+        );
+        break;
+
       case AuthResultState.locked:
         _showLockedDialog(_authController.lockRemainingMinutes);
         break;

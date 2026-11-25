@@ -225,6 +225,12 @@ class AppValidators {
       return 'Số tiền vay tối thiểu là 5.000.000 VNĐ (5 triệu)';
     }
     if (num > max) {
+      if (max == 500000000) {
+        return 'Số tiền vay tối đa là 500.000.000 VNĐ (500 triệu)';
+      }
+      if (max == 10000000000) {
+        return 'Số tiền vay tối đa là 10.000.000.000 VNĐ (10 tỷ)';
+      }
       return 'Số tiền vay tối đa là 50.000.000.000 VNĐ (50 tỷ)';
     }
     return null;

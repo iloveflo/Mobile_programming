@@ -47,14 +47,13 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) {
         return;
       }
-      if (_loanController.loans.isEmpty && !_loanController.isLoading) {
-        _loanController.fetchLoans();
-      }
+      final userId = _authController.currentUser?.userId;
       if (_authController.activeSessions.isEmpty) {
         _authController.loadSessions();
       }
-      final userId = _authController.currentUser?.userId;
       Future.wait([
+        if (_loanController.allLoans.isEmpty && !_loanController.isLoading)
+          _loanController.fetchLoans(),
         _scheduleController.loadNotifications(userId: userId),
         _scheduleController.loadSchedules(userId: userId),
         _scheduleController.loadNotificationPreference(userId: userId),
@@ -66,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
         await LocalNotificationService.notifyOverdueOrUrgent(
           notifications: _scheduleController.notifications,
           schedules: _scheduleController.schedules,
-          loans: _loanController.loans,
+          loans: _loanController.allLoans,
           preference: _scheduleController.preference,
         );
       });
@@ -90,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     final schedule = _scheduleController.selectedSchedule!;
-    final loan = _loanController.loans.cast<LoanModel?>().firstWhere(
+    final loan = _loanController.allLoans.cast<LoanModel?>().firstWhere(
       (l) => l?.id == schedule.loanId,
       orElse: () => null,
     );
@@ -159,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (success && _scheduleController.selectedSchedule != null) {
           final schedule = _scheduleController.selectedSchedule!;
-          final loan = _loanController.loans.cast<LoanModel?>().firstWhere(
+          final loan = _loanController.allLoans.cast<LoanModel?>().firstWhere(
             (l) => l?.id == schedule.loanId,
             orElse: () => null,
           );
@@ -207,6 +206,15 @@ class _HomeScreenState extends State<HomeScreen> {
       ]),
       builder: (context, _) {
         final user = _authController.currentUser;
+        final missingProfileFields =
+            ProfileCompletionNotice.getMissingProfileFields(user);
+        if (missingProfileFields.isNotEmpty) {
+          return ProfileCompletionScaffold(
+            missingFields: missingProfileFields,
+            onGoToProfile: () => MainShellScreen.switchTab(context, 4),
+          );
+        }
+
         final loadedProfile = _creditProfileController?.creditProfile;
         final matchingProfile =
             (loadedProfile != null &&
@@ -217,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         final hasConnectionError =
             !_loanController.isLoading &&
-            _loanController.loans.isEmpty &&
+            _loanController.allLoans.isEmpty &&
             (_loanController.errorMessage != null ||
                 (user == null &&
                     _creditProfileController?.exceptionCode == 'EX-04'));
@@ -231,16 +239,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     message:
                         _loanController.errorMessage ??
                         _creditProfileController?.errorMessage,
-                    onRetry: () {
+                    onRetry: () async {
+                      await _authController.restoreProfileIfNeeded();
+                      if (!mounted) return;
                       final uid = _authController.currentUser?.userId;
-                      _loanController.fetchLoans();
-                      _authController.loadSessions();
-                      _scheduleController.loadNotifications(userId: uid);
-                      _scheduleController.loadSchedules(userId: uid);
-                      _scheduleController.loadNotificationPreference(
-                        userId: uid,
-                      );
-                      _creditProfileController?.loadCreditProfile(userId: uid);
+                      await Future.wait([
+                        _loanController.fetchLoans(),
+                        _authController.loadSessions(),
+                        _scheduleController.loadNotifications(userId: uid),
+                        _scheduleController.loadSchedules(userId: uid),
+                        _scheduleController.loadNotificationPreference(
+                          userId: uid,
+                        ),
+                        ?_creditProfileController?.loadCreditProfile(
+                          userId: uid,
+                        ),
+                      ]);
                     },
                   )
                 : CustomScrollView(

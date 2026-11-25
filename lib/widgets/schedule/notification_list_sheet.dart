@@ -73,7 +73,7 @@ class _NotificationListSheetState extends State<NotificationListSheet> {
       builder: (ctx) => AlertDialog(
         title: const Text('Xóa tất cả thông báo'),
         content: const Text(
-          'Bạn có chắc muốn xóa toàn bộ thông báo nhắc nợ hiện có không?',
+          'Bạn có chắc muốn xóa toàn bộ thông báo hiện có không?',
         ),
         actions: [
           TextButton(
@@ -193,7 +193,7 @@ class _NotificationListSheetState extends State<NotificationListSheet> {
                     SizedBox(width: 10.0),
                     Expanded(
                       child: Text(
-                        'Thông báo nhắc nợ',
+                        'Thông báo',
                         style: TextStyle(
                           fontSize: 17.0,
                           fontWeight: FontWeight.w700,
@@ -248,7 +248,7 @@ class _NotificationListSheetState extends State<NotificationListSheet> {
           ),
           const SizedBox(height: 8.0),
           const Text(
-            'Lịch sử các cảnh báo và nhắc nhở thanh toán tự động đã được kích hoạt theo cấu hình.',
+            'Lịch sử các cảnh báo, nhắc nợ và biến động tín dụng của bạn.',
             style: TextStyle(
               fontSize: 12.5,
               color: AppColors.textSecondary,
@@ -261,7 +261,7 @@ class _NotificationListSheetState extends State<NotificationListSheet> {
             child: _items.isEmpty
                 ? const Center(
                     child: Text(
-                      'Chưa có thông báo nhắc nợ nào.',
+                      'Chưa có thông báo nào.',
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 13.0,

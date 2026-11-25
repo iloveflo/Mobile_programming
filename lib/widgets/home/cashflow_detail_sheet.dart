@@ -88,7 +88,7 @@ class CashflowDetailSheet extends StatelessWidget {
         ? (commitment / income) * 100
         : 0.0;
     final bool isSurplus = netCashflow >= 0;
-    final activeLoans = loanController.loans
+    final activeLoans = loanController.allLoans
         .where((l) => l.isActive || l.isOverdue)
         .toList();
 

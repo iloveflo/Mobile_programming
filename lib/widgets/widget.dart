@@ -23,6 +23,7 @@ export 'common/app_snack_bar.dart';
 export 'common/app_text_field.dart';
 export 'common/connection_error_view.dart';
 export 'common/custom_bottom_nav_bar.dart';
+export 'common/profile_completion_notice.dart';
 export 'common/quick_chip_selector.dart';
 
 // Auth & Security

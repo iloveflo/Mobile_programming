@@ -487,7 +487,7 @@ void main() {
           ),
         );
 
-        expect(find.text('Thông báo nhắc nợ'), findsOneWidget);
+        expect(find.text('Thông báo'), findsOneWidget);
         expect(find.text('Nhắc quá hạn kỳ 2'), findsOneWidget);
         expect(find.text('Xem kỳ hạn'), findsOneWidget);
 

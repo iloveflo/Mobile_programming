@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../../controllers/auth_controller.dart';
 import '../../controllers/loan_controller.dart';
 import '../../models/loan_model.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
 import '../../widgets/widget.dart';
+import '../main_shell_screen.dart';
 
 /// Màn hình L02-01: Quản lý danh mục và danh sách khoản vay (LoanListScreen)
 class LoanListScreen extends StatefulWidget {
@@ -20,6 +22,9 @@ class LoanListScreen extends StatefulWidget {
 class _LoanListScreenState extends State<LoanListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final LoanController _loanController = sl<LoanController>();
+  final AuthController? _authController = sl.isRegistered<AuthController>()
+      ? sl<AuthController>()
+      : null;
   bool _isFabVisible = true;
 
   @override
@@ -71,394 +76,419 @@ class _LoanListScreenState extends State<LoanListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-        leadingWidth: 48.0,
-        leading: widget.isTab
-            ? const SizedBox(width: 48.0)
-            : IconButton(
+    return ListenableBuilder(
+      listenable: Listenable.merge([?_authController]),
+      builder: (context, _) {
+        final missingProfileFields =
+            ProfileCompletionNotice.getMissingProfileFields(
+              _authController?.currentUser,
+            );
+        if (missingProfileFields.isNotEmpty) {
+          return ProfileCompletionScaffold(
+            missingFields: missingProfileFields,
+            showBackButton: !widget.isTab,
+            onGoToProfile: () => MainShellScreen.switchTab(context, 4),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.surface,
+            elevation: 0,
+            centerTitle: true,
+            automaticallyImplyLeading: false,
+            leadingWidth: 48.0,
+            leading: widget.isTab
+                ? const SizedBox(width: 48.0)
+                : IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: AppColors.textPrimary,
+                      size: 20.0,
+                    ),
+                    onPressed: () => Navigator.maybePop(context),
+                  ),
+            title: const Text(
+              'Danh mục khoản vay',
+              style: TextStyle(
+                fontSize: 18.0,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            actions: [
+              PopupMenuButton<String>(
                 icon: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: AppColors.textPrimary,
-                  size: 20.0,
+                  Icons.auto_awesome_rounded,
+                  color: AppColors.primary,
                 ),
-                onPressed: () => Navigator.maybePop(context),
-              ),
-        title: const Text(
-          'Danh mục khoản vay',
-          style: TextStyle(
-            fontSize: 18.0,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(
-              Icons.auto_awesome_rounded,
-              color: AppColors.primary,
-            ),
-            tooltip: 'Tiện ích tài chính',
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            onSelected: (value) {
-              if (value == 'simulation') {
-                Navigator.pushNamed(context, AppRouter.simulation);
-              } else if (value == 'debt_strategy') {
-                Navigator.pushNamed(context, AppRouter.debtStrategy);
-              } else if (value == 'ocr') {
-                Navigator.pushNamed(context, AppRouter.loanCollateralOcr);
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'debt_strategy',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.auto_graph_rounded,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      'Tối ưu trả nợ',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                tooltip: 'Tiện ích tài chính',
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                onSelected: (value) {
+                  if (value == 'simulation') {
+                    Navigator.pushNamed(context, AppRouter.simulation);
+                  } else if (value == 'debt_strategy') {
+                    Navigator.pushNamed(context, AppRouter.debtStrategy);
+                  } else if (value == 'ocr') {
+                    Navigator.pushNamed(context, AppRouter.loanCollateralOcr);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'debt_strategy',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.auto_graph_rounded,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          'Tối ưu trả nợ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'simulation',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calculate_outlined,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          'Mô phỏng trả nợ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'ocr',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.document_scanner_outlined,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          'Quét hợp đồng OCR',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const PopupMenuItem(
-                value: 'simulation',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.calculate_outlined,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      'Mô phỏng trả nợ',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'ocr',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.document_scanner_outlined,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      'Quét hợp đồng OCR',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              const SizedBox(width: 4),
             ],
           ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      floatingActionButton: AnimatedSlide(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeInOut,
-        offset: _isFabVisible ? Offset.zero : const Offset(0.0, 2.0),
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 200),
-          opacity: _isFabVisible ? 1.0 : 0.0,
-          child: Padding(
-            padding: EdgeInsets.only(bottom: widget.isTab ? 72.0 : 0.0),
-            child: FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.pushNamed(context, AppRouter.loanForm);
-              },
-              backgroundColor: AppColors.primary,
-              elevation: 4.0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.0),
-              ),
-              icon: const Icon(
-                Icons.add_rounded,
-                color: Colors.white,
-                size: 22.0,
-              ),
-              label: const Text(
-                'Thêm khoản vay',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13.5,
-                  color: Colors.white,
+          floatingActionButton: AnimatedSlide(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            offset: _isFabVisible ? Offset.zero : const Offset(0.0, 2.0),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: _isFabVisible ? 1.0 : 0.0,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: widget.isTab ? 72.0 : 0.0),
+                child: FloatingActionButton.extended(
+                  onPressed: () {
+                    Navigator.pushNamed(context, AppRouter.loanForm);
+                  },
+                  backgroundColor: AppColors.primary,
+                  elevation: 4.0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.0),
+                  ),
+                  icon: const Icon(
+                    Icons.add_rounded,
+                    color: Colors.white,
+                    size: 22.0,
+                  ),
+                  label: const Text(
+                    'Thêm khoản vay',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.5,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
-      body: NotificationListener<UserScrollNotification>(
-        onNotification: (notification) {
-          if (notification.metrics.axis == Axis.vertical) {
-            if (notification.direction == ScrollDirection.reverse) {
-              if (_isFabVisible) {
-                setState(() {
-                  _isFabVisible = false;
-                });
+          body: NotificationListener<UserScrollNotification>(
+            onNotification: (notification) {
+              if (notification.metrics.axis == Axis.vertical) {
+                if (notification.direction == ScrollDirection.reverse) {
+                  if (_isFabVisible) {
+                    setState(() {
+                      _isFabVisible = false;
+                    });
+                  }
+                } else if (notification.direction == ScrollDirection.forward) {
+                  if (!_isFabVisible) {
+                    setState(() {
+                      _isFabVisible = true;
+                    });
+                  }
+                }
               }
-            } else if (notification.direction == ScrollDirection.forward) {
-              if (!_isFabVisible) {
-                setState(() {
-                  _isFabVisible = true;
-                });
-              }
-            }
-          }
-          return false; // Cho phép notification lan truyền lên MainShellScreen
-        },
-        child: ListenableBuilder(
-          listenable: _loanController,
-          builder: (context, _) {
-            if (_loanController.loans.isEmpty &&
-                _loanController.errorMessage != null &&
-                !_loanController.isLoading) {
-              return ConnectionErrorView(
-                message: _loanController.errorMessage,
-                onRetry: () => _loanController.fetchLoans(),
-              );
-            }
-            return RefreshIndicator(
-              onRefresh: () => _loanController.fetchLoans(),
-              color: AppColors.primary,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 12.0,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Thẻ tổng quan danh mục tín dụng
-                    PortfolioSummaryCard(
-                      totalRemainingPrincipal:
-                          _loanController.totalRemainingPrincipal,
-                      totalOriginalPrincipal:
-                          _loanController.totalOriginalPrincipal,
-                      totalPaidAmount: _loanController.totalPaidAmount,
-                      paidRatio: _loanController.paidRatio,
-                      activeLoansCount: _loanController.activeLoansCount,
-                      monthlyCommitment: _loanController.totalMonthlyCommitment,
+              return false; // Cho phép notification lan truyền lên MainShellScreen
+            },
+            child: ListenableBuilder(
+              listenable: _loanController,
+              builder: (context, _) {
+                if (_loanController.allLoans.isEmpty &&
+                    _loanController.errorMessage != null &&
+                    !_loanController.isLoading) {
+                  return ConnectionErrorView(
+                    message: _loanController.errorMessage,
+                    onRetry: () async {
+                      await _authController?.restoreProfileIfNeeded();
+                      await _loanController.fetchLoans();
+                    },
+                  );
+                }
+                return RefreshIndicator(
+                  onRefresh: () => _loanController.fetchLoans(),
+                  color: AppColors.primary,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 12.0,
                     ),
-                    const SizedBox(height: 18.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. Thẻ tổng quan danh mục tín dụng
+                        PortfolioSummaryCard(
+                          totalRemainingPrincipal:
+                              _loanController.totalRemainingPrincipal,
+                          totalOriginalPrincipal:
+                              _loanController.totalOriginalPrincipal,
+                          totalPaidAmount: _loanController.totalPaidAmount,
+                          paidRatio: _loanController.paidRatio,
+                          activeLoansCount: _loanController.activeLoansCount,
+                          monthlyCommitment:
+                              _loanController.totalMonthlyCommitment,
+                        ),
+                        const SizedBox(height: 18.0),
 
-                    // 2. Ô tìm kiếm
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(12.0),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (val) =>
-                            _loanController.setSearchKeyword(val),
-                        style: const TextStyle(
-                          fontSize: 14.0,
-                          color: AppColors.textPrimary,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Tìm theo tên khoản vay, ngân hàng...',
-                          hintStyle: const TextStyle(
-                            fontSize: 13.0,
-                            color: AppColors.textSecondary,
+                        // 2. Ô tìm kiếm
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12.0),
+                            border: Border.all(color: AppColors.border),
                           ),
-                          prefixIcon: const Icon(
-                            Icons.search_rounded,
-                            color: AppColors.textSecondary,
-                            size: 22.0,
-                          ),
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(
-                                    Icons.cancel_rounded,
-                                    color: AppColors.textSecondary,
-                                    size: 18.0,
-                                  ),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    _loanController.setSearchKeyword('');
-                                  },
-                                )
-                              : null,
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14.0,
-                            vertical: 12.0,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12.0),
-
-                    // 3. Thanh tab lọc trạng thái
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _buildFilterChip(
-                            label: 'Tất cả (${_loanController.loans.length})',
-                            status: LoanStatus.all,
-                            currentStatus: _loanController.currentFilterStatus,
-                          ),
-                          _buildFilterChip(
-                            label:
-                                'Đang vay (${_loanController.loans.where((l) => l.isActive).length})',
-                            status: LoanStatus.active,
-                            currentStatus: _loanController.currentFilterStatus,
-                          ),
-                          _buildFilterChip(
-                            label:
-                                'Đã tất toán (${_loanController.loans.where((l) => l.isClosed).length})',
-                            status: LoanStatus.closed,
-                            currentStatus: _loanController.currentFilterStatus,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14.0),
-
-                    // 4. Danh sách các khoản vay hoặc Trạng thái Loading / Empty
-                    if (_loanController.isLoading &&
-                        _loanController.loans.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 40.0),
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      )
-                    else if (_loanController.loans.isEmpty)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 48.0,
-                          horizontal: 20.0,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(16.0),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.inventory_2_outlined,
-                              size: 56.0,
-                              color: AppColors.textSecondary.withValues(
-                                alpha: 0.5,
-                              ),
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (val) =>
+                                _loanController.setSearchKeyword(val),
+                            style: const TextStyle(
+                              fontSize: 14.0,
+                              color: AppColors.textPrimary,
                             ),
-                            const SizedBox(height: 12.0),
-                            const Text(
-                              'Chưa tìm thấy khoản vay nào',
-                              style: TextStyle(
-                                fontSize: 15.0,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 6.0),
-                            const Text(
-                              'Tạo khoản vay mới hoặc thay đổi từ khóa tìm kiếm.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
+                            decoration: InputDecoration(
+                              hintText: 'Tìm theo tên khoản vay, ngân hàng...',
+                              hintStyle: const TextStyle(
                                 fontSize: 13.0,
                                 color: AppColors.textSecondary,
                               ),
-                            ),
-                            const SizedBox(height: 16.0),
-                            OutlinedButton.icon(
-                              onPressed: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  AppRouter.loanForm,
-                                );
-                              },
-                              icon: const Icon(Icons.add, size: 18.0),
-                              label: const Text('Thêm mới ngay'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.primary,
-                                side: const BorderSide(
-                                  color: AppColors.primary,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10.0),
-                                ),
+                              prefixIcon: const Icon(
+                                Icons.search_rounded,
+                                color: AppColors.textSecondary,
+                                size: 22.0,
+                              ),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(
+                                        Icons.cancel_rounded,
+                                        color: AppColors.textSecondary,
+                                        size: 18.0,
+                                      ),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _loanController.setSearchKeyword('');
+                                      },
+                                    )
+                                  : null,
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14.0,
+                                vertical: 12.0,
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      )
-                    else
-                      ListView.separated(
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _loanController.loans.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: 12.0),
-                        itemBuilder: (context, index) {
-                          final loan = _loanController.loans[index];
-                          return LoanCard(
-                            loan: loan,
-                            onTap: () {
-                              _loanController.selectLoan(loan);
-                              Navigator.pushNamed(
-                                context,
-                                AppRouter.loanDetail,
-                                arguments: {
-                                  'loanId': loan.id.toString(),
-                                  'loan': loan,
+                        const SizedBox(height: 12.0),
+
+                        // 3. Thanh tab lọc trạng thái
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _buildFilterChip(
+                                label:
+                                    'Tất cả (${_loanController.allLoans.length})',
+                                status: LoanStatus.all,
+                                currentStatus:
+                                    _loanController.currentFilterStatus,
+                              ),
+                              _buildFilterChip(
+                                label:
+                                    'Đang vay (${_loanController.allLoans.where((l) => l.isActive).length})',
+                                status: LoanStatus.active,
+                                currentStatus:
+                                    _loanController.currentFilterStatus,
+                              ),
+                              _buildFilterChip(
+                                label:
+                                    'Đã tất toán (${_loanController.allLoans.where((l) => l.isClosed).length})',
+                                status: LoanStatus.closed,
+                                currentStatus:
+                                    _loanController.currentFilterStatus,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14.0),
+
+                        // 4. Danh sách các khoản vay hoặc Trạng thái Loading / Empty
+                        if (_loanController.isLoading &&
+                            _loanController.loans.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 40.0),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          )
+                        else if (_loanController.loans.isEmpty)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 48.0,
+                              horizontal: 20.0,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(16.0),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.inventory_2_outlined,
+                                  size: 56.0,
+                                  color: AppColors.textSecondary.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 12.0),
+                                const Text(
+                                  'Chưa tìm thấy khoản vay nào',
+                                  style: TextStyle(
+                                    fontSize: 15.0,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 6.0),
+                                const Text(
+                                  'Tạo khoản vay mới hoặc thay đổi từ khóa tìm kiếm.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13.0,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 16.0),
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      AppRouter.loanForm,
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add, size: 18.0),
+                                  label: const Text('Thêm mới ngay'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.primary,
+                                    side: const BorderSide(
+                                      color: AppColors.primary,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10.0),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          ListView.separated(
+                            shrinkWrap: true,
+                            padding: EdgeInsets.zero,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _loanController.loans.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 12.0),
+                            itemBuilder: (context, index) {
+                              final loan = _loanController.loans[index];
+                              return LoanCard(
+                                loan: loan,
+                                onTap: () {
+                                  _loanController.selectLoan(loan);
+                                  Navigator.pushNamed(
+                                    context,
+                                    AppRouter.loanDetail,
+                                    arguments: {
+                                      'loanId': loan.id.toString(),
+                                      'loan': loan,
+                                    },
+                                  );
                                 },
                               );
                             },
-                          );
-                        },
-                      ),
+                          ),
 
-                    SizedBox(
-                      height: widget.isTab ? 140.0 : 80.0,
-                    ), // Khoảng trống đảm bảo thẻ cuối cùng không bị che khuất
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+                        SizedBox(
+                          height: widget.isTab ? 140.0 : 80.0,
+                        ), // Khoảng trống đảm bảo thẻ cuối cùng không bị che khuất
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -81,5 +81,40 @@ void main() {
         expect(find.text('Cập nhật mật khẩu'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      '4. OtpVerificationScreen hiển thị đúng tiêu đề xác thực thiết bị mới với OtpFlow.loginDevice',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(800, 2000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          sl<AuthController>().setDevState(DevAuthState.normal);
+        });
+
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: OtpVerificationScreen(
+              email: 'dev@test.com',
+              phone: '0912345678',
+              flow: OtpFlow.loginDevice,
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(find.text('Xác thực thiết bị mới'), findsOneWidget);
+        expect(
+          find.text(
+            'Phát hiện đăng nhập lần đầu trên thiết bị mới. Mã bảo mật 6 số đã được gửi qua Email',
+          ),
+          findsOneWidget,
+        );
+        expect(find.byType(OtpInputField), findsOneWidget);
+
+        sl<AuthController>().setDevState(DevAuthState.normal);
+        await tester.pump();
+      },
+    );
   });
 }

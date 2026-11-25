@@ -122,7 +122,19 @@ class LocalNotificationService {
       return;
     }
 
-    final overdueSchedule = schedules
+    final activeLoanIds = loans
+        .where((l) => (l.isActive || l.isOverdue) && l.outstandingAmount > 0)
+        .map((l) => l.id)
+        .toSet();
+    if (activeLoanIds.isEmpty) {
+      return;
+    }
+
+    final activeSchedules = schedules
+        .where((s) => activeLoanIds.contains(s.loanId))
+        .toList();
+
+    final overdueSchedule = activeSchedules
         .where((s) => s.status.toUpperCase() == 'OVERDUE')
         .firstOrNull;
     if (overdueSchedule != null) {
@@ -149,7 +161,7 @@ class LocalNotificationService {
     final reminderDays = preference?.reminderDays ?? 3;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final upcomingSchedule = schedules.where((s) {
+    final upcomingSchedule = activeSchedules.where((s) {
       final st = s.status.toUpperCase();
       if (st == 'PAID' || st == 'OVERDUE') return false;
       final due = DateTime(s.dueDate.year, s.dueDate.month, s.dueDate.day);
@@ -178,9 +190,14 @@ class LocalNotificationService {
       return;
     }
 
-    final overdueNotif = notifications
-        .where((n) => n.type.toUpperCase() == 'OVERDUE_ALERT')
-        .firstOrNull;
+    final activeScheduleIds = activeSchedules.map((s) => s.id).toSet();
+    final overdueNotif = notifications.where((n) {
+      if (n.type.toUpperCase() != 'OVERDUE_ALERT') return false;
+      if (n.scheduleId != null && !activeScheduleIds.contains(n.scheduleId)) {
+        return false;
+      }
+      return true;
+    }).firstOrNull;
     if (overdueNotif != null) {
       final key = overdueNotif.scheduleId != null
           ? 'overdue_sched_${overdueNotif.scheduleId}'

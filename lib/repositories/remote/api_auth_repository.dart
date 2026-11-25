@@ -16,6 +16,7 @@ class ApiAuthRepository implements AuthRepository {
   String? _pendingChallengeToken;
   String? _pendingIdentifier;
   String? _pendingResetToken;
+  bool _pendingRememberMe = true;
 
   ApiAuthRepository({
     required this.client,
@@ -162,6 +163,8 @@ class ApiAuthRepository implements AuthRepository {
         ? 'Android'
         : (Platform.isIOS ? 'iOS' : Platform.operatingSystem);
 
+    _pendingRememberMe = rememberMe;
+
     final response = await _handleApiCall<dynamic>(
       () => client.post(
         '/api/auth/login',
@@ -183,6 +186,18 @@ class ApiAuthRepository implements AuthRepository {
     final data = raw['data'] is Map<String, dynamic>
         ? raw['data'] as Map<String, dynamic>
         : raw;
+
+    if (data['requires_otp'] == true ||
+        data['otp_required'] == true ||
+        raw['requires_otp'] == true) {
+      final challenge = data['challenge_token'] ?? raw['challenge_token'];
+      _pendingChallengeToken = challenge?.toString();
+      final email = (data['email'] ?? raw['email'] ?? identifier.trim())
+          .toString();
+      _pendingIdentifier = email;
+      final phone = (data['phone'] ?? raw['phone'])?.toString();
+      throw NewDeviceOtpRequiredException(email, phone: phone);
+    }
 
     // Trích xuất Token xác thực và lưu vào ApiClient
     final token =
@@ -311,11 +326,15 @@ class ApiAuthRepository implements AuthRepository {
           expiresAt: DateTime.now().add(const Duration(days: 7)),
           userId: user?.userId ?? 0,
         );
-        await sessionStorage.saveSession(
-          token: tokenModel,
-          user: user,
-          identifier: user?.email ?? _pendingIdentifier,
-        );
+        if (flowType == 'LOGIN_DEVICE' && !_pendingRememberMe) {
+          await sessionStorage.clearSession(keepMemoryCache: true);
+        } else {
+          await sessionStorage.saveSession(
+            token: tokenModel,
+            user: user,
+            identifier: user?.email ?? _pendingIdentifier,
+          );
+        }
       }
 
       return (response['success'] ?? true) as bool;

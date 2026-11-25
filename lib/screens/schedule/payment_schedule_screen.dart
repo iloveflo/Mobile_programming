@@ -8,6 +8,7 @@ import '../../models/payment_schedule_model.dart';
 import '../../routes/app_router.dart';
 import '../../service_locator.dart';
 import '../../widgets/widget.dart';
+import '../main_shell_screen.dart';
 
 /// Màn hình Lịch thanh toán định kỳ & Nhắc nợ (Mục 5: Xem lịch thanh toán)
 class PaymentScheduleScreen extends StatefulWidget {
@@ -168,222 +169,245 @@ class _PaymentScheduleScreenState extends State<PaymentScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Lịch thanh toán định kỳ',
-          style: TextStyle(
-            fontSize: 18.0,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.sync_rounded, color: AppColors.primary),
-            tooltip: 'Đồng bộ lịch & nhắc nợ',
-            onPressed: () async {
-              final count = await _scheduleController.syncSchedules(
-                userId: _authController.currentUser?.userId,
-              );
-              if (!mounted) return;
-              AppSnackBar.showSuccess(
-                this.context,
-                'Đã đồng bộ lịch và làm mới $count thông báo nhắc nợ!',
-              );
-            },
-          ),
-        ],
-      ),
-      body: ListenableBuilder(
-        listenable: _scheduleController,
-        builder: (context, _) {
-          if (_scheduleController.isLoading &&
-              _scheduleController.schedules.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+    return ListenableBuilder(
+      listenable: _authController,
+      builder: (context, _) {
+        final missingProfileFields =
+            ProfileCompletionNotice.getMissingProfileFields(
+              _authController.currentUser,
             );
-          }
+        if (missingProfileFields.isNotEmpty) {
+          return ProfileCompletionScaffold(
+            missingFields: missingProfileFields,
+            onGoToProfile: () => MainShellScreen.switchTab(context, 4),
+          );
+        }
 
-          // EX-02: Lỗi phân quyền truy cập
-          if (_scheduleController.exceptionCode == 'EX-02') {
-            return _buildErrorState(
-              icon: Icons.gpp_bad_rounded,
-              iconColor: AppColors.error,
-              title: 'Không có quyền truy cập',
-              message:
-                  _scheduleController.errorMessage ??
-                  'Bạn không có quyền truy xuất lịch thanh toán của tài khoản khác.',
-              actionLabel: 'Thử lại',
-              onAction: () => _scheduleController.loadSchedules(
-                userId: _authController.currentUser?.userId,
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.surface,
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            title: const Text(
+              'Lịch thanh toán định kỳ',
+              style: TextStyle(
+                fontSize: 18.0,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
               ),
-            );
-          }
-
-          // EX-06: Lỗi kết nối hoặc cơ sở dữ liệu
-          if (_scheduleController.exceptionCode == 'EX-06' &&
-              _scheduleController.schedules.isEmpty) {
-            return _buildErrorState(
-              icon: Icons.cloud_off_rounded,
-              iconColor: AppColors.error,
-              title: 'Sự cố kết nối hệ thống',
-              message:
-                  _scheduleController.errorMessage ??
-                  'Không thể tải dữ liệu lịch thanh toán. Vui lòng thử lại sau.',
-              actionLabel: 'Thử lại ngay',
-              onAction: () => _scheduleController.loadSchedules(
-                userId: _authController.currentUser?.userId,
-              ),
-            );
-          }
-
-          // EX-01: Chưa có lịch phân kỳ nào
-          if (_scheduleController.isEmptyState) {
-            return RefreshIndicator(
-              onRefresh: () => _scheduleController.loadSchedules(
-                userId: _authController.currentUser?.userId,
-              ),
-              color: AppColors.primary,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.7,
-                  child: ScheduleEmptyState(
-                    onAddLoan: () =>
-                        Navigator.pushNamed(context, AppRouter.loanForm),
-                  ),
-                ),
-              ),
-            );
-          }
-
-          final schedules = _scheduleController.filteredSchedules;
-
-          return RefreshIndicator(
-            onRefresh: () => _scheduleController.loadSchedules(
-              userId: _authController.currentUser?.userId,
             ),
-            color: AppColors.primary,
-            child: ListView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 14.0,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.sync_rounded, color: AppColors.primary),
+                tooltip: 'Đồng bộ lịch & nhắc nợ',
+                onPressed: () async {
+                  final count = await _scheduleController.syncSchedules(
+                    userId: _authController.currentUser?.userId,
+                  );
+                  if (!mounted) return;
+                  AppSnackBar.showSuccess(
+                    this.context,
+                    'Đã đồng bộ lịch và làm mới $count thông báo nhắc nợ!',
+                  );
+                },
               ),
-              children: [
-                // 1. Thẻ tổng quan nghĩa vụ tài chính tháng này & phím tắt
-                ScheduleSummaryCard(
-                  currentMonthDueAmount:
-                      _scheduleController.currentMonthDueAmount,
-                  upcomingCount: _scheduleController.upcomingCount,
-                  overdueCount: _scheduleController.overdueCount,
-                  paidCount: _scheduleController.paidCount,
-                  onOpenPreferences: _openPreferences,
-                  onOpenNotifications: _openNotifications,
-                ),
-                const SizedBox(height: 18.0),
+            ],
+          ),
+          body: ListenableBuilder(
+            listenable: _scheduleController,
+            builder: (context, _) {
+              if (_scheduleController.isLoading &&
+                  _scheduleController.schedules.isEmpty) {
+                return const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                );
+              }
 
-                // 2. Bộ lọc trạng thái kỳ thanh toán (ALL, UPCOMING, OVERDUE, PAID)
-                _buildFilterChips(),
-                const SizedBox(height: 14.0),
+              // EX-02: Lỗi phân quyền truy cập
+              if (_scheduleController.exceptionCode == 'EX-02') {
+                return _buildErrorState(
+                  icon: Icons.gpp_bad_rounded,
+                  iconColor: AppColors.error,
+                  title: 'Không có quyền truy cập',
+                  message:
+                      _scheduleController.errorMessage ??
+                      'Bạn không có quyền truy xuất lịch thanh toán của tài khoản khác.',
+                  actionLabel: 'Thử lại',
+                  onAction: () => _scheduleController.loadSchedules(
+                    userId: _authController.currentUser?.userId,
+                  ),
+                );
+              }
 
-                // 3. Tiêu đề danh sách
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'KẾ HOẠCH TRẢ NỢ CHI TIẾT',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textSecondary,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8.0),
-                    Text(
-                      '${_scheduleController.totalMatching} kỳ',
-                      style: const TextStyle(
-                        fontSize: 12.0,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10.0),
+              // EX-06: Lỗi kết nối hoặc cơ sở dữ liệu
+              if (_scheduleController.exceptionCode == 'EX-06' &&
+                  _scheduleController.schedules.isEmpty) {
+                return _buildErrorState(
+                  icon: Icons.cloud_off_rounded,
+                  iconColor: AppColors.error,
+                  title: 'Sự cố kết nối hệ thống',
+                  message:
+                      _scheduleController.errorMessage ??
+                      'Không thể tải dữ liệu lịch thanh toán. Vui lòng thử lại sau.',
+                  actionLabel: 'Thử lại ngay',
+                  onAction: () async {
+                    await _authController.restoreProfileIfNeeded();
+                    if (!mounted) return;
+                    final uid = _authController.currentUser?.userId;
+                    await _scheduleController.loadSchedules(userId: uid);
+                    await _scheduleController.loadNotifications(userId: uid);
+                  },
+                );
+              }
 
-                // 4. Danh sách các thẻ kỳ thanh toán
-                if (schedules.isEmpty) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 40.0),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'Không có kỳ thanh toán nào phù hợp với bộ lọc.',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 13.0,
+              // EX-01: Chưa có lịch phân kỳ nào
+              if (_scheduleController.isEmptyState) {
+                return RefreshIndicator(
+                  onRefresh: () => _scheduleController.loadSchedules(
+                    userId: _authController.currentUser?.userId,
+                  ),
+                  color: AppColors.primary,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.7,
+                      child: ScheduleEmptyState(
+                        onAddLoan: () =>
+                            Navigator.pushNamed(context, AppRouter.loanForm),
                       ),
                     ),
                   ),
-                ] else ...[
-                  ...schedules.map((schedule) {
-                    final loan = _findLoan(schedule.loanId);
-                    return PaymentScheduleCard(
-                      schedule: schedule,
-                      loanName: loan?.name,
-                      onTap: () => _showScheduleDetail(schedule),
-                      onPay: _scheduleController.isPaying
-                          ? null
-                          : () => _handlePaySchedule(schedule),
-                    );
-                  }),
-                  if (_scheduleController.isLoadingMore)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16.0),
-                      child: Center(
-                        child: SizedBox(
-                          width: 24.0,
-                          height: 24.0,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.4,
-                            color: AppColors.primary,
+                );
+              }
+
+              final schedules = _scheduleController.filteredSchedules;
+
+              return RefreshIndicator(
+                onRefresh: () => _scheduleController.loadSchedules(
+                  userId: _authController.currentUser?.userId,
+                ),
+                color: AppColors.primary,
+                child: ListView(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 14.0,
+                  ),
+                  children: [
+                    // 1. Thẻ tổng quan nghĩa vụ tài chính tháng này & phím tắt
+                    ScheduleSummaryCard(
+                      currentMonthDueAmount:
+                          _scheduleController.currentMonthDueAmount,
+                      upcomingCount: _scheduleController.upcomingCount,
+                      overdueCount: _scheduleController.overdueCount,
+                      paidCount: _scheduleController.paidCount,
+                      onOpenPreferences: _openPreferences,
+                      onOpenNotifications: _openNotifications,
+                    ),
+                    const SizedBox(height: 18.0),
+
+                    // 2. Bộ lọc trạng thái kỳ thanh toán (ALL, UPCOMING, OVERDUE, PAID)
+                    _buildFilterChips(),
+                    const SizedBox(height: 14.0),
+
+                    // 3. Tiêu đề danh sách
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'KẾ HOẠCH TRẢ NỢ CHI TIẾT',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12.0,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textSecondary,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8.0),
+                        Text(
+                          '${_scheduleController.totalMatching} kỳ',
+                          style: const TextStyle(
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10.0),
+
+                    // 4. Danh sách các thẻ kỳ thanh toán
+                    if (schedules.isEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 40.0),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          'Không có kỳ thanh toán nào phù hợp với bộ lọc.',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13.0,
                           ),
                         ),
                       ),
-                    )
-                  else if (_scheduleController.hasMore)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
-                      child: Center(
-                        child: TextButton.icon(
-                          onPressed: () =>
-                              _scheduleController.loadMoreSchedules(
-                                userId: _authController.currentUser?.userId,
+                    ] else ...[
+                      ...schedules.map((schedule) {
+                        final loan = _findLoan(schedule.loanId);
+                        return PaymentScheduleCard(
+                          schedule: schedule,
+                          loanName: loan?.name,
+                          onTap: () => _showScheduleDetail(schedule),
+                          onPay: _scheduleController.isPaying
+                              ? null
+                              : () => _handlePaySchedule(schedule),
+                        );
+                      }),
+                      if (_scheduleController.isLoadingMore)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                          child: Center(
+                            child: SizedBox(
+                              width: 24.0,
+                              height: 24.0,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.4,
+                                color: AppColors.primary,
                               ),
-                          icon: const Icon(Icons.expand_more_rounded, size: 18),
-                          label: const Text('Tải thêm kỳ thanh toán'),
+                            ),
+                          ),
+                        )
+                      else if (_scheduleController.hasMore)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
+                          child: Center(
+                            child: TextButton.icon(
+                              onPressed: () =>
+                                  _scheduleController.loadMoreSchedules(
+                                    userId: _authController.currentUser?.userId,
+                                  ),
+                              icon: const Icon(
+                                Icons.expand_more_rounded,
+                                size: 18,
+                              ),
+                              label: const Text('Tải thêm kỳ thanh toán'),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                ],
-                const SizedBox(
-                  height: 80.0,
-                ), // Đệm đáy cho Bottom Navigation Bar
-              ],
-            ),
-          );
-        },
-      ),
+                    ],
+                    const SizedBox(
+                      height: 80.0,
+                    ), // Đệm đáy cho Bottom Navigation Bar
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -487,48 +511,13 @@ class _PaymentScheduleScreenState extends State<PaymentScheduleScreen> {
     required String actionLabel,
     required VoidCallback onAction,
   }) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 54.0, color: iconColor),
-            const SizedBox(height: 16.0),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 17.0,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              message,
-              style: const TextStyle(
-                fontSize: 13.0,
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20.0),
-            ElevatedButton(
-              onPressed: onAction,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
-              child: Text(actionLabel),
-            ),
-          ],
-        ),
-      ),
+    return ConnectionErrorView(
+      icon: icon,
+      iconColor: iconColor,
+      title: title,
+      message: message,
+      actionLabel: actionLabel,
+      onRetry: onAction,
     );
   }
 }

@@ -74,10 +74,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     }
 
     if (isSuccess) {
-      if (widget.flow == OtpFlow.register) {
+      if (widget.flow == OtpFlow.register ||
+          widget.flow == OtpFlow.loginDevice) {
         AppSnackBar.showSuccess(
           context,
-          'Xác thực tài khoản thành công! Đang chuyển hướng vào ứng dụng...',
+          widget.flow == OtpFlow.loginDevice
+              ? 'Xác thực thiết bị mới thành công! Đang chuyển hướng vào ứng dụng...'
+              : 'Xác thực tài khoản thành công! Đang chuyển hướng vào ứng dụng...',
         );
         Navigator.pushNamedAndRemoveUntil(
           context,
@@ -163,10 +166,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   const SizedBox(height: 20.0),
 
                   // Tiêu đề & Hướng dẫn
-                  const Text(
-                    'Nhập mã xác thực',
+                  Text(
+                    widget.flow == OtpFlow.loginDevice
+                        ? 'Xác thực thiết bị mới'
+                        : 'Nhập mã xác thực',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 22.0,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
@@ -186,10 +191,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                     child: Column(
                       children: [
-                        const Text(
-                          'Mã bảo mật gồm 6 số đã được gửi qua Email',
+                        Text(
+                          widget.flow == OtpFlow.loginDevice
+                              ? 'Phát hiện đăng nhập lần đầu trên thiết bị mới. Mã bảo mật 6 số đã được gửi qua Email'
+                              : 'Mã bảo mật gồm 6 số đã được gửi qua Email',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13.0,
                             color: AppColors.textSecondary,
                           ),

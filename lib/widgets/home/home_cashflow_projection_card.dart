@@ -12,7 +12,7 @@ class HomeCashflowProjectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeLoans = loanController.loans
+    final activeLoans = loanController.allLoans
         .where((l) => l.isActive || l.isOverdue)
         .toList();
 

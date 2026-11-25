@@ -99,6 +99,76 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
       (_collateralHintFromOcr != null &&
           _collateralHintFromOcr!.trim().isNotEmpty);
 
+  bool get _isUnsecuredCreditType =>
+      !_requiresCollateral &&
+      (_selectedLoanType == 'CONSUMER' ||
+          _selectedLoanType == 'CREDIT_CARD' ||
+          _selectedLoanType == 'OTHER');
+
+  double get _maxAllowedPrincipalForType {
+    if (_selectedLoanType == 'MORTGAGE') return 50000000000.0;
+    if (_selectedLoanType == 'CAR') return 10000000000.0;
+    final incomeCap = LoanModel.maxUnsecuredLimitForIncome(_userMonthlyIncome);
+    return incomeCap > 0 ? incomeCap : LoanModel.maxUnsecuredLoanCap;
+  }
+
+  List<double> get _effectiveQuickAmounts {
+    if (_isUnsecuredCreditType) {
+      const candidates = [
+        10000000.0,
+        20000000.0,
+        50000000.0,
+        100000000.0,
+        200000000.0,
+        500000000.0,
+      ];
+      final cap = _maxAllowedPrincipalForType;
+      final filtered = candidates.where((a) => a <= cap).toList();
+      return filtered.isNotEmpty
+          ? filtered
+          : [5000000.0, 10000000.0, 20000000.0];
+    }
+    if (_selectedLoanType == 'CAR') {
+      return [100000000.0, 300000000.0, 500000000.0, 1000000000.0];
+    }
+    return _quickAmounts;
+  }
+
+  String get _amountLimitHelperText {
+    if (_isUnsecuredCreditType) {
+      final incomeCap = LoanModel.maxUnsecuredLimitForIncome(
+        _userMonthlyIncome,
+      );
+      if (incomeCap > 0) {
+        return 'Hạn mức cho phép: 5.000.000 đ – ${_formatCurrency(incomeCap)} (12× thu nhập, trần 500 triệu)';
+      }
+      return 'Hạn mức cho phép: 5.000.000 đ – 500.000.000 đ (Cần thu nhập ≥ 3 triệu/tháng)';
+    }
+    if (_selectedLoanType == 'CAR') {
+      return 'Hạn mức cho phép: 5.000.000 đ – 10.000.000.000 đ (10 tỷ VNĐ)';
+    }
+    return 'Hạn mức cho phép: 5.000.000 đ – 50.000.000.000 đ (50 tỷ VNĐ)';
+  }
+
+  double get _userMonthlyIncome => sl.isRegistered<AuthController>()
+      ? (sl<AuthController>().currentUser?.monthlyIncome ?? 0.0)
+      : 0.0;
+
+  double get _estimatedFirstInstallment {
+    final p = _currentPrincipal;
+    final m = _tenorMonths > 0 ? _tenorMonths : 1;
+    final r = _currentRate / 100.0;
+    return (p / m) + (p * r / 12.0);
+  }
+
+  List<LoanModel> get _activeUnsecuredLoans => _loanController.allLoans
+      .where(
+        (l) =>
+            (l.isActive || l.isOverdue) &&
+            (l.loanTypeKey == 'CONSUMER' || l.loanTypeKey == 'CREDIT_CARD'),
+      )
+      .toList();
+
   DateTime? _parsePrefilledDate(dynamic rawDate) {
     if (rawDate == null) return null;
     final text = rawDate.toString().trim();
@@ -556,6 +626,64 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
       return;
     }
 
+    // Quy tắc vay tín chấp dựa trên thu nhập (đồng bộ với Backend)
+    if (!_isEdit && _isUnsecuredCreditType) {
+      final income = _userMonthlyIncome;
+      if (income < LoanModel.minIncomeForUnsecuredLoan) {
+        AppSnackBar.showError(
+          context,
+          'Thu nhập hàng tháng tối thiểu 3.000.000 đ để đăng ký khoản vay tín chấp không tài sản bảo đảm.',
+        );
+        return;
+      }
+
+      final activeUnsecured = _activeUnsecuredLoans;
+      if (activeUnsecured.length >= LoanModel.maxActiveUnsecuredLoans) {
+        AppSnackBar.showError(
+          context,
+          'Bạn đã đạt giới hạn tối đa ${LoanModel.maxActiveUnsecuredLoans} khoản vay tín chấp đang mở. Vui lòng tất toán bớt trước khi vay thêm.',
+        );
+        return;
+      }
+
+      if (_currentPrincipal > LoanModel.maxUnsecuredLoanCap) {
+        AppSnackBar.showError(
+          context,
+          'Khoản vay tín chấp tối đa không vượt quá 500.000.000 VNĐ (500 triệu).',
+        );
+        return;
+      }
+
+      final maxCap = LoanModel.maxUnsecuredLimitForIncome(income);
+      final currentUnsecuredDebt = activeUnsecured.fold<double>(
+        0.0,
+        (sum, l) => sum + l.outstandingAmount,
+      );
+      final remainingCap = (maxCap - currentUnsecuredDebt).clamp(
+        0.0,
+        double.infinity,
+      );
+      if (_currentPrincipal > remainingCap) {
+        AppSnackBar.showError(
+          context,
+          'Số tiền vay vượt hạn mức tín chấp còn lại (${_formatCurrency(remainingCap)}).',
+        );
+        return;
+      }
+
+      final projectedDti =
+          (_loanController.totalMonthlyCommitment +
+              _estimatedFirstInstallment) /
+          income;
+      if (projectedDti > LoanModel.maxUnsecuredDtiRatio) {
+        AppSnackBar.showError(
+          context,
+          'Tỷ lệ nghĩa vụ trả nợ trên thu nhập (DTI dự kiến ${(projectedDti * 100).toStringAsFixed(1)}%) vượt ngưỡng tối đa 60%.',
+        );
+        return;
+      }
+    }
+
     // Ma trận sửa: Cảnh báo làm sai lệch lịch phân kỳ cũ
     if (_isEdit) {
       final shouldSave = await showDialog<bool>(
@@ -714,147 +842,25 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
   List<String> _getMissingProfileFields() {
     if (_isEdit || !sl.isRegistered<AuthController>()) return const [];
     final user = sl<AuthController>().currentUser;
-    if (user == null) return const [];
-
-    final missing = <String>[];
-    if (!user.isEkycVerified) {
-      missing.add('Xác thực định danh eKYC (chụp 2 mặt CCCD gắn chip)');
-    }
-    if (user.idCardNumber == null || user.idCardNumber!.trim().length != 12) {
-      missing.add('Số CCCD gắn chip (12 chữ số)');
-    }
-    if (user.fullName.trim().isEmpty) {
-      missing.add('Họ và tên theo CCCD');
-    }
-    if (user.dateOfBirth == null) {
-      missing.add('Ngày sinh theo CCCD');
-    }
-    if (user.address == null || user.address!.trim().isEmpty) {
-      missing.add('Địa chỉ thường trú theo CCCD');
-    }
-    if (user.phone == null || user.phone!.trim().isEmpty) {
-      missing.add('Số điện thoại liên hệ');
-    }
-    if (user.monthlyIncome == null || user.monthlyIncome! <= 0) {
-      missing.add('Thu nhập ròng hàng tháng');
-    }
-    return missing;
+    return ProfileCompletionNotice.getMissingProfileFields(user);
   }
 
   @override
   Widget build(BuildContext context) {
     final missingFields = _getMissingProfileFields();
     if (missingFields.isNotEmpty) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.surface,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary,
-              size: 20.0,
+      return ProfileCompletionScaffold(
+        missingFields: missingFields,
+        showBackButton: true,
+        onGoToProfile: () {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const MainShellScreen(initialIndex: 4),
             ),
-            onPressed: () => Navigator.maybePop(context),
-          ),
-          title: const Text(
-            'Yêu cầu hoàn tất hồ sơ',
-            style: TextStyle(
-              fontSize: 18.0,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ),
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Icon(
-                  Icons.verified_user_outlined,
-                  size: 64.0,
-                  color: AppColors.warning,
-                ),
-                const SizedBox(height: 16.0),
-                const Text(
-                  'Chưa đủ điều kiện tạo khoản vay',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8.0),
-                const Text(
-                  'Vui lòng cập nhật đầy đủ thông tin cá nhân và xác thực eKYC CCCD tại trang Hồ sơ cá nhân trước khi khởi tạo khoản vay mới:',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13.0,
-                    color: AppColors.textSecondary,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 16.0),
-                Container(
-                  padding: const EdgeInsets.all(14.0),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(12.0),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: missingFields
-                        .map(
-                          (item) => Padding(
-                            padding: const EdgeInsets.only(bottom: 6.0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Icon(
-                                  Icons.error_outline_rounded,
-                                  size: 16.0,
-                                  color: AppColors.error,
-                                ),
-                                const SizedBox(width: 8.0),
-                                Expanded(
-                                  child: Text(
-                                    item,
-                                    style: const TextStyle(
-                                      fontSize: 12.5,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-                const SizedBox(height: 24.0),
-                AppPrimaryButton(
-                  label: 'Đi tới Hồ sơ cá nhân',
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MainShellScreen(initialIndex: 4),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
+            (route) => false,
+          );
+        },
       );
     }
 
@@ -1152,14 +1158,21 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                               )
                             : null,
                         onChanged: (_) => setState(() {}),
-                        validator: AppValidators.validateLoanAmount,
+                        validator: (val) => AppValidators.validateLoanAmount(
+                          val,
+                          max: _isUnsecuredCreditType
+                              ? LoanModel.maxUnsecuredLoanCap
+                              : (_selectedLoanType == 'CAR'
+                                    ? 10000000000
+                                    : 50000000000),
+                        ),
                       ),
                       const SizedBox(height: 4.0),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 4.0),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4.0),
                         child: Text(
-                          'Hạn mức cho phép: 5.000.000 đ – 50.000.000.000 đ (50 tỷ VNĐ)',
-                          style: TextStyle(
+                          _amountLimitHelperText,
+                          style: const TextStyle(
                             fontSize: 11.0,
                             color: AppColors.textSecondary,
                           ),
@@ -1168,9 +1181,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                       if (!_isEdit) ...[
                         const SizedBox(height: 8.0),
                         QuickChipSelector<double>(
-                          items: _quickAmounts,
+                          items: _effectiveQuickAmounts,
                           selectedItem:
-                              _quickAmounts.contains(_currentPrincipal)
+                              _effectiveQuickAmounts.contains(_currentPrincipal)
                               ? _currentPrincipal
                               : null,
                           labelBuilder: (amt) => _formatAmountLabel(amt),
@@ -2108,6 +2121,11 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                         const SizedBox(height: 18.0),
                       ],
 
+                      if (!_isEdit && _isUnsecuredCreditType) ...[
+                        _buildUnsecuredIncomeLimitCard(),
+                        const SizedBox(height: 18.0),
+                      ],
+
                       // 9. Phương thức tính lãi
                       const Text(
                         'Phương thức tính lãi *',
@@ -2166,6 +2184,213 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                 ),
               ),
       ),
+    );
+  }
+
+  Widget _buildUnsecuredIncomeLimitCard() {
+    return ListenableBuilder(
+      listenable: _loanController,
+      builder: (context, _) {
+        final income = _userMonthlyIncome;
+        final activeUnsecured = _activeUnsecuredLoans;
+        final activeCount = activeUnsecured.length;
+        final maxCap = LoanModel.maxUnsecuredLimitForIncome(income);
+        final currentUnsecuredDebt = activeUnsecured.fold<double>(
+          0.0,
+          (sum, l) => sum + l.outstandingAmount,
+        );
+        final remainingCap = (maxCap - currentUnsecuredDebt).clamp(
+          0.0,
+          double.infinity,
+        );
+        final projectedDti = income > 0
+            ? (_loanController.totalMonthlyCommitment +
+                      _estimatedFirstInstallment) /
+                  income
+            : 0.0;
+
+        final isLowIncome = income < LoanModel.minIncomeForUnsecuredLoan;
+        final isMaxCount = activeCount >= LoanModel.maxActiveUnsecuredLoans;
+        final isOverCap =
+            _currentPrincipal > remainingCap ||
+            _currentPrincipal > LoanModel.maxUnsecuredLoanCap;
+        final isOverDti = projectedDti > LoanModel.maxUnsecuredDtiRatio;
+        final hasError = isLowIncome || isMaxCount || isOverCap || isOverDti;
+        final isWarning = !hasError && projectedDti > 0.50;
+
+        final Color accentColor = hasError
+            ? AppColors.error
+            : (isWarning ? AppColors.warning : AppColors.success);
+        final Color dtiValueColor = isOverDti
+            ? AppColors.error
+            : (projectedDti > 0.50
+                  ? const Color(0xFFB45309)
+                  : AppColors.success);
+
+        String statusMessage;
+        if (isLowIncome) {
+          statusMessage =
+              'Thu nhập tối thiểu 3.000.000 đ/tháng để vay tín chấp không thế chấp.';
+        } else if (isMaxCount) {
+          statusMessage =
+              'Đã đạt giới hạn tối đa ${LoanModel.maxActiveUnsecuredLoans} khoản vay tín chấp đang mở.';
+        } else if (isOverCap) {
+          statusMessage =
+              'Số tiền vay vượt hạn mức tín chấp còn lại (${_formatCurrency(remainingCap)}).';
+        } else if (isOverDti) {
+          statusMessage =
+              'DTI dự kiến ${(projectedDti * 100).toStringAsFixed(1)}% vượt ngưỡng tối đa 60%.';
+        } else if (isWarning) {
+          statusMessage =
+              'DTI dự kiến ${(projectedDti * 100).toStringAsFixed(1)}% ở mức cảnh báo (khuyến nghị ≤ 50%).';
+        } else {
+          statusMessage =
+              'Đủ điều kiện vay tín chấp theo thu nhập (DTI dự kiến ${(projectedDti * 100).toStringAsFixed(1)}%).';
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(14.0),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14.0),
+            border: Border.all(
+              color: hasError
+                  ? AppColors.error
+                  : (isWarning ? AppColors.warning : AppColors.border),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    size: 18.0,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 8.0),
+                  const Expanded(
+                    child: Text(
+                      'Hạn mức vay tín chấp theo thu nhập',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10.0),
+              _buildLimitInfoRow(
+                'Thu nhập ròng hàng tháng:',
+                _formatCurrency(income),
+                valueColor: isLowIncome
+                    ? AppColors.error
+                    : AppColors.textPrimary,
+              ),
+              const SizedBox(height: 4.0),
+              _buildLimitInfoRow(
+                'Số khoản tín chấp đang mở:',
+                '$activeCount / ${LoanModel.maxActiveUnsecuredLoans} khoản',
+                valueColor: isMaxCount
+                    ? AppColors.error
+                    : AppColors.textPrimary,
+              ),
+              const SizedBox(height: 4.0),
+              _buildLimitInfoRow(
+                'Hạn mức tối đa (12× thu nhập, trần 500tr):',
+                _formatCurrency(maxCap),
+              ),
+              const SizedBox(height: 4.0),
+              _buildLimitInfoRow(
+                'Dư nợ tín chấp đang có:',
+                _formatCurrency(currentUnsecuredDebt),
+              ),
+              const SizedBox(height: 4.0),
+              _buildLimitInfoRow(
+                'Hạn mức tín chấp còn lại:',
+                _formatCurrency(remainingCap),
+                valueColor: isOverCap ? AppColors.error : AppColors.primary,
+              ),
+              const SizedBox(height: 4.0),
+              _buildLimitInfoRow(
+                'Tỷ lệ DTI dự kiến sau vay:',
+                '${(projectedDti * 100).toStringAsFixed(1)}% / tối đa 60%',
+                valueColor: dtiValueColor,
+              ),
+              const SizedBox(height: 10.0),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10.0,
+                  vertical: 8.0,
+                ),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      hasError
+                          ? Icons.error_outline_rounded
+                          : (isWarning
+                                ? Icons.warning_rounded
+                                : Icons.check_circle_rounded),
+                      size: 16.0,
+                      color: accentColor,
+                    ),
+                    const SizedBox(width: 8.0),
+                    Expanded(
+                      child: Text(
+                        statusMessage,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: isWarning
+                              ? const Color(0xFFB45309)
+                              : accentColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLimitInfoRow(
+    String label,
+    String value, {
+    Color valueColor = AppColors.textPrimary,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Flexible(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12.0,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8.0),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: valueColor,
+          ),
+        ),
+      ],
     );
   }
 }

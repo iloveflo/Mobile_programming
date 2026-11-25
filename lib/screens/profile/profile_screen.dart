@@ -476,7 +476,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     LoanController loanController,
   ) {
     final creditProfileController = sl<CreditProfileController>();
-    // 1. Điểm tín dụng: chỉ dùng CreditProfile nếu khớp đúng userId hiện tại, fallback sang UserModel
     final loadedProfile = creditProfileController.creditProfile;
     final matchingProfile =
         (loadedProfile != null &&
@@ -484,7 +483,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             loadedProfile.userId == user.userId)
         ? loadedProfile
         : null;
-    final int? score = matchingProfile?.creditScore ?? user?.cicScore;
+    final bool hasNoLoanData =
+        creditProfileController.isEmptyState || loanController.allLoans.isEmpty;
+    final int? score = hasNoLoanData
+        ? null
+        : (matchingProfile != null
+              ? matchingProfile.creditScore
+              : user?.cicScore);
     String scoreVal = 'Chưa có';
     String scoreSub = 'Bấm để tra cứu';
     Color scoreColor = AppColors.textSecondary;
@@ -511,7 +516,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // 2. Tỷ lệ gánh nặng nợ DTI: ưu tiên dữ liệu chuẩn từ Backend CreditProfile (khớp userId), fallback ước tính từ khoản vay ACTIVE/OVERDUE
     final double? backendDti = matchingProfile?.dtiRatio;
-    final activeLoans = loanController.loans
+    final activeLoans = loanController.allLoans
         .where((l) => l.isActive || l.isOverdue)
         .toList();
     final monthlyRepayment = activeLoans.fold<double>(
@@ -792,13 +797,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     UserModel? user,
     LoanController loanController,
   ) {
-    final loadedProfile = sl<CreditProfileController>().creditProfile;
-    final int? score =
-        (loadedProfile != null &&
-            user != null &&
-            loadedProfile.userId == user.userId)
-        ? (loadedProfile.creditScore ?? user.cicScore)
-        : user?.cicScore;
+    final creditProfileController = sl<CreditProfileController>();
+    final loanController = sl<LoanController>();
+    final loadedProfile = creditProfileController.creditProfile;
+    final bool hasNoLoanData =
+        creditProfileController.isEmptyState || loanController.allLoans.isEmpty;
+    final int? score = hasNoLoanData
+        ? null
+        : ((loadedProfile != null &&
+                  user != null &&
+                  loadedProfile.userId == user.userId)
+              ? loadedProfile.creditScore
+              : user?.cicScore);
 
     if (score == null) {
       return Container(

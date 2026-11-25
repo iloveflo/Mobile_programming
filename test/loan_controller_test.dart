@@ -336,5 +336,46 @@ void main() {
         );
       },
     );
+
+    test(
+      'Lọc trạng thái và tìm kiếm không làm mất allLoans hay sai lệch Portfolio Metrics',
+      () async {
+        await controller.fetchLoans();
+        final fullCount = controller.allLoans.length;
+        final fullOriginalPrincipal = controller.totalOriginalPrincipal;
+        final fullRemainingPrincipal = controller.totalRemainingPrincipal;
+        final fullActiveCount = controller.activeLoansCount;
+
+        // Lọc sang Đã tất toán (bao gồm SETTLED và CLOSED)
+        await controller.setFilterStatus(LoanStatus.closed);
+        expect(controller.allLoans.length, equals(fullCount));
+        expect(
+          controller.totalOriginalPrincipal,
+          equals(fullOriginalPrincipal),
+        );
+        expect(
+          controller.totalRemainingPrincipal,
+          equals(fullRemainingPrincipal),
+        );
+        expect(controller.activeLoansCount, equals(fullActiveCount));
+        for (final loan in controller.loans) {
+          expect(loan.isClosed, isTrue);
+        }
+
+        // Tìm kiếm từ khóa không khớp khoản vay nào
+        await controller.setSearchKeyword('khong_ton_tai_xyz');
+        expect(controller.loans, isEmpty);
+        expect(controller.allLoans.length, equals(fullCount));
+        expect(
+          controller.totalOriginalPrincipal,
+          equals(fullOriginalPrincipal),
+        );
+
+        // Khôi phục bộ lọc
+        await controller.setSearchKeyword('');
+        await controller.setFilterStatus(LoanStatus.all);
+        expect(controller.loans.length, equals(fullCount));
+      },
+    );
   });
 }

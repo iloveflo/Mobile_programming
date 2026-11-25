@@ -18,6 +18,7 @@ class LoanController extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  List<LoanModel> _allLoans = [];
   List<LoanModel> _loans = [];
   LoanModel? _selectedLoan;
   List<CollateralModel> _collaterals = [];
@@ -32,6 +33,7 @@ class LoanController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  List<LoanModel> get allLoans => List.unmodifiable(_allLoans);
   List<LoanModel> get loans => List.unmodifiable(_loans);
   LoanModel? get selectedLoan => _selectedLoan;
   List<CollateralModel> get collaterals => List.unmodifiable(_collaterals);
@@ -48,13 +50,13 @@ class LoanController extends ChangeNotifier {
   // ================= Portfolio Metrics Getters =================
 
   /// Tổng dư nợ còn lại của các khoản vay đang hoạt động (gồm cả ACTIVE và OVERDUE)
-  double get totalRemainingPrincipal => _loans
+  double get totalRemainingPrincipal => _allLoans
       .where((l) => l.isActive || l.isOverdue)
       .fold(0.0, (sum, l) => sum + l.outstandingAmount);
 
   /// Tổng số tiền gốc ban đầu của toàn bộ danh mục vay
   double get totalOriginalPrincipal =>
-      _loans.fold(0.0, (sum, l) => sum + l.principalAmount);
+      _allLoans.fold(0.0, (sum, l) => sum + l.principalAmount);
 
   /// Tổng số tiền gốc đã thanh toán
   double get totalPaidAmount =>
@@ -69,13 +71,13 @@ class LoanController extends ChangeNotifier {
       : 0.0;
 
   /// Tổng số tiền ước tính cần thanh toán trong tháng tới
-  double get totalMonthlyCommitment => _loans
+  double get totalMonthlyCommitment => _allLoans
       .where((l) => l.isActive || l.isOverdue)
       .fold(0.0, (sum, l) => sum + l.monthlyInstallmentEstimate);
 
   /// Số lượng khoản vay đang còn nghĩa vụ (ACTIVE hoặc OVERDUE)
   int get activeLoansCount =>
-      _loans.where((l) => l.isActive || l.isOverdue).length;
+      _allLoans.where((l) => l.isActive || l.isOverdue).length;
 
   /// Tổng giá trị tài sản thế chấp hiện tại (theo danh sách đang hiển thị)
   double get totalCollateralValue =>
@@ -97,7 +99,7 @@ class LoanController extends ChangeNotifier {
         linkedIds.add(c.loanId.toString());
       }
     }
-    final activeLoans = _loans.where((l) => l.isActive || l.isOverdue);
+    final activeLoans = _allLoans.where((l) => l.isActive || l.isOverdue);
     if (linkedIds.isNotEmpty) {
       return activeLoans
           .where((l) => linkedIds.contains(l.id.toString()))
@@ -116,33 +118,62 @@ class LoanController extends ChangeNotifier {
 
   // ================= Bộ lọc & Tìm kiếm =================
 
+  void _applyFilters() {
+    var results = List<LoanModel>.from(_allLoans);
+
+    if (_searchKeyword.trim().isNotEmpty) {
+      final query = _searchKeyword.trim().toLowerCase();
+      results = results.where((loan) {
+        return loan.name.toLowerCase().contains(query) ||
+            loan.loanCode.toLowerCase().contains(query) ||
+            loan.lenderName.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    switch (_currentFilterStatus) {
+      case LoanStatus.active:
+        results = results.where((l) => l.isActive).toList();
+        break;
+      case LoanStatus.closed:
+        results = results.where((l) => l.isClosed).toList();
+        break;
+      case LoanStatus.overdue:
+        results = results.where((l) => l.isOverdue).toList();
+        break;
+      case LoanStatus.all:
+        break;
+    }
+
+    if (_selectedLender != null &&
+        _selectedLender!.trim().isNotEmpty &&
+        _selectedLender != 'Tất cả') {
+      final lender = _selectedLender!.trim().toLowerCase();
+      results = results
+          .where((l) => l.lenderName.toLowerCase() == lender)
+          .toList();
+    }
+
+    _loans = results;
+  }
+
   Future<void> setFilterStatus(LoanStatus status) async {
     if (_currentFilterStatus != status) {
       _currentFilterStatus = status;
-      await fetchLoans(
-        keyword: _searchKeyword,
-        status: status,
-        lender: _selectedLender,
-      );
+      _applyFilters();
+      notifyListeners();
     }
   }
 
   Future<void> setSearchKeyword(String query) async {
     _searchKeyword = query;
-    await fetchLoans(
-      keyword: query,
-      status: _currentFilterStatus,
-      lender: _selectedLender,
-    );
+    _applyFilters();
+    notifyListeners();
   }
 
   Future<void> setSelectedLender(String? lender) async {
     _selectedLender = lender;
-    await fetchLoans(
-      keyword: _searchKeyword,
-      status: _currentFilterStatus,
-      lender: lender,
-    );
+    _applyFilters();
+    notifyListeners();
   }
 
   void clearError() {
@@ -154,23 +185,24 @@ class LoanController extends ChangeNotifier {
 
   // ================= Nghiệp vụ Tác vụ =================
 
-  /// Tải danh sách khoản vay theo các tiêu chí tìm kiếm và lọc
+  /// Tải danh sách khoản vay đầy đủ từ repository và áp dụng bộ lọc hiện tại
   Future<void> fetchLoans({
     String? keyword,
     LoanStatus? status,
     String? lender,
   }) async {
+    if (keyword != null) _searchKeyword = keyword;
+    if (status != null) _currentFilterStatus = status;
+    if (lender != null) _selectedLender = lender;
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final results = await _loanRepository.getLoans(
-        keyword: keyword ?? _searchKeyword,
-        status: status ?? _currentFilterStatus,
-        lender: lender ?? _selectedLender,
-      );
-      _loans = results;
+      final results = await _loanRepository.getLoans();
+      _allLoans = results;
+      _applyFilters();
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -189,7 +221,7 @@ class LoanController extends ChangeNotifier {
   /// Lấy thông tin chi tiết một khoản vay và tài sản thế chấp đi kèm
   Future<void> getDetail(String id) async {
     // 1. Tối ưu UX - Instant Cache: Nếu khoản vay đã có sẵn trong danh sách thì hiển thị tức thì
-    final cached = _loans.cast<LoanModel?>().firstWhere(
+    final cached = _allLoans.cast<LoanModel?>().firstWhere(
       (l) =>
           l?.id.toString() == id ||
           l?.loanCode.toLowerCase() == id.toLowerCase(),
@@ -231,7 +263,8 @@ class LoanController extends ChangeNotifier {
     try {
       final created = await _loanRepository.createLoan(data);
       // Chèn vào đầu danh sách hiện tại
-      _loans.insert(0, created);
+      _allLoans.insert(0, created);
+      _applyFilters();
       _isLoading = false;
       notifyListeners();
       _syncDependentControllers();
@@ -252,12 +285,13 @@ class LoanController extends ChangeNotifier {
 
     try {
       final updated = await _loanRepository.updateLoan(id, data);
-      final index = _loans.indexWhere(
+      final index = _allLoans.indexWhere(
         (l) => l.id.toString() == id || l.loanCode == id,
       );
       if (index != -1) {
-        _loans[index] = updated;
+        _allLoans[index] = updated;
       }
+      _applyFilters();
       if (_selectedLoan?.id.toString() == id || _selectedLoan?.loanCode == id) {
         _selectedLoan = updated;
       }
@@ -285,12 +319,13 @@ class LoanController extends ChangeNotifier {
         'status': 'SETTLED',
       });
 
-      final index = _loans.indexWhere(
+      final index = _allLoans.indexWhere(
         (l) => l.id.toString() == id || l.loanCode == id,
       );
       if (index != -1) {
-        _loans[index] = updated;
+        _allLoans[index] = updated;
       }
+      _applyFilters();
       if (_selectedLoan?.id.toString() == id || _selectedLoan?.loanCode == id) {
         _selectedLoan = updated;
       }
@@ -316,7 +351,7 @@ class LoanController extends ChangeNotifier {
     try {
       LoanModel? loanTarget;
       try {
-        loanTarget = _loans.firstWhere(
+        loanTarget = _allLoans.firstWhere(
           (l) => l.id.toString() == id || l.loanCode == id,
         );
       } catch (_) {
@@ -331,7 +366,8 @@ class LoanController extends ChangeNotifier {
       }
 
       await _loanRepository.deleteLoan(id, softDelete: false);
-      _loans.removeWhere((l) => l.id.toString() == id || l.loanCode == id);
+      _allLoans.removeWhere((l) => l.id.toString() == id || l.loanCode == id);
+      _applyFilters();
       if (_selectedLoan?.id.toString() == id || _selectedLoan?.loanCode == id) {
         _selectedLoan = null;
       }

@@ -253,5 +253,22 @@ void main() {
       controller.setRememberMe(true);
       expect(controller.rememberMe, isTrue);
     });
+
+    test(
+      'restoreProfileIfNeeded khôi phục lại currentUser khi đang null nhưng còn phiên hợp lệ',
+      () async {
+        await controller.login('dev@test.com', '123456');
+        expect(controller.currentUser, isNotNull);
+
+        // Giả lập trường hợp khởi động lúc mất kết nối nên currentUser bị null
+        controller.setCurrentUser(null);
+        expect(controller.currentUser, isNull);
+
+        final restored = await controller.restoreProfileIfNeeded();
+        expect(restored, isTrue);
+        expect(controller.currentUser, isNotNull);
+        expect(controller.currentUser?.email, 'dev@test.com');
+      },
+    );
   });
 }

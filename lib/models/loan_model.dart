@@ -216,6 +216,23 @@ class LoanModel {
   /// Điều kiện xóa: Chỉ cho phép xóa khi chưa phát sinh thanh toán hoặc khoản vay đã đóng/tất toán
   bool get canHardDelete => paidAmount <= 0.0 || isClosed;
 
+  /// Ngưỡng quy tắc cho vay tín chấp / không tài sản bảo đảm (đồng bộ với Backend)
+  static const double minIncomeForUnsecuredLoan = 3000000.0;
+  static const double minUnsecuredLoanAmount = 5000000.0;
+  static const double maxUnsecuredLoanCap = 500000000.0;
+  static const int unsecuredIncomeMultiplier = 12;
+  static const int maxActiveUnsecuredLoans = 3;
+  static const double maxUnsecuredDtiRatio = 0.60;
+
+  /// Tính hạn mức vay tín chấp tối đa theo thu nhập hàng tháng
+  static double maxUnsecuredLimitForIncome(double monthlyIncome) {
+    if (monthlyIncome < minIncomeForUnsecuredLoan) return 0.0;
+    return (monthlyIncome * unsecuredIncomeMultiplier).clamp(
+      0.0,
+      maxUnsecuredLoanCap,
+    );
+  }
+
   /// Tính tỷ lệ LTV (%) theo giá trị định giá của tài sản đảm bảo
   double calculateLtv(double collateralValuation) {
     if (collateralValuation <= 0) return 0.0;

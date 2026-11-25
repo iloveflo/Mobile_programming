@@ -28,9 +28,9 @@ class HomeUrgentDueBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeLoan =
-        loanController.loans.where((l) => l.isActive).firstOrNull ??
-        (loanController.loans.isNotEmpty ? loanController.loans.first : null);
+    final activeLoan = loanController.allLoans
+        .where((l) => (l.isActive || l.isOverdue) && l.outstandingAmount > 0)
+        .firstOrNull;
 
     if (activeLoan == null) {
       return const SizedBox.shrink();

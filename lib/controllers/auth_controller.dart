@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 
+import '../core/config/app_env.dart';
 import '../core/network/api_client.dart';
 import '../models/register_request_model.dart';
 import '../models/session_model.dart';
@@ -15,10 +16,16 @@ import 'credit_profile_controller.dart';
 import 'loan_controller.dart';
 
 /// Kết quả của thao tác đăng nhập
-enum AuthResultState { success, unverified, locked, invalid }
+enum AuthResultState {
+  success,
+  unverified,
+  newDeviceOtpRequired,
+  locked,
+  invalid,
+}
 
 /// Luồng xác thực mã OTP
-enum OtpFlow { register, forgotPassword }
+enum OtpFlow { register, forgotPassword, loginDevice }
 
 /// Bộ điều khiển xác thực người dùng trung tâm (AuthController)
 class AuthController extends ChangeNotifier {
@@ -234,8 +241,31 @@ class AuthController extends ChangeNotifier {
     if (cicScore != null) patchData['cic_score'] = cicScore;
 
     if (patchData.isNotEmpty) {
-      _authRepository.updateProfile(patchData).catchError((_) => _currentUser!);
+      final uid = _currentUser?.userId;
+      _authRepository
+          .updateProfile(patchData)
+          .then((_) {
+            if (monthlyIncome != null &&
+                GetIt.I.isRegistered<CreditProfileController>()) {
+              GetIt.I<CreditProfileController>().loadCreditProfile(userId: uid);
+            }
+          })
+          .catchError((_) {});
     }
+  }
+
+  /// Khôi phục thông tin người dùng & phiên đăng nhập khi nhấn "Thử lại" hoặc khi backend kết nối lại
+  Future<bool> restoreProfileIfNeeded() async {
+    if (!AppEnv.useMock &&
+        AppEnv.hasFallback &&
+        GetIt.I.isRegistered<ApiClient>()) {
+      await GetIt.I<ApiClient>().ensureHealthyEndpoint();
+    }
+    if (_currentUser == null) {
+      return await checkSession();
+    }
+    await fetchProfile();
+    return _currentUser != null;
   }
 
   /// Tải thông tin hồ sơ mới nhất từ backend repository
@@ -253,6 +283,12 @@ class AuthController extends ChangeNotifier {
       final updated = await _authRepository.updateProfile(profileData);
       _currentUser = updated;
       notifyListeners();
+      if (profileData.containsKey('monthly_income') &&
+          GetIt.I.isRegistered<CreditProfileController>()) {
+        await GetIt.I<CreditProfileController>().loadCreditProfile(
+          userId: updated.userId,
+        );
+      }
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
@@ -372,6 +408,18 @@ class AuthController extends ChangeNotifier {
       _startOtpTimer();
       notifyListeners();
       return AuthResultState.unverified;
+    } on NewDeviceOtpRequiredException catch (e) {
+      _isLoading = false;
+      _pendingFullName = null;
+      _pendingEmail = e.email;
+      _pendingPhone = e.phone;
+      _pendingFlow = OtpFlow.loginDevice;
+      _lastLoginIdentifier = identifier.trim();
+      _lastLoginPassword = password;
+      _failedOtpAttempts = 0;
+      _startOtpTimer();
+      notifyListeners();
+      return AuthResultState.newDeviceOtpRequired;
     } on InvalidCredentialsException catch (e) {
       _isLoading = false;
       _errorMessage = e.message;
@@ -428,9 +476,12 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final flowType = flow == OtpFlow.register
+          ? 'REGISTER'
+          : (flow == OtpFlow.loginDevice ? 'LOGIN_DEVICE' : 'RESET_PASSWORD');
       final isSuccess = await _authRepository.verifyOtp(
         otp: otp,
-        flowType: flow == OtpFlow.register ? 'REGISTER' : 'RESET_PASSWORD',
+        flowType: flowType,
       );
 
       if (!isSuccess) {
@@ -444,28 +495,45 @@ class AuthController extends ChangeNotifier {
       // Hủy đồng hồ đếm ngược khi xác thực thành công
       _cancelOtpTimer();
 
-      if (flow == OtpFlow.register) {
+      if (flow == OtpFlow.register || flow == OtpFlow.loginDevice) {
         try {
           _currentUser = await _authRepository.getProfile();
         } catch (_) {
-          final registeredName =
-              (_pendingFullName != null && _pendingFullName!.trim().isNotEmpty)
-              ? _pendingFullName!.trim()
-              : 'Khách hàng FinCredit';
-          final uid = DateTime.now().millisecondsSinceEpoch;
+          if (flow == OtpFlow.register) {
+            final registeredName =
+                (_pendingFullName != null &&
+                    _pendingFullName!.trim().isNotEmpty)
+                ? _pendingFullName!.trim()
+                : 'Khách hàng FinCredit';
+            final uid = DateTime.now().millisecondsSinceEpoch;
 
-          _currentUser = UserModel(
-            userId: uid,
-            fullName: registeredName,
-            email: _pendingEmail ?? 'user@fincredit.vn',
-            phone: _pendingPhone ?? '0912345678',
-            passwordHash: 'secured_hash',
-            token: 'jwt_verified_token_$uid',
-            createdAt: DateTime.now(),
-          );
+            _currentUser = UserModel(
+              userId: uid,
+              fullName: registeredName,
+              email: _pendingEmail ?? 'user@fincredit.vn',
+              phone: _pendingPhone ?? '0912345678',
+              passwordHash: 'secured_hash',
+              token: 'jwt_verified_token_$uid',
+              createdAt: DateTime.now(),
+            );
+          }
         }
-        _biometricEnabled =
-            false; // Mới tạo tài khoản -> chưa bật sinh trắc học
+        if (flow == OtpFlow.register) {
+          _biometricEnabled =
+              false; // Mới tạo tài khoản -> chưa bật sinh trắc học
+        } else if (_currentUser != null) {
+          _biometricEnabled = _currentUser!.isBiometricEnabled;
+          _autoLockEnabled = _currentUser!.isAutoLockEnabled;
+          if (_currentUser!.isBiometricEnabled &&
+              _lastLoginIdentifier != null &&
+              _lastLoginPassword != null &&
+              GetIt.I.isRegistered<SessionStorageService>()) {
+            await GetIt.I<SessionStorageService>().saveBiometricCredentials(
+              identifier: _lastLoginIdentifier!,
+              password: _lastLoginPassword!,
+            );
+          }
+        }
         await loadSessions();
       }
 
