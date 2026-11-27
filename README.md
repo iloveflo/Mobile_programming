@@ -1,13 +1,14 @@
 # FinCredit — Personal Debt Amortization & Credit Health Management
 
-![Flutter](https://img.shields.io/badge/Flutter-Material%203-02569B?style=flat-square&logo=flutter&logoColor=white)
-![Dart](https://img.shields.io/badge/Dart-%5E3.12.2-0175C2?style=flat-square&logo=dart&logoColor=white)
-![Version](https://img.shields.io/badge/Version-1.0.0%2B1-0D47A1?style=flat-square)
-![Tests](https://img.shields.io/badge/Tests-341%20cases%20%7C%2029%20suites-16A34A?style=flat-square)
-![Platforms](https://img.shields.io/badge/Platforms-Android%20%7C%20iOS%20%7C%20Web-64748B?style=flat-square)
-![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?style=flat-square&logo=github-actions&logoColor=white)
+![Flutter](https://img.shields.io/badge/Flutter-Material_3-02569B?style=flat-square&logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-3.12.2-0175C2?style=flat-square&logo=dart&logoColor=white)
+![Version](https://img.shields.io/badge/Version-1.0.0-0D47A1?style=flat-square)
+![Tests](https://img.shields.io/badge/Tests-341_cases_%2F_29_suites-16A34A?style=flat-square)
+![Platforms](https://img.shields.io/badge/Platforms-Android_·_iOS_·_Web-64748B?style=flat-square)
+![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?style=flat-square&logo=github-actions&logoColor=white)
 
 > **Official Project Title:** *Ứng dụng Flutter quản lý phân kỳ trả nợ và báo cáo sức khỏe tín dụng cá nhân*
+>
 > **Package Name:** `my_first_app` (`v1.0.0+1`) · **Dart SDK:** `^3.12.2` · **UI Framework:** Flutter (Material 3)
 
 FinCredit is a production-oriented, cross-platform Flutter mobile application engineered for **personal loan portfolio management, installment amortization tracking, AI-assisted document OCR & eKYC verification, debt payoff optimization (Snowball & Avalanche), what-if repayment simulation, and periodic personal credit health reporting** tailored to Vietnamese banking standards.
@@ -177,11 +178,18 @@ In production (`ENV=prod` without a custom `BASE_URL`), `ApiClient` supports aut
 
 ### 1. Loan Amortization (`LoanModel`, `DebtStrategyController`, `SimulationController`)
 - **Reducing Balance Annuity Formula:**
-  $$M = \begin{cases} \dfrac{P \cdot r \cdot (1+r)^n}{(1+r)^n - 1} & \text{if } r > 0 \\ \dfrac{P}{n} & \text{if } r = 0 \end{cases}$$
+
+```math
+M = \begin{cases} \dfrac{P \cdot r \cdot (1+r)^n}{(1+r)^n - 1} & \text{if } r > 0 \\ \dfrac{P}{n} & \text{if } r = 0 \end{cases}
+```
+
   where $P$ is outstanding/principal balance, $r = \frac{\text{annualRate}}{12}$, and $n$ is remaining/total tenor in months.
 - **Flat Interest Formula:** $M = \frac{P}{n} + P \cdot r$.
 - **Payoff Months with Accelerated Payment ($M_{\text{eff}} > P \cdot r$):**
-  $$n_{\text{new}} = \left\lceil \frac{-\ln\left(1 - \frac{P \cdot r}{M_{\text{eff}}}\right)}{\ln(1 + r)} \right\rceil$$
+
+```math
+n_{\text{new}} = \left\lceil \frac{-\ln\left(1 - \frac{P \cdot r}{M_{\text{eff}}}\right)}{\ln(1 + r)} \right\rceil
+```
 
 ### 2. Debt Optimization Multipliers (`DebtStrategyController`)
 - **Avalanche** sorts active loans descending by `interestRate`; **Snowball** sorts ascending by `outstandingAmount`.
