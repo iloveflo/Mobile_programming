@@ -1,11 +1,11 @@
 # FinCredit — Personal Debt Amortization & Credit Health Management
 
-![Flutter](https://img.shields.io/badge/Flutter-Material_3-02569B?style=flat-square&logo=flutter&logoColor=white)
-![Dart](https://img.shields.io/badge/Dart-3.12.2-0175C2?style=flat-square&logo=dart&logoColor=white)
-![Version](https://img.shields.io/badge/Version-1.0.0-0D47A1?style=flat-square)
-![Tests](https://img.shields.io/badge/Tests-341_cases_%2F_29_suites-16A34A?style=flat-square)
-![Platforms](https://img.shields.io/badge/Platforms-Android_·_iOS_·_Web-64748B?style=flat-square)
-![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?style=flat-square&logo=github-actions&logoColor=white)
+![Flutter](https://img.shields.io/static/v1?label=Flutter&message=Material+3&color=02569B&style=flat-square&logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/static/v1?label=Dart&message=3.12.2&color=0175C2&style=flat-square&logo=dart&logoColor=white)
+![Version](https://img.shields.io/static/v1?label=Version&message=1.0.0&color=0D47A1&style=flat-square)
+![Tests](https://img.shields.io/static/v1?label=Tests&message=341+passed&color=16A34A&style=flat-square)
+![Platforms](https://img.shields.io/static/v1?label=Platforms&message=Android+-+iOS+-+Web&color=64748B&style=flat-square)
+![CI/CD](https://img.shields.io/static/v1?label=CI%2FCD&message=GitHub+Actions&color=2088FF&style=flat-square&logo=githubactions&logoColor=white)
 
 > **Official Project Title:** *Ứng dụng Flutter quản lý phân kỳ trả nợ và báo cáo sức khỏe tín dụng cá nhân*
 >
