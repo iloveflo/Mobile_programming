@@ -287,7 +287,9 @@ class ApiClient {
           endpoint.contains('login') ||
           endpoint.contains('register') ||
           endpoint.contains('refresh') ||
-          endpoint.contains('session');
+          endpoint.contains('verify-otp') ||
+          endpoint.contains('resend-otp') ||
+          endpoint.contains('reset-password');
       if (e.statusCode == 401 && !isAuthEndpoint && onRefreshToken != null) {
         _consecutiveServerFailures = 0;
         final bool isInitiator = _refreshFuture == null;

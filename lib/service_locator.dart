@@ -62,7 +62,7 @@ const bool defaultIsMock = AppEnv.useMock;
 /// - `null`: Tự động sử dụng cấu hình môi trường [defaultIsMock]
 /// - `true`: Bắt buộc sử dụng Mock Data
 /// - `false`: Bắt buộc gọi Backend API thật qua ApiClient
-void setupServiceLocator({bool? isMock}) {
+void setupServiceLocator({bool? isMock, String? apiBaseUrl}) {
   bool useMockMode = isMock ?? defaultIsMock;
   if (isMock == null && !useMockMode && !kIsWeb) {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
@@ -74,7 +74,7 @@ void setupServiceLocator({bool? isMock}) {
   // 1. TẦNG CORE, NETWORK & STORAGE
   // =========================================================================
   _registerLazySingletonIfNot<ApiClient>(() {
-    final client = ApiClient();
+    final client = ApiClient(baseUrl: apiBaseUrl);
     client.onRefreshToken = () async {
       try {
         final sessionStorage = sl<SessionStorageService>();
@@ -92,13 +92,42 @@ void setupServiceLocator({bool? isMock}) {
               ? (response['data'] ?? response)
               : response;
           if (data is Map<String, dynamic>) {
-            final newToken = AuthTokenModel.fromJson(data);
-            if (newToken.accessToken.isNotEmpty) {
-              client.setAuthToken(newToken.accessToken);
-              await sessionStorage.saveSession(token: newToken);
+            final parsed = AuthTokenModel.fromJson(data);
+            if (parsed.accessToken.isNotEmpty) {
+              // Giữ nguyên deadline phiên gốc (expiresAt) nếu backend chỉ trả expires_at của access token
+              final updatedToken = AuthTokenModel(
+                accessToken: parsed.accessToken,
+                refreshToken:
+                    (parsed.refreshToken != null &&
+                        parsed.refreshToken!.isNotEmpty)
+                    ? parsed.refreshToken
+                    : savedToken.refreshToken,
+                expiresAt: savedToken.expiresAt,
+                accessExpiresAt: parsed.expiresAt,
+                userId: parsed.userId ?? savedToken.userId,
+              );
+              client.setAuthToken(updatedToken.accessToken);
+              await sessionStorage.saveSession(token: updatedToken);
               return true;
             }
           }
+        }
+      } on ApiException catch (e) {
+        if (e.statusCode == 401 || e.statusCode == 403) {
+          await sl<SessionStorageService>().clearSession();
+          client.clearAuthToken();
+          if (sl.isRegistered<RealtimeService>()) {
+            sl<RealtimeService>().disconnect();
+          }
+          if (sl.isRegistered<AuthController>()) {
+            sl<AuthController>().setCurrentUser(null);
+          }
+          try {
+            AppRouter.navigatorKey.currentState?.pushNamedAndRemoveUntil(
+              AppRouter.login,
+              (_) => false,
+            );
+          } catch (_) {}
         }
       } catch (_) {}
       return false;

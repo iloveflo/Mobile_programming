@@ -4,6 +4,7 @@ import 'layout/responsive_layout.dart';
 import 'routes/app_router.dart';
 import 'service_locator.dart';
 import 'services/push_notification_service.dart';
+import 'services/session_storage_service.dart';
 import 'widgets/widget.dart';
 
 Future<void> main() async {
@@ -14,6 +15,7 @@ Future<void> main() async {
 
   // Khởi tạo Service Locator (Mock/API Repository)
   setupServiceLocator();
+  await sl<SessionStorageService>().preload();
 
   runApp(const FinCreditApp());
 }

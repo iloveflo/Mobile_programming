@@ -13,6 +13,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -21,12 +24,60 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.FileOutputStream
+import java.security.KeyStore
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 
 class MainActivity : FlutterFragmentActivity() {
     private var pendingPermissionResult: MethodChannel.Result? = null
     private var notificationChannel: MethodChannel? = null
     private val notifPermissionRequestCode = 1001
     private val notifChannelId = "fincredit_reminders"
+    private val keystoreAlias = "fincredit_master_key"
+
+    private fun getOrCreateKeystoreKey(): SecretKey {
+        val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        val existing = keyStore.getKey(keystoreAlias, null) as? SecretKey
+        if (existing != null) return existing
+        val keyGenerator = KeyGenerator.getInstance(
+            KeyProperties.KEY_ALGORITHM_AES,
+            "AndroidKeyStore"
+        )
+        val spec = KeyGenParameterSpec.Builder(
+            keystoreAlias,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+        )
+            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+            .setKeySize(256)
+            .build()
+        keyGenerator.init(spec)
+        return keyGenerator.generateKey()
+    }
+
+    private fun encryptWithKeystore(plain: String): String {
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKeystoreKey())
+        val iv = cipher.iv
+        val encrypted = cipher.doFinal(plain.toByteArray(Charsets.UTF_8))
+        val combined = ByteArray(iv.size + encrypted.size)
+        System.arraycopy(iv, 0, combined, 0, iv.size)
+        System.arraycopy(encrypted, 0, combined, iv.size, encrypted.size)
+        return "ks1:" + Base64.encodeToString(combined, Base64.NO_WRAP)
+    }
+
+    private fun decryptWithKeystore(payload: String): String {
+        require(payload.startsWith("ks1:")) { "Định dạng dữ liệu Keystore không hợp lệ" }
+        val combined = Base64.decode(payload.substring(4), Base64.NO_WRAP)
+        require(combined.size > 12) { "Dữ liệu mã hóa bị hỏng" }
+        val iv = combined.copyOfRange(0, 12)
+        val ciphertext = combined.copyOfRange(12, combined.size)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, getOrCreateKeystoreKey(), GCMParameterSpec(128, iv))
+        return String(cipher.doFinal(ciphertext), Charsets.UTF_8)
+    }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -164,6 +215,37 @@ class MainActivity : FlutterFragmentActivity() {
                 }
             }
 
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "fincredit/secure_storage")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "encrypt" -> {
+                        val plain = call.argument<String>("plain")
+                        if (plain == null) {
+                            result.error("INVALID_INPUT", "Thiếu dữ liệu cần mã hóa", null)
+                            return@setMethodCallHandler
+                        }
+                        try {
+                            result.success(encryptWithKeystore(plain))
+                        } catch (e: Exception) {
+                            result.error("ENCRYPT_FAILED", e.message, null)
+                        }
+                    }
+                    "decrypt" -> {
+                        val cipher = call.argument<String>("cipher")
+                        if (cipher == null) {
+                            result.error("INVALID_INPUT", "Thiếu dữ liệu cần giải mã", null)
+                            return@setMethodCallHandler
+                        }
+                        try {
+                            result.success(decryptWithKeystore(cipher))
+                        } catch (e: Exception) {
+                            result.error("DECRYPT_FAILED", e.message, null)
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "fincredit/launcher")
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -174,7 +256,13 @@ class MainActivity : FlutterFragmentActivity() {
                             return@setMethodCallHandler
                         }
                         try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            val parsedUri = Uri.parse(url.trim())
+                            val scheme = parsedUri.scheme?.lowercase()
+                            if (scheme !in listOf("https", "http", "mailto", "tel")) {
+                                result.error("UNSAFE_URL", "Scheme URL không được phép: $scheme", null)
+                                return@setMethodCallHandler
+                            }
+                            val intent = Intent(Intent.ACTION_VIEW, parsedUri)
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             startActivity(intent)
                             result.success(true)

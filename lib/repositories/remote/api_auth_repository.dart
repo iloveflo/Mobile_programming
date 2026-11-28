@@ -110,11 +110,20 @@ class ApiAuthRepository implements AuthRepository {
     }
   }
 
+  String _deviceName() =>
+      'Android Device (${sessionStorage.getOrCreateDeviceId()})';
+
+  DateTime? _parseExpiry(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is DateTime) return raw;
+    return DateTime.tryParse(raw.toString());
+  }
+
   @override
   Future<AuthTokenModel?> checkSession() async {
     // 1. Nếu ApiClient chưa có token trong RAM, khôi phục từ SessionStorageService
+    final savedToken = sessionStorage.getSavedTokenSync();
     if (client.authToken == null || client.authToken!.isEmpty) {
-      final savedToken = sessionStorage.getSavedTokenSync();
       if (savedToken != null && !savedToken.isExpired) {
         client.setAuthToken(savedToken.accessToken);
       } else {
@@ -123,15 +132,36 @@ class ApiAuthRepository implements AuthRepository {
     }
 
     try {
+      final refreshHeader = savedToken?.refreshToken;
       final response = await _handleApiCall<dynamic>(
-        () => client.get('/api/auth/session'),
+        () => client.get(
+          '/api/auth/session',
+          headers: (refreshHeader != null && refreshHeader.isNotEmpty)
+              ? {'x-refresh-token': refreshHeader}
+              : null,
+        ),
       );
       if (response == null) return null;
       final data = response is Map<String, dynamic>
           ? (response['data'] ?? response)
           : response;
-      final session = AuthTokenModel.fromJson(
+      final parsed = AuthTokenModel.fromJson(
         Map<String, dynamic>.from(data as Map),
+      );
+      final currentSaved = await sessionStorage.getSavedToken();
+      final session = AuthTokenModel(
+        accessToken: parsed.accessToken.isNotEmpty
+            ? parsed.accessToken
+            : client.authToken ?? '',
+        refreshToken:
+            (parsed.refreshToken != null && parsed.refreshToken!.isNotEmpty)
+            ? parsed.refreshToken
+            : currentSaved?.refreshToken,
+        expiresAt:
+            currentSaved?.expiresAt ??
+            DateTime.now().add(const Duration(days: 30)),
+        accessExpiresAt: parsed.expiresAt ?? currentSaved?.accessExpiresAt,
+        userId: parsed.userId ?? currentSaved?.userId,
       );
       if (session.accessToken.isNotEmpty) {
         client.setAuthToken(session.accessToken);
@@ -145,9 +175,9 @@ class ApiAuthRepository implements AuthRepository {
         return null;
       }
       // Khi mất mạng tạm thời nhưng token còn hạn, duy trì phiên đã lưu
-      final savedToken = await sessionStorage.getSavedToken();
-      if (savedToken != null && !savedToken.isExpired) {
-        return savedToken;
+      final fallbackToken = await sessionStorage.getSavedToken();
+      if (fallbackToken != null && !fallbackToken.isExpired) {
+        return fallbackToken;
       }
       return null;
     }
@@ -159,18 +189,14 @@ class ApiAuthRepository implements AuthRepository {
     required String password,
     bool rememberMe = true,
   }) async {
-    final osLabel = Platform.isAndroid
-        ? 'Android'
-        : (Platform.isIOS ? 'iOS' : Platform.operatingSystem);
-
     _pendingRememberMe = rememberMe;
 
     final response = await _handleApiCall<dynamic>(
       () => client.post(
         '/api/auth/login',
         headers: {
-          'x-device-name': '$osLabel Device',
-          'x-platform': 'Flutter - $osLabel',
+          'x-device-name': _deviceName(),
+          'x-platform': 'Flutter - Android',
         },
         body: {
           'identifier': identifier.trim(),
@@ -226,7 +252,8 @@ class ApiAuthRepository implements AuthRepository {
         accessToken: token.toString(),
         refreshToken: (data['refreshToken'] ?? data['refresh_token'] ?? '')
             .toString(),
-        expiresAt: DateTime.now().add(const Duration(days: 7)),
+        expiresAt: DateTime.now().add(Duration(days: rememberMe ? 30 : 1)),
+        accessExpiresAt: _parseExpiry(data['expires_at'] ?? raw['expires_at']),
         userId: user.userId,
       );
       if (rememberMe) {
@@ -270,16 +297,12 @@ class ApiAuthRepository implements AuthRepository {
     required String otp,
     required String flowType,
   }) async {
-    final osLabel = Platform.isAndroid
-        ? 'Android'
-        : (Platform.isIOS ? 'iOS' : Platform.operatingSystem);
-
     final response = await _handleApiCall<dynamic>(
       () => client.post(
         '/api/auth/verify-otp',
         headers: {
-          'x-device-name': '$osLabel Device',
-          'x-platform': 'Flutter - $osLabel',
+          'x-device-name': _deviceName(),
+          'x-platform': 'Flutter - Android',
         },
         body: {
           'otp': otp,
@@ -323,7 +346,12 @@ class ApiAuthRepository implements AuthRepository {
         final tokenModel = AuthTokenModel(
           accessToken: accessTokenStr,
           refreshToken: refreshTokenStr,
-          expiresAt: DateTime.now().add(const Duration(days: 7)),
+          expiresAt: DateTime.now().add(
+            Duration(days: _pendingRememberMe ? 30 : 1),
+          ),
+          accessExpiresAt: _parseExpiry(
+            data['expires_at'] ?? response['expires_at'],
+          ),
           userId: user?.userId ?? 0,
         );
         if (flowType == 'LOGIN_DEVICE' && !_pendingRememberMe) {

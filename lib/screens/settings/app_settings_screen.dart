@@ -217,7 +217,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Thiết bị "${session.deviceName}" (${session.platform}) sẽ bị đăng xuất khỏi tài khoản ngay lập tức.',
+          'Thiết bị "${_cleanDeviceName(session.deviceName)}" (${session.platform}) sẽ bị đăng xuất khỏi tài khoản ngay lập tức.',
           style: const TextStyle(
             fontSize: 14.0,
             color: AppColors.textSecondary,
@@ -237,7 +237,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               }
               AppSnackBar.showSuccess(
                 context,
-                'Đã thu hồi phiên trên ${session.deviceName}',
+                'Đã thu hồi phiên trên ${_cleanDeviceName(session.deviceName)}',
               );
             },
             style: ElevatedButton.styleFrom(
@@ -837,14 +837,15 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     );
   }
 
-  Widget _buildSessionTile(SessionModel session) {
-    final rawName = session.deviceName.replaceAll(
-      RegExp(r'\s*\([0-9a-fA-F]{6,12}\)$'),
-      '',
-    );
-    final cleanDeviceName = rawName
+  String _cleanDeviceName(String name) {
+    return name
+        .replaceAll(RegExp(r'\s*\([0-9a-fA-F-]{6,36}\)$'), '')
         .replaceAll('Android Device', 'Thiết bị Android')
         .replaceAll('iOS Device', 'Thiết bị iOS');
+  }
+
+  Widget _buildSessionTile(SessionModel session) {
+    final cleanDeviceName = _cleanDeviceName(session.deviceName);
     return ListTile(
       titleAlignment: ListTileTitleAlignment.center,
       leading: CircleAvatar(
