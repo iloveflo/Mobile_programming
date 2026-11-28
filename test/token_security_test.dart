@@ -417,81 +417,99 @@ void main() {
       }
     });
 
-    test('saveBiometricCredentials never stores raw Base64 plaintext on disk', () async {
-      final storage = SessionStorageService(
-        customDirectory: tempDir,
-        useKeystoreOverride: false,
-      );
-      await storage.saveBiometricCredentials(
-        identifier: 'user@fincredit.vn',
-        password: 'SuperSecretPassword123!',
-      );
+    test(
+      'saveBiometricCredentials never stores raw Base64 plaintext on disk',
+      () async {
+        final storage = SessionStorageService(
+          customDirectory: tempDir,
+          useKeystoreOverride: false,
+        );
+        await storage.saveBiometricCredentials(
+          identifier: 'user@fincredit.vn',
+          password: 'SuperSecretPassword123!',
+        );
 
-      final rawFile = File('${tempDir.path}/biometric_binding.json').readAsStringSync();
-      expect(rawFile.startsWith('v1:'), isTrue);
-      expect(rawFile.contains('SuperSecretPassword123!'), isFalse);
-      final base64Raw = base64Encode(utf8.encode('SuperSecretPassword123!'));
-      expect(rawFile.contains(base64Raw), isFalse);
+        final rawFile = File(
+          '${tempDir.path}/biometric_binding.json',
+        ).readAsStringSync();
+        expect(rawFile.startsWith('v1:'), isTrue);
+        expect(rawFile.contains('SuperSecretPassword123!'), isFalse);
+        final base64Raw = base64Encode(utf8.encode('SuperSecretPassword123!'));
+        expect(rawFile.contains(base64Raw), isFalse);
 
-      final fresh = SessionStorageService(
-        customDirectory: tempDir,
-        useKeystoreOverride: false,
-      );
-      final creds = await fresh.getBiometricCredentials();
-      expect(creds, isNotNull);
-      expect(creds!.identifier, 'user@fincredit.vn');
-      expect(creds.password, 'SuperSecretPassword123!');
-    });
+        final fresh = SessionStorageService(
+          customDirectory: tempDir,
+          useKeystoreOverride: false,
+        );
+        final creds = await fresh.getBiometricCredentials();
+        expect(creds, isNotNull);
+        expect(creds!.identifier, 'user@fincredit.vn');
+        expect(creds.password, 'SuperSecretPassword123!');
+      },
+    );
 
-    test('Keystore MethodChannel encrypts auth_session & biometric_binding with ks1: and preload decrypts', () async {
-      const channel = MethodChannel('fincredit/secure_storage');
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (call) async {
-        final args = call.arguments as Map;
-        if (call.method == 'encrypt') {
-          final plain = args['plain'] as String;
-          return 'ks1:${base64Encode(utf8.encode(plain))}';
-        }
-        if (call.method == 'decrypt') {
-          final cipher = args['cipher'] as String;
-          return utf8.decode(base64Decode(cipher.substring(4)));
-        }
-        return null;
-      });
-      addTearDown(() {
+    test(
+      'Keystore MethodChannel encrypts auth_session & biometric_binding with ks1: and preload decrypts',
+      () async {
+        const channel = MethodChannel('fincredit/secure_storage');
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(channel, null);
-      });
+            .setMockMethodCallHandler(channel, (call) async {
+              final args = call.arguments as Map;
+              if (call.method == 'encrypt') {
+                final plain = args['plain'] as String;
+                return 'ks1:${base64Encode(utf8.encode(plain))}';
+              }
+              if (call.method == 'decrypt') {
+                final cipher = args['cipher'] as String;
+                return utf8.decode(base64Decode(cipher.substring(4)));
+              }
+              return null;
+            });
+        addTearDown(() {
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+              .setMockMethodCallHandler(channel, null);
+        });
 
-      final s1 = SessionStorageService(
-        customDirectory: tempDir,
-        useKeystoreOverride: true,
-      );
-      await s1.saveSession(
-        token: AuthTokenModel(
-          accessToken: 'ks_jwt_1',
-          refreshToken: 'ks_ref_1',
-          expiresAt: DateTime.now().add(const Duration(days: 30)),
-          userId: 9,
-        ),
-        identifier: 'ks@fincredit.vn',
-      );
-      await s1.saveBiometricCredentials(
-        identifier: 'ks@fincredit.vn',
-        password: 'KsPassword!99',
-      );
+        final s1 = SessionStorageService(
+          customDirectory: tempDir,
+          useKeystoreOverride: true,
+        );
+        await s1.saveSession(
+          token: AuthTokenModel(
+            accessToken: 'ks_jwt_1',
+            refreshToken: 'ks_ref_1',
+            expiresAt: DateTime.now().add(const Duration(days: 30)),
+            userId: 9,
+          ),
+          identifier: 'ks@fincredit.vn',
+        );
+        await s1.saveBiometricCredentials(
+          identifier: 'ks@fincredit.vn',
+          password: 'KsPassword!99',
+        );
 
-      expect(File('${tempDir.path}/auth_session.json').readAsStringSync().startsWith('ks1:'), isTrue);
-      expect(File('${tempDir.path}/biometric_binding.json').readAsStringSync().startsWith('ks1:'), isTrue);
+        expect(
+          File(
+            '${tempDir.path}/auth_session.json',
+          ).readAsStringSync().startsWith('ks1:'),
+          isTrue,
+        );
+        expect(
+          File(
+            '${tempDir.path}/biometric_binding.json',
+          ).readAsStringSync().startsWith('ks1:'),
+          isTrue,
+        );
 
-      final s2 = SessionStorageService(
-        customDirectory: tempDir,
-        useKeystoreOverride: true,
-      );
-      await s2.preload();
-      expect(s2.getSavedTokenSync()?.accessToken, 'ks_jwt_1');
-      expect(s2.getSavedTokenSync()?.refreshToken, 'ks_ref_1');
-      expect(s2.getBiometricCredentialsSync()?.password, 'KsPassword!99');
-    });
+        final s2 = SessionStorageService(
+          customDirectory: tempDir,
+          useKeystoreOverride: true,
+        );
+        await s2.preload();
+        expect(s2.getSavedTokenSync()?.accessToken, 'ks_jwt_1');
+        expect(s2.getSavedTokenSync()?.refreshToken, 'ks_ref_1');
+        expect(s2.getBiometricCredentialsSync()?.password, 'KsPassword!99');
+      },
+    );
   });
 }
